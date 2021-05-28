@@ -1,6 +1,6 @@
 {
   "name": "react-native-compressor",
-  "version": "0.1.0",
+  "version": "0.0.1",
   "description": "This library compress image, video and audio",
   "main": "lib/commonjs/index",
   "module": "lib/module/index",
@@ -37,7 +37,7 @@
     "android"
   ],
   "repository": "https://github.com/Shobbak/react-native-compressor",
-  "author": "shobbak <muhammadnuman70@gmail.com> (https://github.com/Shobbak)",
+  "author": "shobbak <github@onshobbak.com> (https://github.com/Shobbak)",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/Shobbak/react-native-compressor/issues"

@@ -34,7 +34,18 @@
   "keywords": [
     "react-native",
     "ios",
-    "android"
+    "android",
+    "audio",
+    "image",
+    "compression",
+    "react-native",
+    "video",
+    "compress",
+    "compress-images",
+    "compress-videos",
+    "react-native-compress",
+    "react-native-compressor",
+    "compress-audio"
   ],
   "repository": "https://github.com/Shobbak/react-native-compressor",
   "author": "shobbak <github@onshobbak.com> (https://github.com/Shobbak)",

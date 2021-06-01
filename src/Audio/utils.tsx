@@ -13,7 +13,7 @@ const INCORRECT_OUTPUT_PATH =
 const ERROR_OCCUR_WHILE_GENERATING_OUTPUT_FILE =
   'An error occur while generating output file';
 type audioCompresssionType = {
-  bitrate: string;
+  bitrate?: string;
   quality: qualityType;
   outputFilePath?: string | undefined | null;
 };

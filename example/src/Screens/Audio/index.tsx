@@ -1,23 +1,47 @@
-import React, { useEffect } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import compressor, { Audio } from 'react-native-compressor';
+import React, { useState } from 'react';
+import { View, StyleSheet } from 'react-native';
+import Button from '../../Components/Button';
+import Row from '../../Components/Row';
+import { Audio } from 'react-native-compressor';
+import DocumentPicker from 'react-native-document-picker';
+const prettyBytes = require('pretty-bytes');
+
 const Index = () => {
-  useEffect(() => {
-    Audio.compress(
-      'https://file-examples-com.github.io/uploads/2017/11/file_example_MP3_2MG.mp3',
-      { quality: 'medium' }
-    )
-      .then((result) => {
-        console.log(result, 'resultresult');
-      })
-      .catch((e) => {
-        console.log(e, 'error');
+  const [fileName, setFileName] = useState('');
+  const [mimeType, setMimeType] = useState('');
+  const [orignalSize, setOrignalSize] = useState(0);
+  const [compressedSize, setCompressedSize] = useState(0);
+  const chooseAudioHandler = async () => {
+    try {
+      const res = await DocumentPicker.pick({
+        type: [DocumentPicker.types.allFiles],
       });
-    console.log(compressor, 'compressor', Audio);
-  }, []);
+      setOrignalSize(prettyBytes(res.size));
+      setCompressedSize(prettyBytes(res.size));
+      setFileName(res.name);
+      setMimeType(res.type);
+      Audio.compress(res.uri, { quality: 'medium' })
+        .then((result) => {
+          console.log(result, 'resultresult');
+        })
+        .catch((e) => {
+          console.log(e, 'error');
+        });
+    } catch (err) {
+      if (DocumentPicker.isCancel(err)) {
+      } else {
+        throw err;
+      }
+    }
+  };
+
   return (
     <View style={styles.container}>
-      <Text>Audio Screen</Text>
+      <Row label="File Name" value={fileName} />
+      <Row label="Mime Type" value={mimeType} />
+      <Row label="Orignal Size" value={orignalSize} />
+      <Row label="Compressed Size" value={compressedSize} />
+      <Button onPress={chooseAudioHandler} title="Choose Audio" />
     </View>
   );
 };

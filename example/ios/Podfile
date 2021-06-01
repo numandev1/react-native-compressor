@@ -1,9 +1,10 @@
 require_relative '../node_modules/react-native/scripts/react_native_pods'
 require_relative '../node_modules/@react-native-community/cli-platform-ios/native_modules'
 
-platform :ios, '10.0'
+platform :ios, '11.0'
 
 target 'CompressorExample' do
+  pod 'react-native-ffmpeg/min-gpl-lts', :podspec => '../node_modules/react-native-ffmpeg/react-native-ffmpeg.podspec'
   config = use_native_modules!
 
   use_react_native!(
@@ -13,7 +14,6 @@ target 'CompressorExample' do
   )
 
   pod 'react-native-compressor', :path => '../..'
-
   # Enables Flipper.
   #
   # Note that if you have use_frameworks! enabled, Flipper will not work and

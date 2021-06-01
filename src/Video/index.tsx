@@ -12,6 +12,8 @@ export declare type FileSystemAcceptedUploadHttpMethod =
   | 'PUT'
   | 'PATCH';
 
+type videoCompresssionType = { bitrate?: number };
+
 export declare enum FileSystemSessionType {
   BACKGROUND = 0,
   FOREGROUND = 1,
@@ -42,7 +44,7 @@ export declare type FileSystemUploadOptions = (
 export type VideoUploadType = {
   compress(
     fileUrl: string,
-    options?: { bitrate?: number },
+    options?: videoCompresssionType,
     onProgress?: (progress: number) => void
   ): Promise<string>;
   backgroundUpload(

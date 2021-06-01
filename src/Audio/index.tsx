@@ -7,8 +7,7 @@ import {
   defaultResultType,
   checkUrlAndOptions,
   getDetails,
-} from './utils';
-
+} from '../utils';
 const Audio: AudioType = {
   compress: (url, options = DEFAULT_COMPRESS_AUDIO_OPTIONS) => {
     return new Promise(async (resolve: any, reject) => {
@@ -23,7 +22,7 @@ const Audio: AudioType = {
           const { outputFilePath } = checkUrlAndOptionsResult;
 
           // Get media details
-          const mediaDetails = await getDetails(url).catch(() => null);
+          const mediaDetails: any = await getDetails(url).catch(() => null);
 
           // Initialize bitrate
           let bitrate = DEFAULT_COMPRESS_AUDIO_OPTIONS.bitrate;

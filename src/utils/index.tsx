@@ -81,28 +81,17 @@ const isRemoteMedia = (path: string | null) => {
   return typeof path === 'string' ? path.split(':/')[0].includes('http') : null;
 };
 
+export const getMediaInformation = RNFFprobe.getMediaInformation;
 export const getDetails = (
   mediaFullPath: string,
-  mediaDetails?: any,
-  force: boolean = false
+  extesnion: 'mp3' | 'mp4' = 'mp3'
 ): Promise<MediaInformation | null> => {
   return new Promise(async (resolve, reject) => {
-    // Check force parameter
-    if (typeof force !== 'boolean') {
-      reject(`Parameter force should be boolean. ${typeof force} given`);
-      return;
-    }
-
-    // Perform cache operation
-    if (!force && mediaDetails) {
-      resolve(mediaDetails);
-      return;
-    }
-
     const GetAnotherMediaInfoCommand = `-i "${mediaFullPath}" -v error -select_streams v:0 -show_entries format=size -show_entries stream=size,width,height -of json`;
     try {
+      console.log(GetAnotherMediaInfoCommand, 'GetAnotherMediaInfoCommand');
       // Since we used "-v error", a work around is to call first this command before the following
-      const result = await RNFFprobe.execute(GetAnotherMediaInfoCommand);
+      const result: any = await RNFFprobe.execute(GetAnotherMediaInfoCommand);
       if (result.rc !== 0) {
         throw new Error('Failed to execute command');
       }
@@ -119,7 +108,7 @@ export const getDetails = (
 
       // treat both results
       mediaInformation.filename = getFilename(mediaFullPath);
-      mediaInformation.extension = 'mp3';
+      mediaInformation.extension = extesnion;
       mediaInformation.isRemoteMedia = isRemoteMedia(mediaFullPath);
       mediaInformation.size = Number(mediaInfo.format.size);
 

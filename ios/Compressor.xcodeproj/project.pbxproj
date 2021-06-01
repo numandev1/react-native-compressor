@@ -7,8 +7,13 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		188657BB26612A1D006FF392 /* VideoUpload.m in Sources */ = {isa = PBXBuildFile; fileRef = 188657B926612A1D006FF392 /* VideoUpload.m */; };
 		188657BC26612A1D006FF392 /* VideoUpload.swift in Sources */ = {isa = PBXBuildFile; fileRef = 188657BA26612A1D006FF392 /* VideoUpload.swift */; };
+		18865F2226650744006FF392 /* ImageCompressor.m in Sources */ = {isa = PBXBuildFile; fileRef = 18865F1E26650744006FF392 /* ImageCompressor.m */; };
+		18865F2326650744006FF392 /* ImageCompressorOptions.m in Sources */ = {isa = PBXBuildFile; fileRef = 18865F2126650744006FF392 /* ImageCompressorOptions.m */; };
+		1886632D26651A3D006FF392 /* ImageCompressorOptions.h in Sources */ = {isa = PBXBuildFile; fileRef = 18865F1F26650744006FF392 /* ImageCompressorOptions.h */; };
+		1886632E26651A3D006FF392 /* ImageCompressor.h in Sources */ = {isa = PBXBuildFile; fileRef = 18865F2026650744006FF392 /* ImageCompressor.h */; };
+		1886636626651A9D006FF392 /* VideoUpload.h in Sources */ = {isa = PBXBuildFile; fileRef = 188657C126612D08006FF392 /* VideoUpload.h */; };
+		1886636826651AA2006FF392 /* Compressor-Bridging-Header.h in Sources */ = {isa = PBXBuildFile; fileRef = 188657B826612A1C006FF392 /* Compressor-Bridging-Header.h */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -26,9 +31,12 @@
 /* Begin PBXFileReference section */
 		134814201AA4EA6300B7C361 /* libCompressor.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libCompressor.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		188657B826612A1C006FF392 /* Compressor-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Compressor-Bridging-Header.h"; sourceTree = "<group>"; };
-		188657B926612A1D006FF392 /* VideoUpload.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = VideoUpload.m; sourceTree = "<group>"; };
 		188657BA26612A1D006FF392 /* VideoUpload.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = VideoUpload.swift; sourceTree = "<group>"; };
 		188657C126612D08006FF392 /* VideoUpload.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = VideoUpload.h; sourceTree = "<group>"; };
+		18865F1E26650744006FF392 /* ImageCompressor.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ImageCompressor.m; sourceTree = "<group>"; };
+		18865F1F26650744006FF392 /* ImageCompressorOptions.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ImageCompressorOptions.h; sourceTree = "<group>"; };
+		18865F2026650744006FF392 /* ImageCompressor.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ImageCompressor.h; sourceTree = "<group>"; };
+		18865F2126650744006FF392 /* ImageCompressorOptions.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ImageCompressorOptions.m; sourceTree = "<group>"; };
 		B3E7B5881CC2AC0600A0062D /* Compressor.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Compressor.h; sourceTree = "<group>"; };
 		B3E7B5891CC2AC0600A0062D /* Compressor.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = Compressor.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -55,19 +63,11 @@
 		188657B5266127EC006FF392 /* Video */ = {
 			isa = PBXGroup;
 			children = (
-				188657B926612A1D006FF392 /* VideoUpload.m */,
 				188657B826612A1C006FF392 /* Compressor-Bridging-Header.h */,
 				188657BA26612A1D006FF392 /* VideoUpload.swift */,
 				188657C126612D08006FF392 /* VideoUpload.h */,
 			);
 			path = Video;
-			sourceTree = "<group>";
-		};
-		188657B6266127F8006FF392 /* Image */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = Image;
 			sourceTree = "<group>";
 		};
 		188657B7266127FF006FF392 /* Audio */ = {
@@ -77,11 +77,30 @@
 			path = Audio;
 			sourceTree = "<group>";
 		};
+		18865EEA266506D1006FF392 /* Image */ = {
+			isa = PBXGroup;
+			children = (
+				18865F1D26650744006FF392 /* Utils */,
+			);
+			path = Image;
+			sourceTree = "<group>";
+		};
+		18865F1D26650744006FF392 /* Utils */ = {
+			isa = PBXGroup;
+			children = (
+				18865F1E26650744006FF392 /* ImageCompressor.m */,
+				18865F1F26650744006FF392 /* ImageCompressorOptions.h */,
+				18865F2026650744006FF392 /* ImageCompressor.h */,
+				18865F2126650744006FF392 /* ImageCompressorOptions.m */,
+			);
+			path = Utils;
+			sourceTree = "<group>";
+		};
 		58B511D21A9E6C8500147676 = {
 			isa = PBXGroup;
 			children = (
+				18865EEA266506D1006FF392 /* Image */,
 				188657B7266127FF006FF392 /* Audio */,
-				188657B6266127F8006FF392 /* Image */,
 				188657B5266127EC006FF392 /* Video */,
 				B3E7B5881CC2AC0600A0062D /* Compressor.h */,
 				B3E7B5891CC2AC0600A0062D /* Compressor.m */,
@@ -147,8 +166,13 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				1886636826651AA2006FF392 /* Compressor-Bridging-Header.h in Sources */,
+				1886636626651A9D006FF392 /* VideoUpload.h in Sources */,
+				1886632D26651A3D006FF392 /* ImageCompressorOptions.h in Sources */,
+				1886632E26651A3D006FF392 /* ImageCompressor.h in Sources */,
+				18865F2226650744006FF392 /* ImageCompressor.m in Sources */,
+				18865F2326650744006FF392 /* ImageCompressorOptions.m in Sources */,
 				188657BC26612A1D006FF392 /* VideoUpload.swift in Sources */,
-				188657BB26612A1D006FF392 /* VideoUpload.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

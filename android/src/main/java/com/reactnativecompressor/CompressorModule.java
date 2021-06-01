@@ -23,12 +23,16 @@ public class CompressorModule extends ReactContextBaseJavaModule {
     }
 
 
-    // Example method
-    // See https://reactnative.dev/docs/native-modules-android
     @ReactMethod
-    public void multiply(int a, int b, Promise promise) {
-        promise.resolve(a * b);
-    }
+   public void generateFile(String extension, Promise promise) {
+     try {
+       File outputDir = reactContext.getCacheDir();
 
-    public static native int nativeMultiply(int a, int b);
+       final String outputUri = String.format("%s/%s." + extension, outputDir.getPath(), UUID.randomUUID().toString());
+
+       promise.resolve(outputUri);
+     } catch (Exception e) {
+       promise.reject(e);
+     }
+   }
 }

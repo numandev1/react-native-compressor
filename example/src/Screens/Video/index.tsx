@@ -1,18 +1,17 @@
 import React, { useEffect } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import compressor from 'react-native-compressor';
+import compressor, { Video } from 'react-native-compressor';
 const Index = () => {
   useEffect(() => {
-    compressor
-      .compress(
-        'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
-        {}
-      )
+    Video.compress(
+      'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+      {}
+    )
       .then(() => {})
       .catch((e) => {
         console.log(e, 'error');
       });
-    console.log(compressor, 'compressor');
+    console.log(compressor, 'compressor', Video);
   }, []);
   return (
     <View style={styles.container}>

@@ -1,9 +1,16 @@
-import { NativeModules } from 'react-native';
+import Video, { VideoUploadType } from './Video';
+import Audio from './Audio';
+import Image from './Image';
 
-type CompressorType = {
-  compress(fileUrl: string, options: any): Promise<number>;
+export {
+  Video,
+  Audio,
+  Image,
+  //type
+  VideoUploadType,
 };
-
-const { Compressor } = NativeModules;
-
-export default Compressor as CompressorType;
+export default {
+  Video,
+  Audio,
+  Image,
+};

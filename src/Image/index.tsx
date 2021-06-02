@@ -3,7 +3,7 @@ const base64UrlRegex = /^data:image\/.*;(?:charset=.{3,5};)?base64,/;
 
 export type InputType = 'base64' | 'uri';
 
-export type OutputType = 'jpeg' | 'png';
+export type OutputType = 'jpg' | 'png';
 
 export type CompressorOptions = {
   /***

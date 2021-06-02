@@ -6,6 +6,7 @@ import android.graphics.Canvas;
 import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.util.Base64;
+import android.util.Log;
 
 import com.reactnativecompressor.Image.utils.ImageCompressorOptions;
 import com.reactnativecompressor.Image.utils.ImageSize;
@@ -36,7 +37,13 @@ public class ImageCompressor {
     }
 
     public static Bitmap loadImage(String value) {
-        return BitmapFactory.decodeFile(value);
+      String filePath=value;
+    if(value.indexOf("file:/")>-1)
+    {
+      filePath=value.substring( value.indexOf( ':' ) + 1 );
+    }
+      Bitmap bitmap = BitmapFactory.decodeFile(filePath);
+        return bitmap;
     }
 
   public static String encodeImage(byte[] imageData) {

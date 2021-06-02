@@ -19,11 +19,18 @@
 
 +(UIImage *) decodeImage: (NSString *) value {
     NSData *data = [[NSData alloc] initWithBase64EncodedString:value options: NSDataBase64DecodingIgnoreUnknownCharacters];
-    return [[UIImage alloc] initWithData: data];
+    return [[UIImage alloc] initWithData:data];
 }
 
 +(UIImage *) loadImage:(NSString *)path {
-    return [[UIImage alloc] initWithContentsOfFile: path];
+    UIImage *image=nil;
+    if ([path hasPrefix:@"data:"] || [path hasPrefix:@"file:"]) {
+            NSURL *imageUrl = [[NSURL alloc] initWithString:path];
+            image = [UIImage imageWithData:[NSData dataWithContentsOfURL:imageUrl]];
+          } else {
+            image = [[UIImage alloc] initWithContentsOfFile:path];
+          }
+    return image;
 }
 
 
@@ -85,7 +92,8 @@
     CGColorSpaceRelease(colorSpace);
     CGContextRelease(targetContext);
     
-    free(&targetData);
+    
+    free(targetData);
     
     return resizedImage;
 }
@@ -106,6 +114,6 @@
             @throw exception;
     }
     
-    return [data base64EncodedStringWithOptions: 0];
+    return [data base64EncodedStringWithOptions:0];
 }
 @end

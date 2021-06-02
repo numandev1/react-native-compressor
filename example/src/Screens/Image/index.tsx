@@ -32,6 +32,8 @@ const Index = () => {
             Image.compress(source.uri, {
               maxWidth: 1000,
               input: 'uri',
+              output: 'jpg',
+              quality: 0.5,
             })
               .then((compressed) => {
                 console.log(compressed);

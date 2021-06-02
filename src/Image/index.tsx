@@ -3,7 +3,9 @@ const base64UrlRegex = /^data:image\/.*;(?:charset=.{3,5};)?base64,/;
 
 export type InputType = 'base64' | 'uri';
 
-export type OutputType = 'jpeg' | 'png';
+export type OutputType = 'jpg' | 'png';
+
+export type ReturnableOutputType = 'uri' | 'base64';
 
 export type CompressorOptions = {
   /***
@@ -26,6 +28,10 @@ export type CompressorOptions = {
    * The output image type.
    */
   output?: OutputType;
+  /***
+   * The output that will return to user.
+   */
+  returnableOutputType?: ReturnableOutputType;
 };
 
 const NativeImage = NativeModules.Compressor;

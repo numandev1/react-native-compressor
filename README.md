@@ -127,7 +127,11 @@ const result = await Video.compress(
   Can be either `uri` or `base64`, defines the contentents of the `value` parameter.
 
 - ###### `output: OutputType` (default: jpg)
+
   Can be either `jpg` or `png`, defines the output image format.
+
+- ###### `returnableOutputType: ReturnableOutputType` (default: base64)
+  Can be either `uri` or `base64`, defines the Returnable output image format.
 
 ## Audio
 

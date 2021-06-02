@@ -54,10 +54,12 @@ RCT_EXPORT_METHOD(
                 reject(@"unsupported_value", @"Unsupported value type.", nil);
                 return;
         }
-
+        NSString *outputExtension=[ImageCompressorOptions getOutputInString:options.output];
         UIImage *resizedImage = [ImageCompressor resize:image maxWidth:options.maxWidth maxHeight:options.maxHeight];
-        NSString *result = [ImageCompressor compress:resizedImage output:options.output quality:options.quality];
-
+        NSLog(outputExtension);
+        Boolean isBase64=options.returnableOutputType ==rbase64;
+        NSString *result = [ImageCompressor compress:resizedImage output:options.output quality:options.quality outputExtension:outputExtension isBase64:isBase64];
+        
         resolve(result);
     }
     @catch (NSException *exception) {

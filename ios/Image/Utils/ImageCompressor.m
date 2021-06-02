@@ -98,7 +98,7 @@
     return resizedImage;
 }
 
-+(NSString *)compress:(UIImage *)image output:(enum OutputType)output quality:(float)quality {
++(NSString *)compress:(UIImage *)image output:(enum OutputType)output quality:(float)quality outputExtension:(NSString*)outputExtension isBase64:(Boolean)isBase64{
     NSData *data;
     NSException *exception;
     
@@ -113,7 +113,20 @@
             exception = [[NSException alloc] initWithName: @"unsupported_format" reason:@"This format is not supported." userInfo:nil];
             @throw exception;
     }
-    
-    return [data base64EncodedStringWithOptions:0];
+  
+    if(isBase64)
+    {
+        return [data base64EncodedStringWithOptions:0];
+    }
+    else
+    {
+        NSUUID *uuid = [NSUUID UUID];
+        NSString *imageNameWihtoutExtension = [uuid UUIDString];
+        NSString *imageName=[imageNameWihtoutExtension stringByAppendingPathExtension:outputExtension];
+        NSString *filePath =
+            [NSTemporaryDirectory() stringByAppendingPathComponent:imageName];
+        [data writeToFile:filePath atomically:YES]; //Write the file
+        return filePath;
+    }
 }
 @end

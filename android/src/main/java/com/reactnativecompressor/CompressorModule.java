@@ -12,6 +12,8 @@ import com.facebook.react.bridge.ReadableMap;
 import com.facebook.react.module.annotations.ReactModule;
 import com.reactnativecompressor.Image.ImageCompressor;
 import com.reactnativecompressor.Image.utils.ImageCompressorOptions;
+
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.util.UUID;
 import static com.reactnativecompressor.Video.VideoCompressor.*;
@@ -97,10 +99,12 @@ public class CompressorModule extends ReactContextBaseJavaModule {
         : ImageCompressor.loadImage(value);
 
       final Bitmap resizedImage = ImageCompressor.resize(image, options.maxWidth, options.maxHeight);
-      final byte[] imageData = ImageCompressor.compress(resizedImage, options.output, options.quality);
-      final String base64Result = ImageCompressor.encodeImage(imageData);
+      final ByteArrayOutputStream imageDataByteArrayOutputStream = ImageCompressor.compress(resizedImage, options.output, options.quality);
+      Boolean isBase64=options.returnableOutputType==ImageCompressorOptions.ReturnableOutputType.base64;
 
-      promise.resolve(base64Result);
+      final String returnableResult = ImageCompressor.encodeImage(imageDataByteArrayOutputStream,isBase64,image,options.output.toString(),this.reactContext);
+
+      promise.resolve(returnableResult);
     } catch (Exception ex) {
       promise.reject(ex);
     }
@@ -111,10 +115,7 @@ public class CompressorModule extends ReactContextBaseJavaModule {
     @ReactMethod
    public void generateFile(String extension, Promise promise) {
      try {
-       File outputDir = reactContext.getCacheDir();
-
-       final String outputUri = String.format("%s/%s." + extension, outputDir.getPath(), UUID.randomUUID().toString());
-
+       final String outputUri =ImageCompressor.generateCacheFilePath(extension,reactContext);
        promise.resolve(outputUri);
      } catch (Exception e) {
        promise.reject(e);

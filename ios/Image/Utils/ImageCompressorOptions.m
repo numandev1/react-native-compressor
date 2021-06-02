@@ -24,10 +24,23 @@
             [options parseInput: value];
         } else if ([key isEqual:@"output"]) {
             [options parseOutput: value];
+        } else if ([key isEqual:@"returnableOutputType"]) {
+            [options parseReturnableOutput: value];
         }
     }
     
     return options;
+}
+
++ (NSString *) getOutputInString:(enum OutputType*)output{
+    if(output==jpg)
+   {
+       return  @"jpg";
+   }
+    else
+    {
+        return @"png";
+    }
 }
 
 - (instancetype) init {
@@ -37,8 +50,9 @@
         self.maxWidth = 640;
         self.maxHeight = 480;
         self.quality = 1.0f;
-        self.input = base64;
+        self.input = uri;
         self.output = jpg;
+        self.returnableOutputType = uri;
     }
     
     return self;
@@ -49,12 +63,20 @@
 @synthesize quality;
 @synthesize input;
 @synthesize output;
+@synthesize returnableOutputType;
 
 - (void) parseInput:(NSString*)input {
     NSDictionary *inputTranslations = @{ @"base64": @(base64), @"uri": @(uri) };
     NSNumber *enumValue = [inputTranslations objectForKey: input];
     
     self.input = [enumValue longValue];
+}
+
+- (void) parseReturnableOutput:(NSString*)input {
+    NSDictionary *inputTranslations = @{ @"base64": @(rbase64), @"uri": @(ruri) };
+    NSNumber *enumValue = [inputTranslations objectForKey: input];
+    
+    self.returnableOutputType = [enumValue longValue];
 }
 
 - (void) parseOutput:(NSString*)output {

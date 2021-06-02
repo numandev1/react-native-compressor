@@ -5,6 +5,8 @@ export type InputType = 'base64' | 'uri';
 
 export type OutputType = 'jpg' | 'png';
 
+export type ReturnableOutputType = 'uri' | 'base64';
+
 export type CompressorOptions = {
   /***
    * The maximum width boundary used when compressing a landscape image.
@@ -26,6 +28,10 @@ export type CompressorOptions = {
    * The output image type.
    */
   output?: OutputType;
+  /***
+   * The output that will return to user.
+   */
+  returnableOutputType?: ReturnableOutputType;
 };
 
 const NativeImage = NativeModules.Compressor;

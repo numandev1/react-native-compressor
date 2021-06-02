@@ -1,17 +1,24 @@
 package com.reactnativecompressor.Image;
 
+import android.content.Context;
+import android.content.ContextWrapper;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Matrix;
 import android.graphics.Paint;
+import android.net.Uri;
 import android.util.Base64;
-import android.util.Log;
 
+import com.facebook.react.bridge.ReactApplicationContext;
 import com.reactnativecompressor.Image.utils.ImageCompressorOptions;
 import com.reactnativecompressor.Image.utils.ImageSize;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.UnsupportedEncodingException;
+import java.util.UUID;
 
 public class ImageCompressor {
   public static ImageSize findActualSize(Bitmap image, int maxWidth, int maxHeight) {
@@ -46,8 +53,31 @@ public class ImageCompressor {
         return bitmap;
     }
 
-  public static String encodeImage(byte[] imageData) {
-        return Base64.encodeToString(imageData, Base64.DEFAULT);
+    public static String generateCacheFilePath(String extension,ReactApplicationContext reactContext){
+      File outputDir = reactContext.getCacheDir();
+
+      String outputUri = String.format("%s/%s." + extension, outputDir.getPath(), UUID.randomUUID().toString());
+      return outputUri;
+    }
+
+  public static String encodeImage(ByteArrayOutputStream imageDataByteArrayOutputStream, Boolean isBase64, Bitmap bitmapImage,String outputExtension, ReactApplicationContext reactContext) {
+    if(isBase64)
+    {
+      byte[] imageData=imageDataByteArrayOutputStream.toByteArray();
+      return Base64.encodeToString(imageData, Base64.DEFAULT);
+    }
+    else
+    {
+      String outputUri=generateCacheFilePath(outputExtension,reactContext);
+      try {
+        FileOutputStream fos=new FileOutputStream(outputUri);
+        imageDataByteArrayOutputStream.writeTo(fos);
+        return "file:/"+outputUri;
+      } catch (Exception e) {
+        e.printStackTrace();
+      }
+    }
+  return  "";
     }
 
   public static Bitmap resize(Bitmap image, int maxWidth, int maxHeight) {
@@ -69,14 +99,13 @@ public class ImageCompressor {
         return scaledImage;
     }
 
-  public static byte[] compress(Bitmap image, ImageCompressorOptions.OutputType output, float quality) {
+  public static ByteArrayOutputStream compress(Bitmap image, ImageCompressorOptions.OutputType output, float quality) {
         final ByteArrayOutputStream stream = new ByteArrayOutputStream();
         final Bitmap.CompressFormat format = output == ImageCompressorOptions.OutputType.jpg
                 ? Bitmap.CompressFormat.JPEG
                 : Bitmap.CompressFormat.PNG;
 
         image.compress(format, Math.round(100 * quality), stream);
-
-        return stream.toByteArray();
+        return stream;
     }
 }

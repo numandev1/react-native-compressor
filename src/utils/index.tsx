@@ -1,4 +1,4 @@
-import { Platform, NativeModules } from 'react-native';
+import { NativeModules } from 'react-native';
 import {
   RNFFprobe,
   RNFFmpegConfig,
@@ -89,17 +89,16 @@ export const getDetails = (
   return new Promise(async (resolve, reject) => {
     const GetAnotherMediaInfoCommand = `-i "${mediaFullPath}" -v error -select_streams v:0 -show_entries format=size -show_entries stream=size,width,height -of json`;
     try {
-      console.log(GetAnotherMediaInfoCommand, 'GetAnotherMediaInfoCommand');
       // Since we used "-v error", a work around is to call first this command before the following
       const result: any = await RNFFprobe.execute(GetAnotherMediaInfoCommand);
-      if (result.rc !== 0) {
+      if (result !== 0) {
         throw new Error('Failed to execute command');
       }
 
       // get the output result of the command
       // example of output {"programs": [], "streams": [{"width": 640,"height": 360}], "format": {"size": "15804433"}}
       let mediaInfo: any = await RNFFmpegConfig.getLastCommandOutput();
-      mediaInfo = JSON.parse(mediaInfo.lastCommandOutput);
+      mediaInfo = JSON.parse(mediaInfo);
 
       // execute second command
       const mediaInformation: any = await RNFFprobe.getMediaInformation(
@@ -108,6 +107,7 @@ export const getDetails = (
 
       // treat both results
       mediaInformation.filename = getFilename(mediaFullPath);
+      mediaInformation.bitrate = mediaInformation.getMediaProperties().bit_rate;
       mediaInformation.extension = extesnion;
       mediaInformation.isRemoteMedia = isRemoteMedia(mediaFullPath);
       mediaInformation.size = Number(mediaInfo.format.size);
@@ -143,10 +143,8 @@ export const checkUrlAndOptions = async (
       outputFilePath = options.outputFilePath;
       defaultResult.outputFilePath = outputFilePath;
     } else {
-      if (Platform.OS === 'android') {
-        outputFilePath = await generateFile('mp3');
-        defaultResult.outputFilePath = outputFilePath;
-      }
+      outputFilePath = await generateFile('mp3');
+      defaultResult.outputFilePath = outputFilePath;
     }
     if (outputFilePath === undefined || outputFilePath === null) {
       defaultResult.isCorrect = false;

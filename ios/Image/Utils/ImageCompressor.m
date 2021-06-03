@@ -120,13 +120,19 @@
     }
     else
     {
-        NSUUID *uuid = [NSUUID UUID];
-        NSString *imageNameWihtoutExtension = [uuid UUIDString];
-        NSString *imageName=[imageNameWihtoutExtension stringByAppendingPathExtension:outputExtension];
-        NSString *filePath =
-            [NSTemporaryDirectory() stringByAppendingPathComponent:imageName];
+        NSString *filePath =[self generateCacheFilePath:outputExtension];
         [data writeToFile:filePath atomically:YES]; //Write the file
         return filePath;
     }
 }
+
++ (NSString *)generateCacheFilePath:(NSString *)extension{
+    NSUUID *uuid = [NSUUID UUID];
+    NSString *imageNameWihtoutExtension = [uuid UUIDString];
+    NSString *imageName=[imageNameWihtoutExtension stringByAppendingPathExtension:extension];
+    NSString *filePath =
+        [NSTemporaryDirectory() stringByAppendingPathComponent:imageName];
+    return filePath;
+}
+
 @end

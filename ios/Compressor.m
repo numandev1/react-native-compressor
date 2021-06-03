@@ -59,8 +59,20 @@ RCT_EXPORT_METHOD(
         NSLog(outputExtension);
         Boolean isBase64=options.returnableOutputType ==rbase64;
         NSString *result = [ImageCompressor compress:resizedImage output:options.output quality:options.quality outputExtension:outputExtension isBase64:isBase64];
-        
         resolve(result);
+    }
+    @catch (NSException *exception) {
+        reject(exception.name, exception.reason, nil);
+    }
+}
+
+RCT_EXPORT_METHOD(
+    generateFile: (NSString*) extension
+    resolver: (RCTPromiseResolveBlock) resolve
+    rejecter: (RCTPromiseRejectBlock) reject) {
+    @try {
+        NSString *outputUri =[ImageCompressor generateCacheFilePath:extension];
+        resolve(outputUri);
     }
     @catch (NSException *exception) {
         reject(exception.name, exception.reason, nil);

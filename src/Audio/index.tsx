@@ -1,5 +1,6 @@
+import { Platform } from 'react-native';
 import { RNFFmpeg } from 'react-native-ffmpeg';
-
+const RNFS = require('react-native-fs');
 import {
   AUDIO_BITRATE,
   AudioType,
@@ -8,9 +9,16 @@ import {
   checkUrlAndOptions,
   getDetails,
 } from '../utils';
+import { v4 as uuidv4 } from 'uuid';
+
 const Audio: AudioType = {
   compress: (url, options = DEFAULT_COMPRESS_AUDIO_OPTIONS) => {
     return new Promise(async (resolve: any, reject) => {
+      if (Platform.OS === 'android' && url.includes('content://')) {
+        const destPath = `${RNFS.TemporaryDirectoryPath}/${uuidv4()}.mp3`;
+        await RNFS.copyFile(url, destPath);
+        url = destPath;
+      }
       try {
         const checkUrlAndOptionsResult: defaultResultType =
           await checkUrlAndOptions(url, options);

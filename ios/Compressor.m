@@ -1,37 +1,13 @@
 #import "Compressor.h"
+#import <React/RCTBridgeModule.h>
 //Image
 #import "Image/Utils/ImageCompressor.h"
 #import "Image/Utils/ImageCompressorOptions.h"
 #import <React/RCTEventEmitter.h>
 
-//Video
-#import "Video/VideoUpload.h"
-
-//@interface RCT_EXTERN_MODULE(VideoUpload, RCTEventEmitter)
-//@end
-
 @implementation Compressor
 
 RCT_EXPORT_MODULE()
-
-// Video
-RCT_EXTERN_METHOD(video_compress:(NSString *)fileUrl
-                 withOptions:(NSDictionary *)options
-                 withResolver:(RCTPromiseResolveBlock)resolve
-                 withRejecter:(RCTPromiseRejectBlock)reject)
-
-RCT_EXTERN_METHOD(video_upload:(NSString *)fileUrl
-                 withOptions:(NSDictionary *)options
-                 withResolver:(RCTPromiseResolveBlock)resolve
-                 withRejecter:(RCTPromiseRejectBlock)reject)
-
-RCT_EXTERN_METHOD(video_activateBackgroundTask: (NSDictionary *)options
-                 withResolver:(RCTPromiseResolveBlock)resolve
-                 withRejecter:(RCTPromiseRejectBlock)reject)
-
-RCT_EXTERN_METHOD(video_deactivateBackgroundTask: (NSDictionary *)options
-                 withResolver:(RCTPromiseResolveBlock)resolve
-                 withRejecter:(RCTPromiseRejectBlock)reject)
 
 //Image
 RCT_EXPORT_METHOD(
@@ -56,7 +32,6 @@ RCT_EXPORT_METHOD(
         }
         NSString *outputExtension=[ImageCompressorOptions getOutputInString:options.output];
         UIImage *resizedImage = [ImageCompressor resize:image maxWidth:options.maxWidth maxHeight:options.maxHeight];
-        NSLog(outputExtension);
         Boolean isBase64=options.returnableOutputType ==rbase64;
         NSString *result = [ImageCompressor compress:resizedImage output:options.output quality:options.quality outputExtension:outputExtension isBase64:isBase64];
         resolve(result);
@@ -66,6 +41,7 @@ RCT_EXPORT_METHOD(
     }
 }
 
+//general
 RCT_EXPORT_METHOD(
     generateFile: (NSString*) extension
     resolver: (RCTPromiseResolveBlock) resolve
@@ -80,3 +56,27 @@ RCT_EXPORT_METHOD(
 }
 
 @end
+
+
+@interface RCT_EXTERN_MODULE(VideoCompressor, RCTEventEmitter)
+
+RCT_EXTERN_METHOD(compress:(NSString *)fileUrl
+                 withOptions:(NSDictionary *)options
+                 withResolver:(RCTPromiseResolveBlock)resolve
+                 withRejecter:(RCTPromiseRejectBlock)reject)
+
+RCT_EXTERN_METHOD(upload:(NSString *)fileUrl
+                 withOptions:(NSDictionary *)options
+                 withResolver:(RCTPromiseResolveBlock)resolve
+                 withRejecter:(RCTPromiseRejectBlock)reject)
+
+RCT_EXTERN_METHOD(activateBackgroundTask: (NSDictionary *)options
+                 withResolver:(RCTPromiseResolveBlock)resolve
+                 withRejecter:(RCTPromiseRejectBlock)reject)
+
+RCT_EXTERN_METHOD(deactivateBackgroundTask: (NSDictionary *)options
+                 withResolver:(RCTPromiseResolveBlock)resolve
+                 withRejecter:(RCTPromiseRejectBlock)reject)
+
+@end
+

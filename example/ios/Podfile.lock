@@ -281,9 +281,13 @@ PODS:
     - React-jsi (= 0.64.1)
     - React-perflogger (= 0.64.1)
   - React-jsinspector (0.64.1)
+  - react-native-background-upload (6.2.4):
+    - React
   - react-native-compressor (0.0.1):
     - NextLevelSessionExporter
     - React-Core
+  - react-native-create-thumbnail (1.4.1):
+    - React
   - react-native-document-picker (5.0.4):
     - React-Core
   - react-native-ffmpeg/full-gpl-lts (0.5.1):
@@ -358,6 +362,8 @@ PODS:
     - React-jsi (= 0.64.1)
     - React-perflogger (= 0.64.1)
   - RNCMaskedView (0.1.11):
+    - React
+  - RNFS (2.18.0):
     - React
   - RNGestureHandler (1.10.3):
     - React-Core
@@ -437,7 +443,9 @@ DEPENDENCIES:
   - React-jsi (from `../node_modules/react-native/ReactCommon/jsi`)
   - React-jsiexecutor (from `../node_modules/react-native/ReactCommon/jsiexecutor`)
   - React-jsinspector (from `../node_modules/react-native/ReactCommon/jsinspector`)
+  - react-native-background-upload (from `../node_modules/react-native-background-upload`)
   - react-native-compressor (from `../..`)
+  - react-native-create-thumbnail (from `../node_modules/react-native-create-thumbnail`)
   - react-native-document-picker (from `../node_modules/react-native-document-picker`)
   - react-native-ffmpeg/full-gpl-lts (from `../node_modules/react-native-ffmpeg/react-native-ffmpeg.podspec`)
   - react-native-image-picker (from `../node_modules/react-native-image-picker`)
@@ -455,6 +463,7 @@ DEPENDENCIES:
   - React-runtimeexecutor (from `../node_modules/react-native/ReactCommon/runtimeexecutor`)
   - ReactCommon/turbomodule/core (from `../node_modules/react-native/ReactCommon`)
   - "RNCMaskedView (from `../node_modules/@react-native-community/masked-view`)"
+  - RNFS (from `../node_modules/react-native-fs`)
   - RNGestureHandler (from `../node_modules/react-native-gesture-handler`)
   - RNReanimated (from `../node_modules/react-native-reanimated`)
   - RNScreens (from `../node_modules/react-native-screens`)
@@ -509,8 +518,12 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native/ReactCommon/jsiexecutor"
   React-jsinspector:
     :path: "../node_modules/react-native/ReactCommon/jsinspector"
+  react-native-background-upload:
+    :path: "../node_modules/react-native-background-upload"
   react-native-compressor:
     :path: "../.."
+  react-native-create-thumbnail:
+    :path: "../node_modules/react-native-create-thumbnail"
   react-native-document-picker:
     :path: "../node_modules/react-native-document-picker"
   react-native-ffmpeg:
@@ -545,6 +558,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native/ReactCommon"
   RNCMaskedView:
     :path: "../node_modules/@react-native-community/masked-view"
+  RNFS:
+    :path: "../node_modules/react-native-fs"
   RNGestureHandler:
     :path: "../node_modules/react-native-gesture-handler"
   RNReanimated:
@@ -584,7 +599,9 @@ SPEC CHECKSUMS:
   React-jsi: 5de8204706bd872b78ea646aee5d2561ca1214b6
   React-jsiexecutor: 124e8f99992490d0d13e0649d950d3e1aae06fe9
   React-jsinspector: 500a59626037be5b3b3d89c5151bc3baa9abf1a9
-  react-native-compressor: 2732f40b3be83c190e0b039e87d92be64cb2e73f
+  react-native-background-upload: b85fac36cfee561c8b3a282e5700e50dc98249c5
+  react-native-compressor: 597416a9ae6b7446e6795ccead336433b0d88745
+  react-native-create-thumbnail: d31c84dd69fb4d60aec0ff2f49bc0de41ede7b2c
   react-native-document-picker: 1a7518132d4a06b67f459be9bb1464a567d2b3b4
   react-native-ffmpeg: 9fbe53d5afd6f35978804756f58238cf9340d1d8
   react-native-image-picker: 474cf2c33c2b6671da53d293a16c97995f0aec15
@@ -602,6 +619,7 @@ SPEC CHECKSUMS:
   React-runtimeexecutor: ff951a0c241bfaefc4940a3f1f1a229e7cb32fa6
   ReactCommon: bedc99ed4dae329c4fcf128d0c31b9115e5365ca
   RNCMaskedView: 0e1bc4bfa8365eba5fbbb71e07fbdc0555249489
+  RNFS: 3ab21fa6c56d65566d1fb26c2228e2b6132e5e32
   RNGestureHandler: a479ebd5ed4221a810967000735517df0d2db211
   RNReanimated: 9c13c86454bfd54dab7505c1a054470bfecd2563
   RNScreens: bf59f17fbf001f1025243eeed5f19419d3c11ef2

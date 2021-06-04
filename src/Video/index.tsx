@@ -1,6 +1,6 @@
 import { NativeModules, NativeEventEmitter } from 'react-native';
 import { v4 as uuidv4 } from 'uuid';
-import * as FileSystem from 'expo-file-system';
+import Upload from 'react-native-background-upload';
 
 export declare enum FileSystemUploadType {
   BINARY_CONTENT = 0,
@@ -41,7 +41,7 @@ export declare type FileSystemUploadOptions = (
   sessionType?: FileSystemSessionType;
 };
 
-export type VideoUploadType = {
+export type VideoCompressorType = {
   compress(
     fileUrl: string,
     options?: videoCompresssionType,
@@ -58,20 +58,17 @@ export type VideoUploadType = {
 };
 
 const VideoCompressEventEmitter = new NativeEventEmitter(
-  NativeModules.Compressor
+  NativeModules.VideoCompressor
 );
 
-const NativeVideoUpload = NativeModules.Compressor;
+const NativeVideoCompressor = NativeModules.VideoCompressor;
 
-const Video: VideoUploadType = {
+const Video: VideoCompressorType = {
   compress: async (
     fileUrl: string,
     options?: { bitrate?: number },
     onProgress?: (progress: number) => void
   ) => {
-    if (!NativeVideoUpload || !NativeVideoUpload.video_compress) {
-      return fileUrl; //For android passthrough
-    }
     const uuid = uuidv4();
     let subscription = null;
     try {
@@ -87,7 +84,7 @@ const Video: VideoUploadType = {
       }
       const modifiedOptions: { uuid: string; bitrate?: number } = { uuid };
       if (options?.bitrate) modifiedOptions.bitrate = options?.bitrate;
-      const result = await NativeVideoUpload.video_compress(
+      const result = await NativeVideoCompressor.compress(
         fileUrl,
         modifiedOptions
       );
@@ -99,12 +96,33 @@ const Video: VideoUploadType = {
     }
   },
   backgroundUpload: async (url, fileUrl, options, onProgress) => {
-    if (!NativeVideoUpload || !NativeVideoUpload.video_upload) {
+    if (!NativeVideoCompressor || !NativeVideoCompressor.video_upload) {
       //check if expo can upload the file
       const scheme = fileUrl.split('://')[0];
       if (['file'].includes(scheme)) {
+        return Upload.startUpload({
+          url: url,
+          path: fileUrl,
+          method: options.httpMethod || 'PUT',
+          type: 'raw',
+        })
+          .then((uploadId) => {
+            console.log('Upload started');
+            Upload.addListener(
+              'progress',
+              uploadId,
+              (data: any) =>
+                onProgress && onProgress(parseInt(data.progress), 100)
+            );
+            Upload.addListener('error', uploadId, (data) => {
+              throw data.error;
+            });
+          })
+          .catch((err) => {
+            throw err;
+          });
         //fallback to use expo upload
-        return FileSystem.uploadAsync(url, fileUrl, options);
+        // return FileSystem.uploadAsync(url, fileUrl, options);
       } else {
         // Use poor old fetch
         const fileRes = await fetch(fileUrl);
@@ -122,7 +140,7 @@ const Video: VideoUploadType = {
     try {
       if (onProgress) {
         subscription = VideoCompressEventEmitter.addListener(
-          'videoUploadProgress',
+          'VideoCompressorProgress',
           (event: any) => {
             if (event.uuid === uuid) {
               onProgress(event.data.written, event.data.total);
@@ -130,7 +148,7 @@ const Video: VideoUploadType = {
           }
         );
       }
-      const result = await NativeVideoUpload.video_upload(fileUrl, {
+      const result = await NativeVideoCompressor.video_upload(fileUrl, {
         uuid,
         method: options.httpMethod,
         headers: options.headers,
@@ -144,9 +162,6 @@ const Video: VideoUploadType = {
     }
   },
   activateBackgroundTask(onExpired?) {
-    if (!NativeVideoUpload || !NativeVideoUpload.video_activateBackgroundTask) {
-      return Promise.resolve('1'); //For android passthrough
-    }
     if (onExpired) {
       const subscription = VideoCompressEventEmitter.addListener(
         'backgroundTaskExpired',
@@ -156,18 +171,12 @@ const Video: VideoUploadType = {
         }
       );
     }
-    return NativeVideoUpload.activateBackgroundTask({});
+    return NativeVideoCompressor.activateBackgroundTask({});
   },
   deactivateBackgroundTask() {
-    if (
-      !NativeVideoUpload ||
-      !NativeVideoUpload.video_deactivateBackgroundTask
-    ) {
-      return Promise.resolve('1'); //For android passthrough
-    }
     VideoCompressEventEmitter.removeAllListeners('backgroundTaskExpired');
-    return NativeVideoUpload.deactivateBackgroundTask({});
+    return NativeVideoCompressor.deactivateBackgroundTask({});
   },
-} as VideoUploadType;
+} as VideoCompressorType;
 
 export default Video;

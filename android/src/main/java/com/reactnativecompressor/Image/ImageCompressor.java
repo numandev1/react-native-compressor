@@ -1,13 +1,10 @@
 package com.reactnativecompressor.Image;
 
-import android.content.Context;
-import android.content.ContextWrapper;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Matrix;
 import android.graphics.Paint;
-import android.net.Uri;
 import android.util.Base64;
 
 import com.facebook.react.bridge.ReactApplicationContext;
@@ -15,10 +12,9 @@ import com.reactnativecompressor.Image.utils.ImageCompressorOptions;
 import com.reactnativecompressor.Image.utils.ImageSize;
 
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.FileOutputStream;
-import java.io.UnsupportedEncodingException;
-import java.util.UUID;
+import static com.reactnativecompressor.Utils.Utils.generateCacheFilePath;
+
 
 public class ImageCompressor {
   public static ImageSize findActualSize(Bitmap image, int maxWidth, int maxHeight) {
@@ -53,12 +49,7 @@ public class ImageCompressor {
         return bitmap;
     }
 
-    public static String generateCacheFilePath(String extension,ReactApplicationContext reactContext){
-      File outputDir = reactContext.getCacheDir();
 
-      String outputUri = String.format("%s/%s." + extension, outputDir.getPath(), UUID.randomUUID().toString());
-      return outputUri;
-    }
 
   public static String encodeImage(ByteArrayOutputStream imageDataByteArrayOutputStream, Boolean isBase64, Bitmap bitmapImage,String outputExtension, ReactApplicationContext reactContext) {
     if(isBase64)

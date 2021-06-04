@@ -12,11 +12,10 @@ import com.facebook.react.bridge.ReadableMap;
 import com.facebook.react.module.annotations.ReactModule;
 import com.reactnativecompressor.Image.ImageCompressor;
 import com.reactnativecompressor.Image.utils.ImageCompressorOptions;
-
+import static com.reactnativecompressor.Utils.Utils.generateCacheFilePath;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.util.UUID;
-import static com.reactnativecompressor.Video.VideoCompressor.*;
 
 @ReactModule(name = CompressorModule.NAME)
 public class CompressorModule extends ReactContextBaseJavaModule {
@@ -32,59 +31,6 @@ public class CompressorModule extends ReactContextBaseJavaModule {
     public String getName() {
         return NAME;
     }
-
-
-  //Video
-  @ReactMethod
-  public void video_compress(
-    String fileUrl,
-    ReadableMap options,
-    Promise promise) {
-    try {
-      String response=video_compress_helper(fileUrl,options);
-      promise.resolve(response);
-    } catch (Exception ex) {
-      promise.reject(ex);
-    }
-  }
-
-  @ReactMethod
-  public void video_upload(
-    String fileUrl,
-    ReadableMap options,
-    Promise promise) {
-    try {
-
-      String response=video_upload_helper(fileUrl,options);
-      promise.resolve(response);
-    } catch (Exception ex) {
-      promise.reject(ex);
-    }
-  }
-
-  @ReactMethod
-  public void video_activateBackgroundTask(
-    ReadableMap options,
-    Promise promise) {
-    try {
-      String response=video_activateBackgroundTask_helper(options);
-      promise.resolve(response);
-    } catch (Exception ex) {
-      promise.reject(ex);
-    }
-  }
-
-  @ReactMethod
-  public void video_deactivateBackgroundTask(
-    ReadableMap options,
-    Promise promise) {
-    try {
-      String response=video_deactivateBackgroundTask_helper(options);
-      promise.resolve(response);
-    } catch (Exception ex) {
-      promise.reject(ex);
-    }
-  }
 
     //Image
   @ReactMethod
@@ -115,7 +61,7 @@ public class CompressorModule extends ReactContextBaseJavaModule {
     @ReactMethod
    public void generateFile(String extension, Promise promise) {
      try {
-       final String outputUri =ImageCompressor.generateCacheFilePath(extension,reactContext);
+       final String outputUri =generateCacheFilePath(extension,reactContext);
        promise.resolve(outputUri);
      } catch (Exception e) {
        promise.reject(e);

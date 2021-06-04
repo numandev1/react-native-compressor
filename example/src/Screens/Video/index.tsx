@@ -1,10 +1,12 @@
 import * as React from 'react';
-import { View, Text, Button, Image, Alert } from 'react-native';
+import { View, Text, Button, Image, Alert, Platform } from 'react-native';
 import { Video, getMediaInformation } from 'react-native-compressor';
 import * as ImagePicker from 'react-native-image-picker';
 import { createThumbnail } from 'react-native-create-thumbnail';
 import * as Progress from 'react-native-progress';
 const prettyBytes = require('pretty-bytes');
+import { v4 as uuidv4 } from 'uuid';
+const RNFS = require('react-native-fs');
 
 export default function App() {
   const [sourceVideo, setSourceVideo] = React.useState<string>();
@@ -74,6 +76,12 @@ export default function App() {
     return undefined;
   }, [doingSomething]);
 
+  const getAbsolutePath = async (uri: string, extension: string) => {
+    const destPath = `${RNFS.TemporaryDirectoryPath}/${uuidv4()}.${extension}`;
+    await RNFS.copyFile(uri, destPath);
+    return `file://${destPath}`;
+  };
+
   const selectVideo = async () => {
     try {
       ImagePicker.launchImageLibrary(
@@ -86,7 +94,11 @@ export default function App() {
             Alert.alert('Failed selecting video');
           } else {
             const source: any = result.assets[0];
-            setSourceVideo(source.uri);
+            let uri = source.uri;
+            if (Platform.OS === 'android' && uri.includes('content://')) {
+              uri = await getAbsolutePath(uri, 'mp4');
+            }
+            setSourceVideo(uri);
           }
         }
       );
@@ -99,7 +111,7 @@ export default function App() {
     if (!sourceVideo) return;
     const dstUrl = await Video.compress(
       sourceVideo,
-      { bitrate: 100 },
+      { bitrate: 3000 },
       (progress) => {
         if (backgroundMode) {
           console.log('Compression Progress: ', progress);
@@ -159,7 +171,6 @@ export default function App() {
           flex: 1,
           flexDirection: 'row',
           justifyContent: 'space-around',
-          paddingTop: 70,
         }}
       >
         <View style={{ width: 200, backgroundColor: '#f00' }}>
@@ -189,7 +200,7 @@ export default function App() {
             <View>
               <Text>Compressed</Text>
               <Image
-                style={{ width: 200, height: 400 }}
+                style={{ width: 200, height: 200 }}
                 source={{ uri: compressedVideoThumbnail }}
                 resizeMode="contain"
               />
@@ -212,6 +223,9 @@ export default function App() {
           )}
         </View>
       </View>
+      {compressingProgress > 0 && (
+        <Progress.Bar progress={compressingProgress} width={400} />
+      )}
       <View
         style={{
           height: 50,
@@ -234,9 +248,6 @@ export default function App() {
             testCompress();
           }}
         />
-        {compressingProgress > 0 && (
-          <Progress.Bar progress={compressingProgress} width={400} />
-        )}
       </View>
       <View style={{ height: 200 }}>
         <Text>Put app in background and check console output</Text>

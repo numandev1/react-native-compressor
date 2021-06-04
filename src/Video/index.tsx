@@ -1,4 +1,4 @@
-import { NativeModules, NativeEventEmitter } from 'react-native';
+import { NativeModules, NativeEventEmitter, Platform } from 'react-native';
 import { v4 as uuidv4 } from 'uuid';
 import Upload from 'react-native-background-upload';
 
@@ -96,7 +96,7 @@ const Video: VideoCompressorType = {
     }
   },
   backgroundUpload: async (url, fileUrl, options, onProgress) => {
-    if (!NativeVideoCompressor || !NativeVideoCompressor.video_upload) {
+    if (!NativeVideoCompressor || !NativeVideoCompressor.upload) {
       //check if expo can upload the file
       const scheme = fileUrl.split('://')[0];
       if (['file'].includes(scheme)) {
@@ -148,7 +148,10 @@ const Video: VideoCompressorType = {
           }
         );
       }
-      const result = await NativeVideoCompressor.video_upload(fileUrl, {
+      if (Platform.OS === 'android' && fileUrl.includes('file://')) {
+        fileUrl = fileUrl.replace('file://', '');
+      }
+      const result = await NativeVideoCompressor.upload(fileUrl, {
         uuid,
         method: options.httpMethod,
         headers: options.headers,

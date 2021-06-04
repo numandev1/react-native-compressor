@@ -28,8 +28,8 @@ struct UploadError: Error {
 }
 
 @available(iOS 11.0, *)
-@objc(VideoUpload)
-class VideoUpload: RCTEventEmitter, URLSessionTaskDelegate {
+@objc(VideoCompressor)
+class VideoCompressor: RCTEventEmitter, URLSessionTaskDelegate {
   var backgroundTaskId: UIBackgroundTaskIdentifier = .invalid;
   var hasListener: Bool=false
   var uploadResolvers: [String: RCTPromiseResolveBlock] = [:]
@@ -151,11 +151,11 @@ class VideoUpload: RCTEventEmitter, URLSessionTaskDelegate {
   func urlSession(_ session: URLSession, task: URLSessionTask, didSendBodyData bytesSent: Int64, totalBytesSent: Int64, totalBytesExpectedToSend: Int64)
   {
     guard let uuid = session.configuration.identifier else {return}
-    self.sendEvent(withName: "videoUploadProgress", body: ["uuid": uuid, "data": ["written": totalBytesSent, "total": totalBytesExpectedToSend]])
+    self.sendEvent(withName: "VideoCompressorProgress", body: ["uuid": uuid, "data": ["written": totalBytesSent, "total": totalBytesExpectedToSend]])
   }
 
   override func supportedEvents() -> [String]! {
-    return ["videoCompressProgress", "videoUploadProgress", "backgroundTaskExpired"]
+    return ["videoCompressProgress", "VideoCompressorProgress", "backgroundTaskExpired"]
   }
 
   override func stopObserving() -> Void {

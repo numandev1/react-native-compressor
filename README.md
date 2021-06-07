@@ -63,7 +63,7 @@ react-native link react-native-compressor
 ```js
 import { Image } from 'react-native-compressor';
 
-const result = await Image.compress('file://bowling-alleys/the-dude.jpg', {
+const result = await Image.compress('file://path_of_file/image.jpg', {
   maxWidth: 1000,
   quality: 0.8,
 });
@@ -75,7 +75,7 @@ const result = await Image.compress('file://bowling-alleys/the-dude.jpg', {
 import { Audio } from 'react-native-compressor';
 
 const result = await Audio.compress(
-  'https://file-examples-com.github.io/uploads/2017/11/file_example_MP3_2MG.mp3',
+  file://path_of_file/file_example_MP3_2MG.mp3',
   { quality: 'medium' }
 );
 ```
@@ -86,7 +86,7 @@ const result = await Audio.compress(
 import { Video } from 'react-native-compressor';
 
 const result = await Video.compress(
-  'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+  file://path_of_file/BigBuckBunny.mp4',
   {},
   (progress) => {
     if (backgroundMode) {
@@ -122,7 +122,7 @@ const result = await Video.compress(
 
   The quality modifier for the `JPEG` file format, can be specified when output is `PNG` but will be ignored.
 
-- ###### `input: InputType` (default: base64)
+- ###### `input: InputType` (default: uri)
 
   Can be either `uri` or `base64`, defines the contentents of the `value` parameter.
 
@@ -130,7 +130,7 @@ const result = await Video.compress(
 
   Can be either `jpg` or `png`, defines the output image format.
 
-- ###### `returnableOutputType: ReturnableOutputType` (default: base64)
+- ###### `returnableOutputType: ReturnableOutputType` (default: uri)
   Can be either `uri` or `base64`, defines the Returnable output image format.
 
 ## Audio

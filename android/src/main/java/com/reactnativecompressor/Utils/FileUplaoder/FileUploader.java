@@ -6,6 +6,7 @@ import android.util.Log;
 import androidx.annotation.Nullable;
 
 import com.facebook.react.bridge.Arguments;
+import com.facebook.react.bridge.Promise;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContext;
 import com.facebook.react.bridge.ReadableMap;
@@ -17,17 +18,20 @@ import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
+import java.lang.reflect.Method;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
 public class FileUploader extends AsyncTask<String, Void, String> {
+  private Promise promise;
   private String fileUrl;
   private final FileUploadHelper options;
-  private  ReactApplicationContext reactContext;
-  public FileUploader(String fileUrl, ReadableMap options,ReactApplicationContext reactContext){
+  private  final ReactApplicationContext reactContext;
+  public FileUploader(String fileUrl, ReadableMap options,ReactApplicationContext reactContext,Promise promise){
     this.fileUrl=fileUrl;
      this.options= FileUploadHelper.fromMap(options);
      this.reactContext=reactContext;
+     this.promise=promise;
   }
 
   private void sendEvent(ReactContext reactContext,
@@ -36,6 +40,16 @@ public class FileUploader extends AsyncTask<String, Void, String> {
     reactContext
       .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
       .emit(eventName, params);
+  }
+
+  private void sendProgressEvent(float progress) {
+    WritableMap _params = Arguments.createMap();
+    WritableMap _data = Arguments.createMap();
+    _params.putString("uuid", options.uuid);
+    _data.putDouble("written",  progress*100);
+    _data.putDouble("total",  100);
+    _params.putMap("data", _data);
+    sendEvent(reactContext, "VideoCompressorProgress", _params);
   }
 
   @Override
@@ -105,12 +119,7 @@ public class FileUploader extends AsyncTask<String, Void, String> {
             while ((count = fileInputStream.read(data)) != -1) {
               total += count;
               float progress=Float.parseFloat(String.valueOf(total)) /Float.parseFloat(String.valueOf(bytesAvailable));
-              WritableMap _params = Arguments.createMap();
-              WritableMap _data = Arguments.createMap();
-              _params.putString("uuid", options.uuid);
-              _data.putDouble("progress",  progress);
-              _params.putMap("data", _data);
-              sendEvent(reactContext, "videoCompressProgress", _params);
+                sendProgressEvent(progress);
             }
           }
 
@@ -119,13 +128,9 @@ public class FileUploader extends AsyncTask<String, Void, String> {
             .getResponseMessage();
 
           if (conn.getResponseCode() == 200) {
-            Log.d("uplaodFile", "doInBackground: upload successfully");
-            WritableMap _params = Arguments.createMap();
-            WritableMap _data = Arguments.createMap();
-            _params.putString("uuid", options.uuid);
-            _data.putDouble("progress",  1);
-            _params.putMap("data", _data);
-            sendEvent(reactContext, "videoCompressProgress", _params);
+            Log.d("uploadFile", "doInBackground: upload successfully");
+            sendProgressEvent(1);
+            promise.resolve("");
           }
 
           fileInputStream.close();

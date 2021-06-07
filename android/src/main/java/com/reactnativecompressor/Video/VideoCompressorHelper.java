@@ -7,6 +7,7 @@ import android.os.PowerManager;
 import androidx.annotation.Nullable;
 
 import com.facebook.react.bridge.LifecycleEventListener;
+import com.facebook.react.bridge.Promise;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContext;
 import com.facebook.react.bridge.ReadableMap;
@@ -47,9 +48,8 @@ public class VideoCompressorHelper {
       .emit(eventName, params);
   }
 
-  public static String video_upload_helper(String fileUrl,ReadableMap options,ReactApplicationContext reactContext) {
-    new FileUploader(fileUrl,options,reactContext).execute();
-    return  "";
+  public static void video_upload_helper(String fileUrl, ReadableMap options, ReactApplicationContext reactContext, Promise promise) {
+    new FileUploader(fileUrl,options,reactContext,promise).execute();
   }
 
   @SuppressLint("InvalidWakeLockTag")

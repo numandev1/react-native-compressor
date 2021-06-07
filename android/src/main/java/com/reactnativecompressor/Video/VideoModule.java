@@ -114,8 +114,7 @@ public class VideoModule extends ReactContextBaseJavaModule {
     ReadableMap options,
     Promise promise) {
     try {
-      String response=video_upload_helper(fileUrl,options,reactContext);
-      promise.resolve(response);
+      video_upload_helper(fileUrl,options,reactContext,promise);
     } catch (Exception ex) {
       promise.reject(ex);
     }

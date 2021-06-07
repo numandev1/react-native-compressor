@@ -75,7 +75,7 @@ const result = await Image.compress('file://path_of_file/image.jpg', {
 import { Audio } from 'react-native-compressor';
 
 const result = await Audio.compress(
-  file://path_of_file/file_example_MP3_2MG.mp3',
+  'file://path_of_file/file_example_MP3_2MG.mp3',
   { quality: 'medium' }
 );
 ```
@@ -86,7 +86,7 @@ const result = await Audio.compress(
 import { Video } from 'react-native-compressor';
 
 const result = await Video.compress(
-  file://path_of_file/BigBuckBunny.mp4',
+  'file://path_of_file/BigBuckBunny.mp4',
   {},
   (progress) => {
     if (backgroundMode) {

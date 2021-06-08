@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Alert } from 'react-native';
 import Button from '../../Components/Button';
 import Row from '../../Components/Row';
-import { Audio, getMediaInformation } from 'react-native-compressor';
+import { Audio, getFileInfo } from 'react-native-compressor';
 import DocumentPicker from 'react-native-document-picker';
 const prettyBytes = require('pretty-bytes');
 
@@ -21,12 +21,14 @@ const Index = () => {
       setMimeType(res.type);
       Audio.compress(res.uri, { quality: 'medium' })
         .then(async (result: any) => {
-          const detail: any = await getMediaInformation(result.outputFilePath);
-          console.log(detail, 'detaildetail');
-          const audioDetail: any = detail.__private_0_allProperties.format;
-          setCompressedSize(prettyBytes(parseInt(audioDetail.size)));
+          Alert.alert('ok');
+          console.log(result, 'resultresult');
+          const detail: any = await getFileInfo(result.outputFilePath);
+          setCompressedSize(prettyBytes(parseInt(detail.size)));
         })
         .catch((e) => {
+          Alert.alert('okss');
+
           console.log(e, 'error');
         });
     } catch (err) {

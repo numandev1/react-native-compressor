@@ -94,8 +94,8 @@ public class VideoCompressorHelper {
       final String key = iterator.nextKey();
 
       switch (key) {
-        case "maxWidth":
-          options.bitrate = map.getInt(key);
+        case "bitrate":
+          options.bitrate = (float) map.getDouble(key);
           break;
 
           case "uuid":

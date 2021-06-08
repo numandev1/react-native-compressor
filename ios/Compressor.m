@@ -1,9 +1,11 @@
 #import "Compressor.h"
 #import <React/RCTBridgeModule.h>
 //Image
-#import "Image/Utils/ImageCompressor.h"
-#import "Image/Utils/ImageCompressorOptions.h"
+#import "Image/ImageCompressor.h"
+#import "Image/ImageCompressorOptions.h"
 #import <React/RCTEventEmitter.h>
+#import <AVFoundation/AVFoundation.h>
+
 
 @implementation Compressor
 
@@ -41,6 +43,36 @@ RCT_EXPORT_METHOD(
     }
 }
 
+//Audio
+RCT_EXPORT_METHOD(
+    compress_audio: (NSString*) filePath
+    resolver: (RCTPromiseResolveBlock) resolve
+    rejecter: (RCTPromiseRejectBlock) reject) {
+    @try {
+        if([filePath containsString:@"file://"])
+        {
+            filePath=[filePath stringByReplacingOccurrencesOfString:@"file://"
+                                                    withString:@""];
+        }
+        NSFileManager *fileManager = [NSFileManager defaultManager];
+        BOOL isDir;
+        if (![fileManager fileExistsAtPath:filePath isDirectory:&isDir] || isDir){
+            NSError *err = [NSError errorWithDomain:@"file not found" code:-15 userInfo:nil];
+            reject([NSString stringWithFormat: @"%lu", (long)err.code], err.localizedDescription, err);
+            return;
+        }
+
+          NSDictionary *assetOptions = @{AVURLAssetPreferPreciseDurationAndTimingKey: @YES};
+          AVURLAsset *asset = [AVURLAsset URLAssetWithURL:[NSURL fileURLWithPath:filePath] options:assetOptions];
+       
+       
+    }
+    @catch (NSException *exception) {
+        reject(exception.name, exception.reason, nil);
+    }
+}
+
+
 //general
 RCT_EXPORT_METHOD(
     generateFile: (NSString*) extension
@@ -54,6 +86,34 @@ RCT_EXPORT_METHOD(
         reject(exception.name, exception.reason, nil);
     }
 }
+
+//general
+    RCT_EXPORT_METHOD(
+        getFileSize: (NSString*) filePath
+        resolver: (RCTPromiseResolveBlock) resolve
+        rejecter: (RCTPromiseRejectBlock) reject) {
+        @try {
+            if([filePath containsString:@"file://"])
+            {
+                filePath=[filePath stringByReplacingOccurrencesOfString:@"file://"
+                                                        withString:@""];
+            }
+            NSFileManager *fileManager = [NSFileManager defaultManager];
+            BOOL isDir;
+            if (![fileManager fileExistsAtPath:filePath isDirectory:&isDir] || isDir){
+                NSError *err = [NSError errorWithDomain:@"file not found" code:-15 userInfo:nil];
+                reject([NSString stringWithFormat: @"%lu", (long)err.code], err.localizedDescription, err);
+                return;
+            }
+            NSDictionary *attrs = [fileManager attributesOfItemAtPath: filePath error: NULL];
+            UInt32 fileSize = [attrs fileSize];
+            NSString *fileSizeString = [@(fileSize) stringValue];
+            resolve(fileSizeString);
+        }
+        @catch (NSException *exception) {
+            reject(exception.name, exception.reason, nil);
+        }
+    }
 
 @end
 

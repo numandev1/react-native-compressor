@@ -1,11 +1,7 @@
 import { NativeModules } from 'react-native';
-import {
-  RNFFprobe,
-  RNFFmpegConfig,
-  MediaInformation,
-} from 'react-native-ffmpeg';
 const { Compressor } = NativeModules;
 export const AUDIO_BITRATE = [256, 192, 160, 128, 96, 64, 32];
+const RNFS = require('react-native-fs');
 type qualityType = 'low' | 'medium' | 'high';
 const INCORRECT_INPUT_PATH = 'Incorrect input path. Please provide a valid one';
 const INCORRECT_OUTPUT_PATH =
@@ -13,7 +9,7 @@ const INCORRECT_OUTPUT_PATH =
 const ERROR_OCCUR_WHILE_GENERATING_OUTPUT_FILE =
   'An error occur while generating output file';
 type audioCompresssionType = {
-  bitrate?: string;
+  bitrate?: number;
   quality: qualityType;
   outputFilePath?: string | undefined | null;
 };
@@ -25,7 +21,7 @@ export type defaultResultType = {
 };
 
 export const DEFAULT_COMPRESS_AUDIO_OPTIONS: audioCompresssionType = {
-  bitrate: '96k',
+  bitrate: 96,
   quality: 'medium',
   outputFilePath: '',
 };
@@ -81,29 +77,26 @@ const isRemoteMedia = (path: string | null) => {
   return typeof path === 'string' ? path.split(':/')[0].includes('http') : null;
 };
 
-export const getMediaInformation = RNFFprobe.getMediaInformation;
+export const getFileInfo = RNFS.stat;
 export const getDetails = (
   mediaFullPath: string,
   extesnion: 'mp3' | 'mp4' = 'mp3'
-): Promise<MediaInformation | null> => {
+): Promise<any | null> => {
   return new Promise(async (resolve, reject) => {
-    const GetAnotherMediaInfoCommand = `-i "${mediaFullPath}" -v error -select_streams v:0 -show_entries format=size -show_entries stream=size,width,height -of json`;
     try {
       // Since we used "-v error", a work around is to call first this command before the following
-      const result: any = await RNFFprobe.execute(GetAnotherMediaInfoCommand);
+      const result: any = {};
       if (result !== 0) {
         throw new Error('Failed to execute command');
       }
 
       // get the output result of the command
       // example of output {"programs": [], "streams": [{"width": 640,"height": 360}], "format": {"size": "15804433"}}
-      let mediaInfo: any = await RNFFmpegConfig.getLastCommandOutput();
+      let mediaInfo: any = await {};
       mediaInfo = JSON.parse(mediaInfo);
 
       // execute second command
-      const mediaInformation: any = await RNFFprobe.getMediaInformation(
-        mediaFullPath
-      );
+      const mediaInformation: any = await {};
 
       // treat both results
       mediaInformation.filename = getFilename(mediaFullPath);

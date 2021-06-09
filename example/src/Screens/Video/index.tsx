@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { View, Text, Button, Image, Alert, Platform } from 'react-native';
-import { Video, getMediaInformation } from 'react-native-compressor';
+import { Video, getFileInfo } from 'react-native-compressor';
 import * as ImagePicker from 'react-native-image-picker';
 import { createThumbnail } from 'react-native-create-thumbnail';
 import * as Progress from 'react-native-progress';
@@ -36,9 +36,8 @@ export default function App() {
       .then((response) => setSourceVideoThumbnail(response.path))
       .catch((error) => console.log({ error }));
     (async () => {
-      const detail: any = await getMediaInformation(sourceVideo);
-      const videoDetail: any = detail.__private_0_allProperties.format;
-      setSourceSize(prettyBytes(parseInt(videoDetail.size)));
+      const detail: any = await getFileInfo(sourceVideo);
+      setSourceSize(prettyBytes(parseInt(detail.size)));
     })();
   }, [sourceVideo]);
 
@@ -55,9 +54,8 @@ export default function App() {
       });
 
     (async () => {
-      const detail: any = await getMediaInformation(compressedVideo);
-      const videoDetail: any = detail.__private_0_allProperties.format;
-      setCompressedSize(prettyBytes(parseInt(videoDetail.size)));
+      const detail: any = await getFileInfo(compressedVideo);
+      setCompressedSize(prettyBytes(parseInt(detail.size)));
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [compressedVideo]);

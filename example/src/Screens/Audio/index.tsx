@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import Button from '../../Components/Button';
 import Row from '../../Components/Row';
-import { Audio, getMediaInformation } from 'react-native-compressor';
+import { Audio, getFileInfo } from 'react-native-compressor';
 import DocumentPicker from 'react-native-document-picker';
 const prettyBytes = require('pretty-bytes');
 
@@ -19,12 +19,10 @@ const Index = () => {
       setOrignalSize(prettyBytes(res.size));
       setFileName(res.name);
       setMimeType(res.type);
-      Audio.compress(res.uri, { quality: 'medium' })
-        .then(async (result: any) => {
-          const detail: any = await getMediaInformation(result.outputFilePath);
-          console.log(detail, 'detaildetail');
-          const audioDetail: any = detail.__private_0_allProperties.format;
-          setCompressedSize(prettyBytes(parseInt(audioDetail.size)));
+      Audio.compress(res.uri, { quality: 'high' })
+        .then(async (outputFilePath: string) => {
+          const detail: any = await getFileInfo(outputFilePath);
+          setCompressedSize(prettyBytes(parseInt(detail.size)));
         })
         .catch((e) => {
           console.log(e, 'error');

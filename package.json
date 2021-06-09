@@ -85,7 +85,6 @@
     "react": "*",
     "react-native": "*",
     "react-native-fs": "*",
-    "react-native-ffmpeg": ">=0.5.1",
     "react-native-background-upload": ">=6.0.0",
     "uuid": "*"
   },

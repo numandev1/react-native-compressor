@@ -177,7 +177,16 @@ class VideoCompressor: RCTEventEmitter, URLSessionTaskDelegate {
       onFailure(error)
       return
     }
-    let track = asset.tracks[0]
+    var videoTrackIndex: Int = 0;
+    let trackLength = asset.tracks.count;
+    if(trackLength==2)
+    {
+        if(asset.tracks[0].mediaType.rawValue=="soun")
+        {
+            videoTrackIndex=1;
+        }
+    }
+    let track = asset.tracks[videoTrackIndex];
     let exporter = NextLevelSessionExporter(withAsset: asset)
     exporter.outputURL = tmpURL
     exporter.outputFileType = AVFileType.mp4

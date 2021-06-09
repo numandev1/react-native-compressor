@@ -121,8 +121,8 @@
     else
     {
         NSString *filePath =[self generateCacheFilePath:outputExtension];
-        [data writeToFile:filePath atomically:YES]; //Write the file
-        return filePath;
+        [data writeToFile:filePath atomically:YES];
+        return [NSString stringWithFormat: @"file:/%@", filePath];
     }
 }
 

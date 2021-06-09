@@ -16,8 +16,6 @@ Using Npm
 npm install react-native-compressor --save
 ```
 
-Then you need to install [react-native-ffmpeg](https://github.com/tanersener/react-native-ffmpeg) for audio compression.
-
 ### Automatic linking (for React Native >= 0.60 only)
 
 Automatic linking is supported for both `Android` and `IOS`
@@ -138,10 +136,6 @@ const result = await Video.compress(
 - ###### `compress(url: string, options?: audioCompresssionType): Promise<string>`
 
 ### audioCompresssionType
-
-- ###### `bitrate: string` (default: 96k)
-
-  bitrate of audio which reduce or increase audio size.
 
 - ###### `quality: qualityType` (default: medium)
   we can also control bitrate through quality. qualityType can be `low` | `medium` | `high`

@@ -7,10 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		18865F2226650744006FF392 /* ImageCompressor.m in Sources */ = {isa = PBXBuildFile; fileRef = 18865F1E26650744006FF392 /* ImageCompressor.m */; };
-		18865F2326650744006FF392 /* ImageCompressorOptions.m in Sources */ = {isa = PBXBuildFile; fileRef = 18865F2126650744006FF392 /* ImageCompressorOptions.m */; };
-		1886632D26651A3D006FF392 /* ImageCompressorOptions.h in Sources */ = {isa = PBXBuildFile; fileRef = 18865F1F26650744006FF392 /* ImageCompressorOptions.h */; };
-		1886632E26651A3D006FF392 /* ImageCompressor.h in Sources */ = {isa = PBXBuildFile; fileRef = 18865F2026650744006FF392 /* ImageCompressor.h */; };
 		188666C92668C616006FF392 /* VideoCompressor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 188657BA26612A1D006FF392 /* VideoCompressor.swift */; };
 /* End PBXBuildFile section */
 
@@ -30,10 +26,7 @@
 		134814201AA4EA6300B7C361 /* libCompressor.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libCompressor.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		188657B826612A1C006FF392 /* Compressor-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Compressor-Bridging-Header.h"; sourceTree = "<group>"; };
 		188657BA26612A1D006FF392 /* VideoCompressor.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = VideoCompressor.swift; sourceTree = "<group>"; };
-		18865F1E26650744006FF392 /* ImageCompressor.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ImageCompressor.m; sourceTree = "<group>"; };
-		18865F1F26650744006FF392 /* ImageCompressorOptions.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ImageCompressorOptions.h; sourceTree = "<group>"; };
-		18865F2026650744006FF392 /* ImageCompressor.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ImageCompressor.h; sourceTree = "<group>"; };
-		18865F2126650744006FF392 /* ImageCompressorOptions.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ImageCompressorOptions.m; sourceTree = "<group>"; };
+		18866CD1266E224C006FF392 /* Image */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Image; sourceTree = "<group>"; };
 		B3E7B5881CC2AC0600A0062D /* Compressor.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Compressor.h; sourceTree = "<group>"; };
 		B3E7B5891CC2AC0600A0062D /* Compressor.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = Compressor.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -72,30 +65,11 @@
 			path = Audio;
 			sourceTree = "<group>";
 		};
-		18865EEA266506D1006FF392 /* Image */ = {
-			isa = PBXGroup;
-			children = (
-				18865F1D26650744006FF392 /* Utils */,
-			);
-			path = Image;
-			sourceTree = "<group>";
-		};
-		18865F1D26650744006FF392 /* Utils */ = {
-			isa = PBXGroup;
-			children = (
-				18865F1E26650744006FF392 /* ImageCompressor.m */,
-				18865F1F26650744006FF392 /* ImageCompressorOptions.h */,
-				18865F2026650744006FF392 /* ImageCompressor.h */,
-				18865F2126650744006FF392 /* ImageCompressorOptions.m */,
-			);
-			path = Utils;
-			sourceTree = "<group>";
-		};
 		58B511D21A9E6C8500147676 = {
 			isa = PBXGroup;
 			children = (
 				188657B826612A1C006FF392 /* Compressor-Bridging-Header.h */,
-				18865EEA266506D1006FF392 /* Image */,
+				18866CD1266E224C006FF392 /* Image */,
 				188657B7266127FF006FF392 /* Audio */,
 				188657B5266127EC006FF392 /* Video */,
 				B3E7B5881CC2AC0600A0062D /* Compressor.h */,
@@ -163,10 +137,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				188666C92668C616006FF392 /* VideoCompressor.swift in Sources */,
-				1886632D26651A3D006FF392 /* ImageCompressorOptions.h in Sources */,
-				1886632E26651A3D006FF392 /* ImageCompressor.h in Sources */,
-				18865F2226650744006FF392 /* ImageCompressor.m in Sources */,
-				18865F2326650744006FF392 /* ImageCompressorOptions.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

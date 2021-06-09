@@ -4,7 +4,7 @@ import Button from '../../Components/Button';
 import Row from '../../Components/Row';
 import * as ImagePicker from 'react-native-image-picker';
 const prettyBytes = require('pretty-bytes');
-import { Image, getMediaInformation } from 'react-native-compressor';
+import { Image, getFileInfo } from 'react-native-compressor';
 const Index = () => {
   const [fileName, setFileName] = useState<any>('');
   const [mimeType, setMimeType] = useState<any>('');
@@ -37,12 +37,8 @@ const Index = () => {
               returnableOutputType: 'uri',
             })
               .then(async (compressedFileUri) => {
-                const detail: any = await getMediaInformation(
-                  compressedFileUri
-                );
-                const imageDetail: any =
-                  detail.__private_0_allProperties.format;
-                setCompressedSize(prettyBytes(parseInt(imageDetail.size)));
+                const detail: any = await getFileInfo(compressedFileUri);
+                setCompressedSize(prettyBytes(parseInt(detail.size)));
                 console.log(compressedFileUri, 'compressed');
               })
               .catch((e) => {

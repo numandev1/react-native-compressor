@@ -10,15 +10,13 @@ import com.facebook.react.bridge.Promise;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContext;
 import com.facebook.react.bridge.ReadableMap;
+import com.facebook.react.bridge.ReadableMapKeySetIterator;
 import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.modules.core.DeviceEventManagerModule;
-import com.reactnativecompressor.Utils.FileUplaoder.FileUploadHelper;
 
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.InputStream;
-import java.lang.reflect.Method;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
@@ -27,6 +25,7 @@ public class FileUploader extends AsyncTask<String, Void, String> {
   private String fileUrl;
   private final FileUploadHelper options;
   private  final ReactApplicationContext reactContext;
+  private  final String TAG="asyncTaskFileUploader";
   public FileUploader(String fileUrl, ReadableMap options,ReactApplicationContext reactContext,Promise promise){
     this.fileUrl=fileUrl;
      this.options= FileUploadHelper.fromMap(options);
@@ -49,12 +48,11 @@ public class FileUploader extends AsyncTask<String, Void, String> {
     _data.putDouble("written",  progress*100);
     _data.putDouble("total",  100);
     _params.putMap("data", _data);
-    sendEvent(reactContext, "VideoCompressorProgress", _params);
+    sendEvent(this.reactContext, "VideoCompressorProgress", _params);
   }
 
   @Override
   protected String doInBackground(String... params) {
-
     try {
       String sourceFileUri = fileUrl;
 
@@ -77,19 +75,25 @@ public class FileUploader extends AsyncTask<String, Void, String> {
           FileInputStream fileInputStream = new FileInputStream(
             sourceFile);
           URL url = new URL(upLoadServerUri);
-
           // Open a HTTP connection to the URL
           conn = (HttpURLConnection) url.openConnection();
-          conn.setDoInput(true); // Allow Inputs
           conn.setDoOutput(true); // Allow Outputs
+          conn.setDoInput(true); // Allow Inputs
+          ReadableMapKeySetIterator headerIterator = this.options.headers.keySetIterator();
+          while (headerIterator.hasNextKey()) {
+            String key = headerIterator.nextKey();
+            String value = this.options.headers.getString(key);
+            Log.d(TAG, key+"  value: "+value);
+            conn.setRequestProperty(key, value);
+          }
+
           conn.setUseCaches(false); // Don't use a Cached Copy
           conn.setRequestMethod(this.options.method);
           conn.setDoOutput(true);
           conn.setRequestProperty("Connection", "Keep-Alive");
           conn.setRequestProperty("file", sourceFileUri);
-
-
-          dos = new DataOutputStream(conn.getOutputStream());
+          conn.connect();
+            dos = new DataOutputStream(conn.getOutputStream());
 
           dos.writeBytes(twoHyphens + boundary + lineEnd);
 
@@ -128,9 +132,14 @@ public class FileUploader extends AsyncTask<String, Void, String> {
             .getResponseMessage();
 
           if (conn.getResponseCode() == 200) {
-            Log.d("uploadFile", "doInBackground: upload successfully");
+            Log.d(TAG, "doInBackground: upload successfully");
             sendProgressEvent(1);
-            promise.resolve("");
+            this.promise.resolve("");
+          }
+          else
+          {
+            Log.d(TAG, serverResponseMessage+" doInBackground: error"+conn.getResponseCode());
+            this.promise.reject("");
           }
 
           fileInputStream.close();
@@ -141,6 +150,10 @@ public class FileUploader extends AsyncTask<String, Void, String> {
 
           e.printStackTrace();
 
+        }
+        finally {
+          if (conn != null)
+            conn.disconnect();
         }
       }
 

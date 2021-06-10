@@ -88,7 +88,7 @@ public class VideoModule extends ReactContextBaseJavaModule {
       @Override
       public void onFinish(boolean result) {
         //convert finish,result(true is success,false is fail)
-        promise.resolve(destinationPath);
+        promise.resolve("file:/"+destinationPath);
       }
 
 

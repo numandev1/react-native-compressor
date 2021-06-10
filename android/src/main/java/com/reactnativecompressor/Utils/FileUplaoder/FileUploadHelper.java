@@ -20,10 +20,6 @@ public class FileUploadHelper {
           options.method = map.getString(key);
           break;
 
-        case "headers":
-          options.headers = map.getString(key);
-          break;
-
         case "url":
           options.url = map.getString(key);
           break;

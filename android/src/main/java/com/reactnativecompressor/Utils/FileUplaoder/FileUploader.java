@@ -71,14 +71,11 @@ public class FileUploader extends AsyncTask<String, Void, String> {
         try {
           String upLoadServerUri =this.options.url;
 
-          // open a URL connection to the Servlet
           FileInputStream fileInputStream = new FileInputStream(
             sourceFile);
           URL url = new URL(upLoadServerUri);
-          // Open a HTTP connection to the URL
           conn = (HttpURLConnection) url.openConnection();
-          conn.setDoOutput(true); // Allow Outputs
-          conn.setDoInput(true); // Allow Inputs
+
           ReadableMapKeySetIterator headerIterator = this.options.headers.keySetIterator();
           while (headerIterator.hasNextKey()) {
             String key = headerIterator.nextKey();
@@ -89,8 +86,6 @@ public class FileUploader extends AsyncTask<String, Void, String> {
 
           conn.setUseCaches(false); // Don't use a Cached Copy
           conn.setRequestMethod(this.options.method);
-          conn.setDoOutput(true);
-          conn.setRequestProperty("Connection", "Keep-Alive");
           conn.setRequestProperty("file", sourceFileUri);
           conn.connect();
             dos = new DataOutputStream(conn.getOutputStream());
@@ -134,7 +129,9 @@ public class FileUploader extends AsyncTask<String, Void, String> {
           if (conn.getResponseCode() == 200) {
             Log.d(TAG, "doInBackground: upload successfully");
             sendProgressEvent(1);
-            this.promise.resolve("");
+            WritableMap param = Arguments.createMap();
+            param.putInt("status",conn.getResponseCode());
+            this.promise.resolve(param);
           }
           else
           {

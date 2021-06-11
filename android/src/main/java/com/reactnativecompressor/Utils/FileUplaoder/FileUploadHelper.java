@@ -21,7 +21,7 @@ public class FileUploadHelper {
           break;
 
         case "headers":
-          options.headers = map.getString(key);
+          options.headers = map.getMap(key);
           break;
 
         case "url":
@@ -34,6 +34,6 @@ public class FileUploadHelper {
   }
   public String uuid;
   public String method;
-  public String headers;
+  public ReadableMap headers;
   public String url;
 }

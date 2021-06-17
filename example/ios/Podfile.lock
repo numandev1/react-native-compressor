@@ -458,7 +458,7 @@ DEPENDENCIES:
   - React-runtimeexecutor (from `../node_modules/react-native/ReactCommon/runtimeexecutor`)
   - ReactCommon/turbomodule/core (from `../node_modules/react-native/ReactCommon`)
   - "RNCMaskedView (from `../node_modules/@react-native-community/masked-view`)"
-  - RNFS (from `../node_modules/react-native-fs`)
+  - RNFS (from `../../node_modules/react-native-fs`)
   - RNGestureHandler (from `../node_modules/react-native-gesture-handler`)
   - RNReanimated (from `../node_modules/react-native-reanimated`)
   - RNScreens (from `../node_modules/react-native-screens`)
@@ -551,7 +551,7 @@ EXTERNAL SOURCES:
   RNCMaskedView:
     :path: "../node_modules/@react-native-community/masked-view"
   RNFS:
-    :path: "../node_modules/react-native-fs"
+    :path: "../../node_modules/react-native-fs"
   RNGestureHandler:
     :path: "../node_modules/react-native-gesture-handler"
   RNReanimated:

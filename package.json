@@ -75,7 +75,6 @@
     "prettier": "^2.0.5",
     "react": "16.13.1",
     "react-native": "0.63.4",
-    "react-native-background-upload": "^6.2.4",
     "react-native-builder-bob": "^0.18.0",
     "react-native-fs": "^2.18.0",
     "release-it": "^14.2.2",
@@ -85,7 +84,6 @@
     "react": "*",
     "react-native": "*",
     "react-native-fs": "*",
-    "react-native-background-upload": ">=6.0.0",
     "uuid": "*"
   },
   "jest": {

@@ -1,6 +1,5 @@
 import { NativeModules, NativeEventEmitter, Platform } from 'react-native';
 import { v4 as uuidv4 } from 'uuid';
-import Upload from 'react-native-background-upload';
 
 export declare enum FileSystemUploadType {
   BINARY_CONTENT = 0,
@@ -96,45 +95,6 @@ const Video: VideoCompressorType = {
     }
   },
   backgroundUpload: async (url, fileUrl, options, onProgress) => {
-    if (!NativeVideoCompressor || !NativeVideoCompressor.upload) {
-      //check if expo can upload the file
-      const scheme = fileUrl.split('://')[0];
-      if (['file'].includes(scheme)) {
-        return Upload.startUpload({
-          url: url,
-          path: fileUrl,
-          method: options.httpMethod || 'PUT',
-          type: 'raw',
-        })
-          .then((uploadId) => {
-            console.log('Upload started');
-            Upload.addListener(
-              'progress',
-              uploadId,
-              (data: any) =>
-                onProgress && onProgress(parseInt(data.progress), 100)
-            );
-            Upload.addListener('error', uploadId, (data) => {
-              throw data.error;
-            });
-          })
-          .catch((err) => {
-            throw err;
-          });
-        //fallback to use expo upload
-        // return FileSystem.uploadAsync(url, fileUrl, options);
-      } else {
-        // Use poor old fetch
-        const fileRes = await fetch(fileUrl);
-        const fileBody = await fileRes.blob();
-
-        return fetch(url, {
-          method: options.httpMethod,
-          body: fileBody,
-          headers: options.headers,
-        });
-      }
-    }
     const uuid = uuidv4();
     let subscription = null;
     try {

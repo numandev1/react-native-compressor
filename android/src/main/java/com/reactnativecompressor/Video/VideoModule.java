@@ -1,6 +1,7 @@
 package com.reactnativecompressor.Video;
 
 import android.media.MediaMetadataRetriever;
+import android.net.Uri;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -24,6 +25,8 @@ import static com.reactnativecompressor.Video.VideoCompressorHelper.video_upload
 
 @ReactModule(name = VideoModule.NAME)
 public class VideoModule extends ReactContextBaseJavaModule {
+  int videoCompressionThreshold=3;
+  int currentVideoCompression=0;
   public static final String NAME = "VideoCompressor";
   private final ReactApplicationContext reactContext;
   public VideoModule(ReactApplicationContext reactContext) {
@@ -53,25 +56,22 @@ public class VideoModule extends ReactContextBaseJavaModule {
     Promise promise) {
     try{
       final VideoCompressorHelper options = VideoCompressorHelper.fromMap(optionMap);
-    String srcPath = fileUrl;
-    if (srcPath.indexOf("file://") > -1) {
-      srcPath = srcPath.substring(srcPath.indexOf(':') + 1);
-    }
-    String destinationPath = generateCacheFilePath("mp4", reactContext);
-
+      Uri uri= Uri.parse(fileUrl);
+      String srcPath = uri.getPath();
+      String destinationPath = generateCacheFilePath("mp4", reactContext);
       MediaMetadataRetriever metaRetriever = new MediaMetadataRetriever();
       metaRetriever.setDataSource(srcPath);
       int height =Integer.parseInt(metaRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT));
       int width = Integer.parseInt(metaRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH));
 
       boolean isPortrait = height > width;
-      float maxSize = 1920;
+      int maxSize = 1920;
       if(isPortrait && height > maxSize){
-        width = (1920/height)*width;
-        height = 1920;
+        width = (int) (((float)maxSize/height)*width);
+        height = maxSize;
       }else if(width > maxSize){
-        height = (1920/width)*height;
-        width = 1920;
+        height = (int) (((float)maxSize/width)*height);
+        width = maxSize;
       }
 
       float videoBitRate = (float) (height * width * 1.5);
@@ -94,17 +94,24 @@ public class VideoModule extends ReactContextBaseJavaModule {
 
       @Override
       public void onProgress(float percent) {
-        WritableMap params = Arguments.createMap();
-        WritableMap data = Arguments.createMap();
-        params.putString("uuid", options.uuid);
-        data.putDouble("progress",  percent/100);
-        params.putMap("data", data);
-        sendEvent(reactContext, "videoCompressProgress", params);
+        int roundProgress=Math.round(percent);
+        if(roundProgress%videoCompressionThreshold==0&&roundProgress>currentVideoCompression) {
+          WritableMap params = Arguments.createMap();
+          WritableMap data = Arguments.createMap();
+          params.putString("uuid", options.uuid);
+          data.putDouble("progress", percent / 100);
+          params.putMap("data", data);
+          sendEvent(reactContext, "videoCompressProgress", params);
+          currentVideoCompression=roundProgress;
+        }
       }
     });
 
     } catch (Exception ex) {
       promise.reject(ex);
+    }
+    finally {
+      currentVideoCompression=0;
     }
   }
 

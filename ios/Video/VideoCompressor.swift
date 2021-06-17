@@ -34,6 +34,8 @@ class VideoCompressor: RCTEventEmitter, URLSessionTaskDelegate {
   var hasListener: Bool=false
   var uploadResolvers: [String: RCTPromiseResolveBlock] = [:]
   var uploadRejectors: [String: RCTPromiseRejectBlock] = [:]
+    let videoCompressionThreshold:Int=3
+    var videoCompressionCounter:Int=0
 
   override static func requiresMainQueueSetup() -> Bool {
     return false
@@ -197,11 +199,11 @@ class VideoCompressor: RCTEventEmitter, URLSessionTaskDelegate {
     let isPortrait = height > width
     let maxSize = Float(1920);
     if(isPortrait && height > maxSize){
-      width = (1920/height)*width
-      height = 1920
+      width = (maxSize/height)*width
+      height = maxSize
     }else if(width > maxSize){
-      height = (1920/width)*height
-      width = 1920
+      height = (maxSize/width)*height
+      width = maxSize
     }
 
     let videoBitRate = bitRate ?? height*width*1.5
@@ -227,8 +229,15 @@ class VideoCompressor: RCTEventEmitter, URLSessionTaskDelegate {
     
 
     exporter.export(progressHandler: { (progress) in
-      onProgress(progress)
+        let _progress:Float=progress*100;
+        if(Int(_progress)==self.videoCompressionCounter)
+        {
+        self.videoCompressionCounter=Int(_progress)+self.videoCompressionThreshold
+        onProgress(progress)
+        }
+        
     }, completionHandler: { result in
+        self.videoCompressionCounter=0;
       switch result {
       case .success(let status):
         switch status {

@@ -2,6 +2,7 @@ package com.reactnativecompressor;
 
 import android.graphics.Bitmap;
 import android.media.MediaMetadataRetriever;
+import android.net.Uri;
 import android.os.Build;
 import android.util.Log;
 
@@ -83,10 +84,8 @@ public class CompressorModule extends ReactContextBaseJavaModule {
     Promise promise) {
     try{
       final VideoCompressorHelper options = VideoCompressorHelper.fromMap(optionMap);
-      String srcPath = fileUrl;
-      if (srcPath.indexOf("file://") > -1) {
-        srcPath = srcPath.substring(srcPath.indexOf(':') + 1);
-      }
+      Uri uri= Uri.parse(fileUrl);
+      String srcPath = uri.getPath();
       String destinationPath = generateCacheFilePath("mp3", reactContext);
 
       MediaMetadataRetriever metaRetriever = new MediaMetadataRetriever();

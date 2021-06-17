@@ -49,7 +49,7 @@ export default function App() {
     })
       .then((response) => setcompressedVideoThumbnail(response.path))
       .catch((error) => {
-        console.log({ error });
+        console.log({ errorThumnail: error });
         setcompressedVideoThumbnail(sourceVideoThumbnail);
       });
 

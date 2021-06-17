@@ -84,7 +84,11 @@ class VideoCompressor: RCTEventEmitter, URLSessionTaskDelegate {
   }
 
   @objc(upload:withOptions:withResolver:withRejecter:)
-  func upload(fileUrl: String, options: [String: Any], resolve:@escaping RCTPromiseResolveBlock, reject:@escaping RCTPromiseRejectBlock) -> Void {
+  func upload(filePath: String, options: [String: Any], resolve:@escaping RCTPromiseResolveBlock, reject:@escaping RCTPromiseRejectBlock) -> Void {
+    let fileWithUrl = URL(fileURLWithPath: filePath)
+    let absoluteUrl = fileWithUrl.deletingLastPathComponent()
+    let fileUrl = "file://\(absoluteUrl.path)/\(fileWithUrl.lastPathComponent)"
+    
     guard let uuid = options["uuid"] as? String else {
       let uploadError = UploadError(message: "UUID is missing")
       reject("Upload Failed", "UUID is missing", uploadError)

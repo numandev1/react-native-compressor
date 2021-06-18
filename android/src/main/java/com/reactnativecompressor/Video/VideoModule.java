@@ -25,7 +25,7 @@ import static com.reactnativecompressor.Video.VideoCompressorHelper.video_upload
 
 @ReactModule(name = VideoModule.NAME)
 public class VideoModule extends ReactContextBaseJavaModule {
-  int videoCompressionThreshold=3;
+  int videoCompressionThreshold=7;
   int currentVideoCompression=0;
   public static final String NAME = "VideoCompressor";
   private final ReactApplicationContext reactContext;
@@ -63,6 +63,7 @@ public class VideoModule extends ReactContextBaseJavaModule {
       metaRetriever.setDataSource(srcPath);
       int height =Integer.parseInt(metaRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT));
       int width = Integer.parseInt(metaRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH));
+      int bitrate=Integer.parseInt(metaRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_BITRATE));
 
       boolean isPortrait = height > width;
       int maxSize = 1920;
@@ -73,8 +74,13 @@ public class VideoModule extends ReactContextBaseJavaModule {
         height = (int) (((float)maxSize/width)*height);
         width = maxSize;
       }
-
-      float videoBitRate = (float) (height * width * 1.5);
+      else
+      {
+        if(options.bitrate==0) {
+          options.bitrate = (int) (bitrate * 0.8);
+        }
+      }
+      float videoBitRate = (options.bitrate>0)?options.bitrate: (float) (height * width * 1.5);
 
     VideoSlimmer.convertVideo(srcPath, destinationPath, width, height, (int) videoBitRate, new VideoSlimmer.ProgressListener() {
 

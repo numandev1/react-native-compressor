@@ -34,7 +34,7 @@ class VideoCompressor: RCTEventEmitter, URLSessionTaskDelegate {
   var hasListener: Bool=false
   var uploadResolvers: [String: RCTPromiseResolveBlock] = [:]
   var uploadRejectors: [String: RCTPromiseRejectBlock] = [:]
-    let videoCompressionThreshold:Int=3
+    let videoCompressionThreshold:Int=7
     var videoCompressionCounter:Int=0
 
   override static func requiresMainQueueSetup() -> Bool {
@@ -177,6 +177,7 @@ class VideoCompressor: RCTEventEmitter, URLSessionTaskDelegate {
     let tmpURL = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
       .appendingPathComponent(ProcessInfo().globallyUniqueString)
       .appendingPathExtension("mp4")
+    var _bitRate=bitRate;
     let asset = AVAsset(url: url)
     guard asset.tracks.count >= 1 else {
       let error = CompressionError(message: "Invalid video URL, no track found")
@@ -209,8 +210,12 @@ class VideoCompressor: RCTEventEmitter, URLSessionTaskDelegate {
       height = (maxSize/width)*height
       width = maxSize
     }
+    else
+    {
+        _bitRate=bitRate ?? Float(abs(track.estimatedDataRate))*0.8
+    }
 
-    let videoBitRate = bitRate ?? height*width*1.5
+    let videoBitRate = _bitRate ?? height*width*1.5
 
     let compressionDict: [String: Any] = [
       AVVideoAverageBitRateKey: videoBitRate,

@@ -81,25 +81,25 @@ public class FileUploader {
       @Override
       public void onUIProgressStart(long totalBytes) {
         super.onUIProgressStart(totalBytes);
-        Log.e(TAG, "onUIProgressStart:" + totalBytes);
+        Log.d(TAG, "onUIProgressStart:" + totalBytes);
       }
 
       @Override
       public void onUIProgressChanged(long numBytes, long totalBytes, float percent, float speed) {
         sendProgressEvent(numBytes,totalBytes,options,reactContext);
-        Log.e(TAG, "=============start===============");
-        Log.e(TAG, "numBytes:" + numBytes);
-        Log.e(TAG, "totalBytes:" + totalBytes);
-        Log.e(TAG, "percent:" + percent);
-        Log.e(TAG, "speed:" + speed);
-        Log.e(TAG, "============= end ===============");
+        Log.d(TAG, "=============start===============");
+        Log.d(TAG, "numBytes:" + numBytes);
+        Log.d(TAG, "totalBytes:" + totalBytes);
+        Log.d(TAG, "percent:" + percent);
+        Log.d(TAG, "speed:" + speed);
+        Log.d(TAG, "============= end ===============");
       }
 
       //if you don't need this method, don't override this methd. It isn't an abstract method, just an empty method.
       @Override
       public void onUIProgressFinish() {
         super.onUIProgressFinish();
-        Log.e(TAG, "onUIProgressFinish:");
+        Log.d(TAG, "onUIProgressFinish:");
       }
     });
     builder.put(requestBody);
@@ -108,18 +108,18 @@ public class FileUploader {
     call.enqueue(new Callback() {
       @Override
       public void onFailure(Call call, IOException e) {
-        Log.e(TAG, "=============onFailure===============");
+        Log.d(TAG, "=============onFailure===============");
         promise.reject("");
         e.printStackTrace();
       }
 
       @Override
       public void onResponse(Call call, Response response) throws IOException {
-        Log.e(TAG, "=============onResponse===============");
-        Log.e(TAG, "request headers:" + response.request().headers());
-        Log.e(TAG, "response code:" + response.code());
-        Log.e(TAG, "response headers:" + response.headers());
-        Log.e(TAG, "response body:" + response.body().string());
+        Log.d(TAG, "=============onResponse===============");
+        Log.d(TAG, "request headers:" + response.request().headers());
+        Log.d(TAG, "response code:" + response.code());
+        Log.d(TAG, "response headers:" + response.headers());
+        Log.d(TAG, "response body:" + response.body().string());
         WritableMap param = Arguments.createMap();
         param.putInt("status",response.code());
         param.putString("body",response.body().string());

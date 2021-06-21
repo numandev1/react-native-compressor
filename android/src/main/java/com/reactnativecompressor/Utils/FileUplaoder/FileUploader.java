@@ -122,7 +122,6 @@ public class FileUploader {
         Log.d(TAG, "response body:" + response.body().string());
         WritableMap param = Arguments.createMap();
         param.putInt("status",response.code());
-        param.putString("body",response.body().string());
         promise.resolve(param);
       }
     });

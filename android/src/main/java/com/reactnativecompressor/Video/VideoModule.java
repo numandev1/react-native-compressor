@@ -25,7 +25,7 @@ import static com.reactnativecompressor.Video.VideoCompressorHelper.video_upload
 
 @ReactModule(name = VideoModule.NAME)
 public class VideoModule extends ReactContextBaseJavaModule {
-  int videoCompressionThreshold=7;
+  int videoCompressionThreshold=10;
   int currentVideoCompression=0;
   public static final String NAME = "VideoCompressor";
   private final ReactApplicationContext reactContext;

@@ -49,7 +49,7 @@ public class VideoCompressorHelper {
   }
 
   public static void video_upload_helper(String fileUrl, ReadableMap options, ReactApplicationContext reactContext, Promise promise) {
-    new FileUploader(fileUrl,options,reactContext,promise).execute();
+    FileUploader.upload(fileUrl,options,reactContext,promise);
   }
 
   @SuppressLint("InvalidWakeLockTag")

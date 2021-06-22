@@ -82,12 +82,17 @@ class VideoCompressor: RCTEventEmitter, URLSessionTaskDelegate {
       reject("failed", "Compression Failed", error)
     })
   }
-
-  @objc(upload:withOptions:withResolver:withRejecter:)
-  func upload(filePath: String, options: [String: Any], resolve:@escaping RCTPromiseResolveBlock, reject:@escaping RCTPromiseRejectBlock) -> Void {
+    
+func makeValidUri(filePath: String) -> String {
     let fileWithUrl = URL(fileURLWithPath: filePath)
     let absoluteUrl = fileWithUrl.deletingLastPathComponent()
     let fileUrl = "file://\(absoluteUrl.path)/\(fileWithUrl.lastPathComponent)"
+    return fileUrl;
+}
+
+  @objc(upload:withOptions:withResolver:withRejecter:)
+  func upload(filePath: String, options: [String: Any], resolve:@escaping RCTPromiseResolveBlock, reject:@escaping RCTPromiseRejectBlock) -> Void {
+    let fileUrl = makeValidUri(filePath: filePath)
     
     guard let uuid = options["uuid"] as? String else {
       let uploadError = UploadError(message: "UUID is missing")
@@ -174,9 +179,11 @@ class VideoCompressor: RCTEventEmitter, URLSessionTaskDelegate {
   
   
   func compressVideo(url: URL, bitRate: Float?, onProgress: @escaping (Float) -> Void,  onCompletion: @escaping (URL) -> Void, onFailure: @escaping (Error) -> Void){
-    let tmpURL = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+    var tmpURL = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
       .appendingPathComponent(ProcessInfo().globallyUniqueString)
       .appendingPathExtension("mp4")
+    tmpURL = URL(string:makeValidUri(filePath: tmpURL.absoluteString))!
+    
     var _bitRate=bitRate;
     let asset = AVAsset(url: url)
     guard asset.tracks.count >= 1 else {

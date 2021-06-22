@@ -33,6 +33,7 @@ RCT_EXPORT_METHOD(
                 reject(@"unsupported_value", @"Unsupported value type.", nil);
                 return;
         }
+        image=[ImageCompressor scaleAndRotateImage:image];
         NSString *outputExtension=[ImageCompressorOptions getOutputInString:options.output];
         UIImage *resizedImage = [ImageCompressor resize:image maxWidth:options.maxWidth maxHeight:options.maxHeight];
         Boolean isBase64=options.returnableOutputType ==rbase64;

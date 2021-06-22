@@ -9,4 +9,5 @@
 
 + (UIImage *)resize:(UIImage *)image maxWidth:(int)maxWidth maxHeight:(int)maxHeight;
 + (NSString *)compress:(UIImage *)image output:(enum OutputType)output quality:(float)quality outputExtension:(NSString*)outputExtension isBase64:(Boolean)isBase64;
++ (UIImage *)scaleAndRotateImage:(UIImage *)image;
 @end

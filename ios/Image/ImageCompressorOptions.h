@@ -16,6 +16,7 @@ typedef NS_ENUM(long, ReturnableOutputType) { rbase64,
 + (ImageCompressorOptions *)fromDictionary:(NSDictionary *)dictionary;
 + (NSString *) getOutputInString:(enum OutputType*)output;
 
+@property(nonatomic, assign) Boolean autoCompress;
 @property(nonatomic, assign) int maxWidth;
 @property(nonatomic, assign) int maxHeight;
 @property(nonatomic, assign) float quality;

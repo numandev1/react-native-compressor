@@ -14,7 +14,9 @@
     for (id key in dictionary) {
         id value = [dictionary objectForKey:key];
         
-        if ([key isEqual:@"maxWidth"]) {
+        if ([key isEqual:@"autoCompress"]) {
+            options.autoCompress = [value boolValue];
+        }else if ([key isEqual:@"maxWidth"]) {
             options.maxWidth = [value intValue];
         }else if ([key isEqual:@"maxHeight"]) {
             options.maxHeight = [value intValue];
@@ -47,6 +49,7 @@
     self = [super init];
     
     if (self) {
+        self.autoCompress = false;
         self.maxWidth = 640;
         self.maxHeight = 480;
         self.quality = 1.0f;
@@ -58,6 +61,7 @@
     return self;
 }
 
+@synthesize autoCompress;
 @synthesize maxWidth;
 @synthesize maxHeight;
 @synthesize quality;

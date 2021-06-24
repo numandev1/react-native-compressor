@@ -11,6 +11,10 @@ export type CompressorOptions = {
   /***
    * The maximum width boundary used when compressing a landscape image.
    */
+  autoCompress?: boolean;
+  /***
+   * The maximum width boundary used when compressing a landscape image.
+   */
   maxWidth?: number;
   /***
    * The maximum height boundary used when compressing a portrait image.

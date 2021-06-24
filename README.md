@@ -58,6 +58,20 @@ react-native link react-native-compressor
 
 ### Image
 
+##### For Whatsapp Image Compression
+
+```js
+import { Image } from 'react-native-compressor';
+
+const result = await Image.compress('file://path_of_file/image.jpg', {
+  autoCompress: true,
+});
+```
+
+[Here is this package comparison of compression with WhatsApp](https://docs.google.com/spreadsheets/d/13TsnC1c7NOC9aCjzN6wkKurJQPeGRNwDhWsQOkXQskU/edit?usp=sharing)
+
+##### For manual Compression
+
 ```js
 import { Image } from 'react-native-compressor';
 
@@ -107,6 +121,10 @@ const result = await Video.compress(
   Compresses the input file URI or base-64 string with the specified options. Promise returns a string after compression has completed. Resizing will always keep the original aspect ratio of the image, the `maxWidth` and `maxHeight` are used as a boundary.
 
 ### CompressorOptions
+
+- ###### `autoCompress: boolean` (default: false)
+
+  if you want to compress images like whatsapp then make this prop `true`. by enable this option other option will not effect in compression
 
 - ###### `maxWidth: number` (default: 1024)
 

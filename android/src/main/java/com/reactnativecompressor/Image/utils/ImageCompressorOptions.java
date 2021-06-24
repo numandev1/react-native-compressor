@@ -12,6 +12,9 @@ public class ImageCompressorOptions {
             final String key = iterator.nextKey();
 
             switch (key) {
+                case "autoCompress":
+                     options.autoCompress = map.getBoolean(key);
+                      break;
                 case "maxWidth":
                     options.maxWidth = map.getInt(key);
                     break;
@@ -48,10 +51,11 @@ public class ImageCompressorOptions {
     base64, uri
   }
 
+    public boolean autoCompress = false;
     public int maxWidth = 640;
     public int maxHeight = 480;
     public float quality = 1.0f;
     public InputType input = InputType.uri;
     public OutputType output = OutputType.jpg;
-  public ReturnableOutputType returnableOutputType = ReturnableOutputType.uri;
+    public ReturnableOutputType returnableOutputType = ReturnableOutputType.uri;
 }

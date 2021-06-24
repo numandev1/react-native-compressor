@@ -1,11 +1,20 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, Alert } from 'react-native';
+import {
+  View,
+  StyleSheet,
+  Alert,
+  useWindowDimensions,
+  Image as RNImage,
+} from 'react-native';
 import Button from '../../Components/Button';
 import Row from '../../Components/Row';
 import * as ImagePicker from 'react-native-image-picker';
 const prettyBytes = require('pretty-bytes');
 import { Image, getFileInfo } from 'react-native-compressor';
 const Index = () => {
+  const dimension = useWindowDimensions();
+  const [orignalUri, setOrignalUri] = useState<string>();
+  const [commpressedUri, setCommpressedUri] = useState<string>();
   const [fileName, setFileName] = useState<any>('');
   const [mimeType, setMimeType] = useState<any>('');
   const [orignalSize, setOrignalSize] = useState(0);
@@ -27,19 +36,16 @@ const Index = () => {
 
               setFileName(source.fileName);
               setMimeType(source.type);
+              setOrignalUri(source.uri);
             }
 
             Image.compress(source.uri, {
-              maxWidth: 100,
-              input: 'uri',
-              output: 'jpg',
-              quality: 0.5,
-              returnableOutputType: 'uri',
+              autoCompress: true,
             })
               .then(async (compressedFileUri) => {
+                setCommpressedUri(compressedFileUri);
                 const detail: any = await getFileInfo(compressedFileUri);
                 setCompressedSize(prettyBytes(parseInt(detail.size)));
-                console.log(compressedFileUri, 'compressed');
               })
               .catch((e) => {
                 console.log(e, 'error');
@@ -49,14 +55,35 @@ const Index = () => {
       );
     } catch (err) {}
   };
-
   return (
     <View style={styles.container}>
-      <Row label="File Name" value={fileName} />
-      <Row label="Mime Type" value={mimeType} />
-      <Row label="Orignal Size" value={orignalSize} />
-      <Row label="Compressed Size" value={compressedSize} />
-      <Button onPress={chooseAudioHandler} title="Choose Image" />
+      <View style={styles.imageContainer}>
+        {orignalUri && (
+          <RNImage
+            resizeMode="contain"
+            source={{ uri: orignalUri }}
+            style={{
+              width: dimension.width / 3,
+            }}
+          />
+        )}
+        {commpressedUri && (
+          <RNImage
+            resizeMode="contain"
+            source={{ uri: commpressedUri }}
+            style={{
+              width: dimension.width / 3,
+            }}
+          />
+        )}
+      </View>
+      <View style={styles.container}>
+        <Row label="File Name" value={fileName} />
+        <Row label="Mime Type" value={mimeType} />
+        <Row label="Orignal Size" value={orignalSize} />
+        <Row label="Compressed Size" value={compressedSize} />
+        <Button onPress={chooseAudioHandler} title="Choose Image" />
+      </View>
     </View>
   );
 };
@@ -68,5 +95,11 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  imageContainer: {
+    flex: 1,
+    width: '100%',
+    flexDirection: 'row',
+    justifyContent: 'space-around',
   },
 });

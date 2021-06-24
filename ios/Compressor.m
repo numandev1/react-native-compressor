@@ -14,31 +14,23 @@ RCT_EXPORT_MODULE()
 
 //Image
 RCT_EXPORT_METHOD(
-    image_compress: (NSString*) value
+    image_compress: (NSString*) imagePath
     optionsDict: (NSDictionary*) optionsDict
     resolver: (RCTPromiseResolveBlock) resolve
     rejecter: (RCTPromiseRejectBlock) reject) {
     @try {
         ImageCompressorOptions *options = [ImageCompressorOptions fromDictionary:optionsDict];
-
-        UIImage *image;
-        switch (options.input) {
-            case base64:
-                image = [ImageCompressor decodeImage: value];
-                break;
-            case uri:
-                image = [ImageCompressor loadImage: value];
-                break;
-            default:
-                reject(@"unsupported_value", @"Unsupported value type.", nil);
-                return;
+        
+        if(options.autoCompress)
+        {
+            NSString *result = [ImageCompressor autoCompressHandler:imagePath options:options];
+            resolve(result);
         }
-        image=[ImageCompressor scaleAndRotateImage:image];
-        NSString *outputExtension=[ImageCompressorOptions getOutputInString:options.output];
-        UIImage *resizedImage = [ImageCompressor resize:image maxWidth:options.maxWidth maxHeight:options.maxHeight];
-        Boolean isBase64=options.returnableOutputType ==rbase64;
-        NSString *result = [ImageCompressor compress:resizedImage output:options.output quality:options.quality outputExtension:outputExtension isBase64:isBase64];
-        resolve(result);
+        else
+        {
+            NSString *result = [ImageCompressor manualCompressHandler:imagePath options:options];
+            resolve(result);
+        }
     }
     @catch (NSException *exception) {
         reject(exception.name, exception.reason, nil);

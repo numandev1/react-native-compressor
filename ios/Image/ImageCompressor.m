@@ -34,7 +34,7 @@
 }
 
 
-+(UIImage *)resize:(UIImage *)image maxWidth:(int)maxWidth maxHeight:(int)maxHeight {
++(UIImage *)manualResize:(UIImage *)image maxWidth:(int)maxWidth maxHeight:(int)maxHeight {
     CGSize targetSize = [self findTargetSize:image maxWidth:maxWidth maxHeight:maxHeight];
     
     CGImageRef cgImage = image.CGImage;
@@ -98,7 +98,7 @@
     return resizedImage;
 }
 
-+(NSString *)compress:(UIImage *)image output:(enum OutputType)output quality:(float)quality outputExtension:(NSString*)outputExtension isBase64:(Boolean)isBase64{
++(NSString *)manualCompress:(UIImage *)image output:(enum OutputType)output quality:(float)quality outputExtension:(NSString*)outputExtension isBase64:(Boolean)isBase64{
     NSData *data;
     NSException *exception;
     
@@ -122,7 +122,8 @@
     {
         NSString *filePath =[self generateCacheFilePath:outputExtension];
         [data writeToFile:filePath atomically:YES];
-        return [NSString stringWithFormat: @"file:/%@", filePath];
+        NSString *returnablePath=[self makeValidUri:filePath];
+        return returnablePath;
     }
 }
 
@@ -212,6 +213,79 @@
         CGContextRelease(ctx);
         CGImageRelease(cgimg);
         return img;
+}
+
++(NSString *)makeValidUri:(NSString *)filePath{
+    NSURL *fileWithUrl = [NSURL fileURLWithPath:filePath];
+    NSURL *absoluteUrl = [fileWithUrl URLByDeletingLastPathComponent];
+    NSString *fileUrl = [NSString stringWithFormat:@"file://%@/%@", [absoluteUrl path] , [fileWithUrl lastPathComponent]];
+    return fileUrl;
+}
+
++(NSString *)manualCompressHandler:(NSString *)imagePath options:(ImageCompressorOptions*)options{
+    NSException *exception;
+    UIImage *image;
+    switch (options.input) {
+        case base64:
+            image = [ImageCompressor decodeImage: imagePath];
+            break;
+        case uri:
+            image = [ImageCompressor loadImage: imagePath];
+            break;
+        default:
+            exception = [[NSException alloc] initWithName: @"unsupported_value" reason:@"Unsupported value type.." userInfo:nil];
+            @throw exception;
+    }
+    image=[ImageCompressor scaleAndRotateImage:image];
+    NSString *outputExtension=[ImageCompressorOptions getOutputInString:options.output];
+    UIImage *resizedImage = [ImageCompressor manualResize:image maxWidth:options.maxWidth maxHeight:options.maxHeight];
+    Boolean isBase64=options.returnableOutputType ==rbase64;
+    NSString *result = [ImageCompressor manualCompress:resizedImage output:options.output quality:options.quality outputExtension:outputExtension isBase64:isBase64];
+    return result;
+}
+
++(NSString *)autoCompressHandler:(NSString *)imagePath options:(ImageCompressorOptions*)options{
+    
+    NSException *exception;
+    UIImage *image=[ImageCompressor loadImage: imagePath];;
+    image=[ImageCompressor scaleAndRotateImage:image];
+    NSString *outputExtension=[ImageCompressorOptions getOutputInString:options.output];
+    
+    
+        float actualHeight = image.size.height;
+        float actualWidth = image.size.width;
+        float maxHeight = 1280.0;
+        float maxWidth = 1280.0;
+        float imgRatio = actualWidth/actualHeight;
+        float maxRatio = maxWidth/maxHeight;
+        float compressionQuality = 0.8;
+        
+        if (actualHeight > maxHeight || actualWidth > maxWidth) {
+            if(imgRatio < maxRatio){
+                imgRatio = maxHeight / actualHeight;
+                actualWidth = imgRatio * actualWidth;
+                actualHeight = maxHeight;
+            }
+            else if(imgRatio > maxRatio){
+                imgRatio = maxWidth / actualWidth;
+                actualHeight = imgRatio * actualHeight;
+                actualWidth = maxWidth;
+            }else{
+                actualHeight = maxHeight;
+                actualWidth = maxWidth;
+            }
+        }
+        
+        CGRect rect = CGRectMake(0.0, 0.0, actualWidth, actualHeight);
+        UIGraphicsBeginImageContext(rect.size);
+        [image drawInRect:rect];
+        UIImage *img = UIGraphicsGetImageFromCurrentImageContext();
+        NSData *imageData = UIImageJPEGRepresentation(img, compressionQuality);
+        UIGraphicsEndImageContext();
+        NSString *filePath =[self generateCacheFilePath:outputExtension];
+        [imageData writeToFile:filePath atomically:YES];
+        NSString *returnablePath=[self makeValidUri:filePath];
+        return returnablePath;
 }
 
 @end

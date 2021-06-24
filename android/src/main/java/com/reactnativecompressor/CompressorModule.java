@@ -55,22 +55,22 @@ public class CompressorModule extends ReactContextBaseJavaModule {
     //Image
   @ReactMethod
   public void image_compress(
-    String value,
+    String imagePath,
     ReadableMap optionMap,
     Promise promise) {
     try {
       final ImageCompressorOptions options = ImageCompressorOptions.fromMap(optionMap);
-      final Bitmap image = options.input == ImageCompressorOptions.InputType.base64
-        ? ImageCompressor.decodeImage(value)
-        : ImageCompressor.loadImage(value);
 
-      final Bitmap resizedImage = ImageCompressor.resize(image, options.maxWidth, options.maxHeight);
-      final ByteArrayOutputStream imageDataByteArrayOutputStream = ImageCompressor.compress(resizedImage, options.output, options.quality);
-      Boolean isBase64=options.returnableOutputType==ImageCompressorOptions.ReturnableOutputType.base64;
-
-      final String returnableResult = ImageCompressor.encodeImage(imageDataByteArrayOutputStream,isBase64,image,options.output.toString(),this.reactContext);
-
-      promise.resolve(returnableResult);
+      if(options.autoCompress)
+      {
+        String returnableResult=ImageCompressor.autoCompressImage(imagePath,options.output.toString(),reactContext);
+        promise.resolve(returnableResult);
+      }
+      else
+      {
+        String returnableResult=ImageCompressor.manualCompressImage(imagePath,options,reactContext);
+        promise.resolve(returnableResult);
+      }
     } catch (Exception ex) {
       promise.reject(ex);
     }

@@ -58,13 +58,13 @@ react-native link react-native-compressor
 
 ### Image
 
-##### For Whatsapp Image Compression
+##### For Like Whatsapp Image Compression
 
 ```js
 import { Image } from 'react-native-compressor';
 
 const result = await Image.compress('file://path_of_file/image.jpg', {
-  autoCompress: true,
+  compressionMethod: 'auto',
 });
 ```
 
@@ -122,19 +122,19 @@ const result = await Video.compress(
 
 ### CompressorOptions
 
-- ###### `autoCompress: boolean` (default: false)
+- ###### `compressionMethod: compressionMethod` (default: "manual")
 
-  if you want to compress images like whatsapp then make this prop `true`. by enable this option other option will not effect in compression
+  if you want to compress images like **whatsapp** then make this prop `auto`. Can be either `manual` or `auto`, defines the Compression Method.
 
-- ###### `maxWidth: number` (default: 1024)
+- ###### `maxWidth: number` (default: 1280)
 
   The maximum width boundary used as the main boundary in resizing a landscape image.
 
-- ###### `maxHeight: number` (default: 1024)
+- ###### `maxHeight: number` (default: 1280)
 
   The maximum height boundary used as the main boundary in resizing a portrait image.
 
-- ###### `quality: number` (default: 1.0)
+- ###### `quality: number` (default: 0.8)
 
   The quality modifier for the `JPEG` file format, can be specified when output is `PNG` but will be ignored.
 

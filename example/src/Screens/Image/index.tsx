@@ -40,7 +40,7 @@ const Index = () => {
             }
 
             Image.compress(source.uri, {
-              autoCompress: true,
+              compressionMethod: 'auto',
             })
               .then(async (compressedFileUri) => {
                 setCommpressedUri(compressedFileUri);

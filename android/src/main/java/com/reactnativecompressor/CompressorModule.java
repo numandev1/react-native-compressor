@@ -61,9 +61,9 @@ public class CompressorModule extends ReactContextBaseJavaModule {
     try {
       final ImageCompressorOptions options = ImageCompressorOptions.fromMap(optionMap);
 
-      if(options.autoCompress)
+      if(options.compressionMethod==ImageCompressorOptions.CompressionMethod.auto)
       {
-        String returnableResult=ImageCompressor.autoCompressImage(imagePath,options.output.toString(),reactContext);
+        String returnableResult=ImageCompressor.autoCompressImage(imagePath,options,reactContext);
         promise.resolve(returnableResult);
       }
       else

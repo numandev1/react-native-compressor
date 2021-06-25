@@ -70,7 +70,7 @@ class VideoCompressor: RCTEventEmitter, URLSessionTaskDelegate {
 
   @objc(compress:withOptions:withResolver:withRejecter:)
   func compress(fileUrl: String, options: [String: Any], resolve:@escaping RCTPromiseResolveBlock, reject:@escaping RCTPromiseRejectBlock) -> Void {
-    compressVideo(url: URL(string: fileUrl)!, bitRate: options["bitrate"] as! Float?,
+    compressVideo(url: URL(string: fileUrl)!, options:options,
     onProgress: { progress in 
       print("Progress", progress)
       if(self.hasListener){
@@ -176,101 +176,275 @@ func makeValidUri(filePath: String) -> String {
   override func startObserving() -> Void {
     hasListener = true
   }
-  
-  
-  func compressVideo(url: URL, bitRate: Float?, onProgress: @escaping (Float) -> Void,  onCompletion: @escaping (URL) -> Void, onFailure: @escaping (Error) -> Void){
-    var tmpURL = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
-      .appendingPathComponent(ProcessInfo().globallyUniqueString)
-      .appendingPathExtension("mp4")
-    tmpURL = URL(string:makeValidUri(filePath: tmpURL.absoluteString))!
     
-    var _bitRate=bitRate;
-    let asset = AVAsset(url: url)
-    guard asset.tracks.count >= 1 else {
-      let error = CompressionError(message: "Invalid video URL, no track found")
-      onFailure(error)
-      return
-    }
-    var videoTrackIndex: Int = 0;
-    let trackLength = asset.tracks.count;
-    if(trackLength==2)
-    {
-        if(asset.tracks[0].mediaType.rawValue=="soun")
+    func getfileSize(forURL url: Any) -> Double {
+        var fileURL: URL?
+        var fileSize: Double = 0.0
+        if (url is URL) || (url is String)
         {
-            videoTrackIndex=1;
+            if (url is URL) {
+                fileURL = url as? URL
+            }
+            else {
+                fileURL = URL(fileURLWithPath: url as! String)
+            }
+            var fileSizeValue = 0.0
+            try? fileSizeValue = (fileURL?.resourceValues(forKeys: [URLResourceKey.fileSizeKey]).allValues.first?.value as! Double?)!
+            if fileSizeValue > 0.0 {
+                fileSize = (Double(fileSizeValue) / (1024 * 1024))
+            }
         }
+        return fileSize
     }
-    let track = asset.tracks[videoTrackIndex];
-    let exporter = NextLevelSessionExporter(withAsset: asset)
-    exporter.outputURL = tmpURL
-    exporter.outputFileType = AVFileType.mp4
+  
+  
+  func compressVideo(url: URL, options: [String: Any], onProgress: @escaping (Float) -> Void,  onCompletion: @escaping (URL) -> Void, onFailure: @escaping (Error) -> Void){
     
-    let videoSize = track.naturalSize.applying(track.preferredTransform);
-    var width = Float(abs(videoSize.width))
-    var height = Float(abs(videoSize.height))
-    let isPortrait = height > width
-    let maxSize = Float(1920);
-    if(isPortrait && height > maxSize){
-      width = (maxSize/height)*width
-      height = maxSize
-    }else if(width > maxSize){
-      height = (maxSize/width)*height
-      width = maxSize
+    let fileSize=self.getfileSize(forURL: url);
+    
+    if(fileSize>16)
+    {
+        if(options["compressionMethod"] as! String=="auto")
+        {
+            autoCompressionHelper(url: url, options:options) { progress in
+                onProgress(progress)
+            } onCompletion: { outputURL in
+                onCompletion(outputURL)
+            } onFailure: { error in
+                onFailure(error)
+            }
+        }
+        else
+        {
+            manualCompressionHelper(url: url, bitRate: options["bitrate"] as! Float?) { progress in
+                onProgress(progress)
+            } onCompletion: { outputURL in
+                onCompletion(outputURL)
+            } onFailure: { error in
+                onFailure(error)
+            }
+        }
+        
+        
+
     }
     else
     {
-        _bitRate=bitRate ?? Float(abs(track.estimatedDataRate))*0.8
+        onCompletion(url)
     }
-
-    let videoBitRate = _bitRate ?? height*width*1.5
-
-    let compressionDict: [String: Any] = [
-      AVVideoAverageBitRateKey: videoBitRate,
-      AVVideoProfileLevelKey: AVVideoProfileLevelH264HighAutoLevel,
-    ]
-    exporter.optimizeForNetworkUse = true;
-    exporter.videoOutputConfiguration = [
-      AVVideoCodecKey: AVVideoCodecType.h264,
-      AVVideoWidthKey:  width,
-      AVVideoHeightKey:  height,
-      AVVideoScalingModeKey: AVVideoScalingModeResizeAspectFill,
-      AVVideoCompressionPropertiesKey: compressionDict
-    ]
-    exporter.audioOutputConfiguration = [
-      AVFormatIDKey: kAudioFormatMPEG4AAC,
-      AVEncoderBitRateKey: NSNumber(integerLiteral: 128000),
-      AVNumberOfChannelsKey: NSNumber(integerLiteral: 2),
-      AVSampleRateKey: NSNumber(value: Float(44100))
-    ]
     
-
-    exporter.export(progressHandler: { (progress) in
-        let _progress:Float=progress*100;
-        if(Int(_progress)==self.videoCompressionCounter)
-        {
-        self.videoCompressionCounter=Int(_progress)+self.videoCompressionThreshold
-        onProgress(progress)
-        }
-        
-    }, completionHandler: { result in
-        self.videoCompressionCounter=0;
-      switch result {
-      case .success(let status):
-        switch status {
-        case .completed:
-          onCompletion(exporter.outputURL!)
-          break
-        default:
-          let error = CompressionError(message: "Compression didn't complete")
-          onFailure(error)
-          break
-        }
-        break
-      case .failure(let error):
-        onFailure(error)
-        break
-      }
-    })
-  }
+    
   
 }
+
+
+    func  makeVideoBitrate(originalHeight:Int,originalWidth:Int,originalBitrate:Int,height:Int,width:Int)->Int {
+        let compressFactor:Float = 0.8
+        let  minCompressFactor:Float = 0.8
+        let maxBitrate:Int = 1669000
+
+        var remeasuredBitrate:Int = originalBitrate / (min(originalHeight/height,originalWidth/width))
+        remeasuredBitrate = remeasuredBitrate*Int(compressFactor)
+        let minBitrate:Int = self.getVideoBitrateWithFactor(f: minCompressFactor) / (1280 * 720 / (width * height))
+        if (originalBitrate < minBitrate) {
+          return remeasuredBitrate;
+        }
+        if (remeasuredBitrate > maxBitrate) {
+          return maxBitrate;
+        }
+        return max(remeasuredBitrate, minBitrate);
+      }
+    func getVideoBitrateWithFactor(f:Float)->Int {
+        return Int(f * 2000 * 1000 * 1.13);
+      }
+    
+    func autoCompressionHelper(url: URL, options: [String: Any], onProgress: @escaping (Float) -> Void,  onCompletion: @escaping (URL) -> Void, onFailure: @escaping (Error) -> Void){
+        var bitRate=options["bitrate"] as! Float?;
+        var tmpURL = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+          .appendingPathComponent(ProcessInfo().globallyUniqueString)
+          .appendingPathExtension("mp4")
+        tmpURL = URL(string:makeValidUri(filePath: tmpURL.absoluteString))!
+        
+        let maxSize = 640.0;
+        var _bitRate=bitRate;
+        let asset = AVAsset(url: url)
+        guard asset.tracks.count >= 1 else {
+          let error = CompressionError(message: "Invalid video URL, no track found")
+          onFailure(error)
+          return
+        }
+        var videoTrackIndex: Int = 0;
+        let trackLength = asset.tracks.count;
+        if(trackLength==2)
+        {
+            if(asset.tracks[0].mediaType.rawValue=="soun")
+            {
+                videoTrackIndex=1;
+            }
+        }
+        let track = asset.tracks[videoTrackIndex];
+        let exporter = NextLevelSessionExporter(withAsset: asset)
+        exporter.outputURL = tmpURL
+        exporter.outputFileType = AVFileType.mp4
+        
+        let videoSize = track.naturalSize.applying(track.preferredTransform);
+        var actualWidth = Float(abs(videoSize.width))
+        var actualHeight = Float(abs(videoSize.height))
+
+        let bitrate=Float(abs(track.estimatedDataRate));
+        let scale:Float = actualWidth > actualHeight ? (Float(maxSize) / actualWidth) : (Float(maxSize) / actualHeight);
+        let resultWidth:Float = round(actualWidth * scale / 2) * 2;
+        let resultHeight:Float = round(actualHeight * scale / 2) * 2;
+
+        let videoBitRate:Int = self.makeVideoBitrate(
+            originalHeight: Int(actualHeight), originalWidth: Int(actualWidth),
+            originalBitrate: Int(bitrate),
+            height: Int(resultHeight), width: Int(resultWidth)
+            );
+      
+
+        let compressionDict: [String: Any] = [
+          AVVideoAverageBitRateKey: videoBitRate,
+          AVVideoProfileLevelKey: AVVideoProfileLevelH264HighAutoLevel,
+        ]
+        exporter.optimizeForNetworkUse = true;
+        exporter.videoOutputConfiguration = [
+          AVVideoCodecKey: AVVideoCodecType.h264,
+          AVVideoWidthKey:  resultWidth,
+          AVVideoHeightKey:  resultHeight,
+          AVVideoScalingModeKey: AVVideoScalingModeResizeAspectFill,
+          AVVideoCompressionPropertiesKey: compressionDict
+        ]
+        exporter.audioOutputConfiguration = [
+          AVFormatIDKey: kAudioFormatMPEG4AAC,
+          AVEncoderBitRateKey: NSNumber(integerLiteral: 128000),
+          AVNumberOfChannelsKey: NSNumber(integerLiteral: 2),
+          AVSampleRateKey: NSNumber(value: Float(44100))
+        ]
+        
+
+        exporter.export(progressHandler: { (progress) in
+            let _progress:Float=progress*100;
+            if(Int(_progress)==self.videoCompressionCounter)
+            {
+            self.videoCompressionCounter=Int(_progress)+self.videoCompressionThreshold
+            onProgress(progress)
+            }
+            
+        }, completionHandler: { result in
+            self.videoCompressionCounter=0;
+          switch result {
+          case .success(let status):
+            switch status {
+            case .completed:
+              onCompletion(exporter.outputURL!)
+              break
+            default:
+              let error = CompressionError(message: "Compression didn't complete")
+              onFailure(error)
+              break
+            }
+            break
+          case .failure(let error):
+            onFailure(error)
+            break
+          }
+        })
+      }
+
+
+    func manualCompressionHelper(url: URL, bitRate: Float?, onProgress: @escaping (Float) -> Void,  onCompletion: @escaping (URL) -> Void, onFailure: @escaping (Error) -> Void){
+        var tmpURL = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+          .appendingPathComponent(ProcessInfo().globallyUniqueString)
+          .appendingPathExtension("mp4")
+        tmpURL = URL(string:makeValidUri(filePath: tmpURL.absoluteString))!
+        
+        var _bitRate=bitRate;
+        let asset = AVAsset(url: url)
+        guard asset.tracks.count >= 1 else {
+          let error = CompressionError(message: "Invalid video URL, no track found")
+          onFailure(error)
+          return
+        }
+        var videoTrackIndex: Int = 0;
+        let trackLength = asset.tracks.count;
+        if(trackLength==2)
+        {
+            if(asset.tracks[0].mediaType.rawValue=="soun")
+            {
+                videoTrackIndex=1;
+            }
+        }
+        let track = asset.tracks[videoTrackIndex];
+        let exporter = NextLevelSessionExporter(withAsset: asset)
+        exporter.outputURL = tmpURL
+        exporter.outputFileType = AVFileType.mp4
+        
+        let videoSize = track.naturalSize.applying(track.preferredTransform);
+        var width = Float(abs(videoSize.width))
+        var height = Float(abs(videoSize.height))
+        let isPortrait = height > width
+        let maxSize = Float(1920);
+        if(isPortrait && height > maxSize){
+          width = (maxSize/height)*width
+          height = maxSize
+        }else if(width > maxSize){
+          height = (maxSize/width)*height
+          width = maxSize
+        }
+        else
+        {
+            _bitRate=bitRate ?? Float(abs(track.estimatedDataRate))*0.8
+        }
+
+        let videoBitRate = _bitRate ?? height*width*1.5
+
+        let compressionDict: [String: Any] = [
+          AVVideoAverageBitRateKey: videoBitRate,
+          AVVideoProfileLevelKey: AVVideoProfileLevelH264HighAutoLevel,
+        ]
+        exporter.optimizeForNetworkUse = true;
+        exporter.videoOutputConfiguration = [
+          AVVideoCodecKey: AVVideoCodecType.h264,
+          AVVideoWidthKey:  width,
+          AVVideoHeightKey:  height,
+          AVVideoScalingModeKey: AVVideoScalingModeResizeAspectFill,
+          AVVideoCompressionPropertiesKey: compressionDict
+        ]
+        exporter.audioOutputConfiguration = [
+          AVFormatIDKey: kAudioFormatMPEG4AAC,
+          AVEncoderBitRateKey: NSNumber(integerLiteral: 128000),
+          AVNumberOfChannelsKey: NSNumber(integerLiteral: 2),
+          AVSampleRateKey: NSNumber(value: Float(44100))
+        ]
+        
+
+        exporter.export(progressHandler: { (progress) in
+            let _progress:Float=progress*100;
+            if(Int(_progress)==self.videoCompressionCounter)
+            {
+            self.videoCompressionCounter=Int(_progress)+self.videoCompressionThreshold
+            onProgress(progress)
+            }
+            
+        }, completionHandler: { result in
+            self.videoCompressionCounter=0;
+          switch result {
+          case .success(let status):
+            switch status {
+            case .completed:
+              onCompletion(exporter.outputURL!)
+              break
+            default:
+              let error = CompressionError(message: "Compression didn't complete")
+              onFailure(error)
+              break
+            }
+            break
+          case .failure(let error):
+            onFailure(error)
+            break
+          }
+        })
+      }
+    }

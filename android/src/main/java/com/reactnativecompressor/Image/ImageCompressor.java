@@ -24,8 +24,7 @@ import static com.reactnativecompressor.Utils.Utils.generateCacheFilePath;
 
 
 public class ImageCompressor {
-  private static final float autoCompressMaxHeight = 1280.0f;
-  private static final float audoCompressMaxWidth = 1280.0f;
+
 
   public static String getRNFileUrl(String filePath) {
     File returnAbleFile= new File(filePath);
@@ -131,7 +130,11 @@ public class ImageCompressor {
   }
 
 
-  public static String autoCompressImage(String imagePath,String outputExtension, ReactApplicationContext reactContext) {
+  public static String autoCompressImage(String imagePath,ImageCompressorOptions compressorOptions, ReactApplicationContext reactContext) {
+    String outputExtension=compressorOptions.output.toString();
+    int quality= (int) (compressorOptions.quality*100);
+    float autoCompressMaxHeight = compressorOptions.maxHeight;
+    float audoCompressMaxWidth = compressorOptions.maxWidth;
 
     Uri uri= Uri.parse(imagePath);
     imagePath = uri.getPath();
@@ -221,7 +224,7 @@ public class ImageCompressor {
       out = new FileOutputStream(filepath);
 
       //write the compressed bitmap at the destination specified by filename.
-      scaledBitmap.compress(Bitmap.CompressFormat.JPEG, 80, out);
+      scaledBitmap.compress(Bitmap.CompressFormat.JPEG, quality, out);
 
     } catch (FileNotFoundException e) {
       e.printStackTrace();

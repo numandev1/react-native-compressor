@@ -7,11 +7,13 @@ export type OutputType = 'jpg' | 'png';
 
 export type ReturnableOutputType = 'uri' | 'base64';
 
+export type compressionMethod = 'auto' | 'manual';
+
 export type CompressorOptions = {
   /***
    * The maximum width boundary used when compressing a landscape image.
    */
-  autoCompress?: boolean;
+  compressionMethod?: compressionMethod;
   /***
    * The maximum width boundary used when compressing a landscape image.
    */

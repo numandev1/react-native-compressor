@@ -68,7 +68,7 @@ const result = await Image.compress('file://path_of_file/image.jpg', {
 });
 ```
 
-[Here is this package comparison of compression with WhatsApp](https://docs.google.com/spreadsheets/d/13TsnC1c7NOC9aCjzN6wkKurJQPeGRNwDhWsQOkXQskU/edit?usp=sharing)
+[Here is this package comparison of images compression with WhatsApp](https://docs.google.com/spreadsheets/d/13TsnC1c7NOC9aCjzN6wkKurJQPeGRNwDhWsQOkXQskU/edit?usp=sharing)
 
 ##### For manual Compression
 
@@ -93,6 +93,30 @@ const result = await Audio.compress(
 ```
 
 ### Video
+
+##### For Like Whatsapp Video Compression
+
+```js
+import { Video } from 'react-native-compressor';
+
+const result = await Video.compress(
+  'file://path_of_file/BigBuckBunny.mp4',
+  {
+    compressionMethod: 'auto',
+  },
+  (progress) => {
+    if (backgroundMode) {
+      console.log('Compression Progress: ', progress);
+    } else {
+      setCompressingProgress(progress);
+    }
+  }
+);
+```
+
+[Here is this package comparison of video compression with WhatsApp](https://docs.google.com/spreadsheets/d/13TsnC1c7NOC9aCjzN6wkKurJQPeGRNwDhWsQOkXQskU/edit#gid=1055406534)
+
+##### For manual Compression
 
 ```js
 import { Video } from 'react-native-compressor';
@@ -164,8 +188,16 @@ const result = await Video.compress(
 
 ### videoCompresssionType
 
+- ###### `compressionMethod: compressionMethod` (default: "manual")
+
+  if you want to compress videos like **whatsapp** then make this prop `auto`. Can be either `manual` or `auto`, defines the Compression Method.
+
+- ###### `maxSize: number` (default: 640)
+
+  The maximum size can be height in case of portrait video or can be width in case of landscape video.
+
 - ###### `bitrate: string`
-  bitrate of video which reduce or increase video size.
+  bitrate of video which reduce or increase video size. if compressionMethod will auto then this prop will not work
 
 ## Contributing
 

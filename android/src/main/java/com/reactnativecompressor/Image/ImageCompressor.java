@@ -25,7 +25,6 @@ import static com.reactnativecompressor.Utils.Utils.generateCacheFilePath;
 
 public class ImageCompressor {
 
-
   public static String getRNFileUrl(String filePath) {
     File returnAbleFile= new File(filePath);
     try {
@@ -134,7 +133,7 @@ public class ImageCompressor {
     String outputExtension=compressorOptions.output.toString();
     int quality= (int) (compressorOptions.quality*100);
     float autoCompressMaxHeight = compressorOptions.maxHeight;
-    float audoCompressMaxWidth = compressorOptions.maxWidth;
+    float autoCompressMaxWidth = compressorOptions.maxWidth;
 
     Uri uri= Uri.parse(imagePath);
     imagePath = uri.getPath();
@@ -148,20 +147,20 @@ public class ImageCompressor {
     int actualWidth = options.outWidth;
 
     float imgRatio = (float) actualWidth / (float) actualHeight;
-    float maxRatio = audoCompressMaxWidth / autoCompressMaxHeight;
+    float maxRatio = autoCompressMaxWidth / autoCompressMaxHeight;
 
-    if (actualHeight > autoCompressMaxHeight || actualWidth > audoCompressMaxWidth) {
+    if (actualHeight > autoCompressMaxHeight || actualWidth > autoCompressMaxWidth) {
       if (imgRatio < maxRatio) {
         imgRatio = autoCompressMaxHeight / actualHeight;
         actualWidth = (int) (imgRatio * actualWidth);
         actualHeight = (int) autoCompressMaxHeight;
       } else if (imgRatio > maxRatio) {
-        imgRatio = audoCompressMaxWidth / actualWidth;
+        imgRatio = autoCompressMaxWidth / actualWidth;
         actualHeight = (int) (imgRatio * actualHeight);
-        actualWidth = (int) audoCompressMaxWidth;
+        actualWidth = (int) autoCompressMaxWidth;
       } else {
         actualHeight = (int) autoCompressMaxHeight;
-        actualWidth = (int) audoCompressMaxWidth;
+        actualWidth = (int) autoCompressMaxWidth;
 
       }
     }

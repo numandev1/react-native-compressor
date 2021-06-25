@@ -10,8 +10,11 @@ export declare type FileSystemAcceptedUploadHttpMethod =
   | 'POST'
   | 'PUT'
   | 'PATCH';
-
-type videoCompresssionType = { bitrate?: number };
+export type compressionMethod = 'auto' | 'manual';
+type videoCompresssionType = {
+  bitrate?: number;
+  compressionMethod?: compressionMethod;
+};
 
 export declare enum FileSystemSessionType {
   BACKGROUND = 0,
@@ -65,7 +68,7 @@ const NativeVideoCompressor = NativeModules.VideoCompressor;
 const Video: VideoCompressorType = {
   compress: async (
     fileUrl: string,
-    options?: { bitrate?: number },
+    options?: { bitrate?: number; compressionMethod?: compressionMethod },
     onProgress?: (progress: number) => void
   ) => {
     const uuid = uuidv4();
@@ -81,8 +84,14 @@ const Video: VideoCompressorType = {
           }
         );
       }
-      const modifiedOptions: { uuid: string; bitrate?: number } = { uuid };
+      const modifiedOptions: {
+        uuid: string;
+        bitrate?: number;
+        compressionMethod?: compressionMethod;
+      } = { uuid };
       if (options?.bitrate) modifiedOptions.bitrate = options?.bitrate;
+      if (options?.compressionMethod)
+        modifiedOptions.compressionMethod = options?.compressionMethod;
       const result = await NativeVideoCompressor.compress(
         fileUrl,
         modifiedOptions

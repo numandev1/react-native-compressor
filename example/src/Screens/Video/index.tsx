@@ -109,7 +109,9 @@ export default function App() {
     if (!sourceVideo) return;
     const dstUrl = await Video.compress(
       sourceVideo,
-      { bitrate: 3000 },
+      {
+        compressionMethod: 'auto',
+      },
       (progress) => {
         if (backgroundMode) {
           console.log('Compression Progress: ', progress);
@@ -145,6 +147,7 @@ export default function App() {
   const uploadCompressed = async () => {
     if (!compressedVideo) return;
     try {
+      setCompressedUploadProgress(1);
       const result = await Video.backgroundUpload(
         'http://w.hbu50.com:8080/hello.mp4',
         compressedVideo,

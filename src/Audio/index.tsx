@@ -1,5 +1,4 @@
-import { Platform, NativeModules } from 'react-native';
-const RNFS = require('react-native-fs');
+import { NativeModules } from 'react-native';
 import {
   AUDIO_BITRATE,
   AudioType,
@@ -7,16 +6,10 @@ import {
   defaultResultType,
   checkUrlAndOptions,
 } from '../utils';
-import { v4 as uuidv4 } from 'uuid';
 const NativeAudio = NativeModules.Compressor;
 
 const Audio: AudioType = {
   compress: async (url, options = DEFAULT_COMPRESS_AUDIO_OPTIONS) => {
-    if (Platform.OS === 'android' && url.includes('content://')) {
-      const destPath = `${RNFS.TemporaryDirectoryPath}/${uuidv4()}.mp3`;
-      await RNFS.copyFile(url, destPath);
-      url = destPath;
-    }
     try {
       const checkUrlAndOptionsResult: defaultResultType =
         await checkUrlAndOptions(url, options);

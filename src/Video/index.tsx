@@ -68,7 +68,11 @@ const NativeVideoCompressor = NativeModules.VideoCompressor;
 const Video: VideoCompressorType = {
   compress: async (
     fileUrl: string,
-    options?: { bitrate?: number; compressionMethod?: compressionMethod },
+    options?: {
+      bitrate?: number;
+      compressionMethod?: compressionMethod;
+      maxSize?: number;
+    },
     onProgress?: (progress: number) => void
   ) => {
     const uuid = uuidv4();
@@ -88,10 +92,19 @@ const Video: VideoCompressorType = {
         uuid: string;
         bitrate?: number;
         compressionMethod?: compressionMethod;
+        maxSize?: number;
       } = { uuid };
       if (options?.bitrate) modifiedOptions.bitrate = options?.bitrate;
-      if (options?.compressionMethod)
+      if (options?.compressionMethod) {
         modifiedOptions.compressionMethod = options?.compressionMethod;
+      } else {
+        modifiedOptions.compressionMethod = 'manual';
+      }
+      if (options?.maxSize) {
+        modifiedOptions.maxSize = options?.maxSize;
+      } else {
+        modifiedOptions.maxSize = 640;
+      }
       const result = await NativeVideoCompressor.compress(
         fileUrl,
         modifiedOptions

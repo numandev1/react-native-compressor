@@ -265,7 +265,7 @@ func makeValidUri(filePath: String) -> String {
           .appendingPathExtension("mp4")
         tmpURL = URL(string:makeValidUri(filePath: tmpURL.absoluteString))!
         
-        let maxSize = 640.0;
+        let maxSize:Float = options["maxSize"] as! Float;
         var _bitRate=bitRate;
         let asset = AVAsset(url: url)
         guard asset.tracks.count >= 1 else {

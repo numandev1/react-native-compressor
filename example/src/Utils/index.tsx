@@ -1,3 +1,4 @@
+const RNFS = require('react-native-fs');
 export const getFullFilename = (path: string | null) => {
   if (typeof path === 'string') {
     let _path = path;
@@ -11,3 +12,5 @@ export const getFullFilename = (path: string | null) => {
   }
   return '';
 };
+
+export const getFileInfo = RNFS.stat;

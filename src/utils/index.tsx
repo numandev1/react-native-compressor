@@ -1,7 +1,6 @@
 import { NativeModules } from 'react-native';
 const { Compressor } = NativeModules;
 export const AUDIO_BITRATE = [256, 192, 160, 128, 96, 64, 32];
-const RNFS = require('react-native-fs');
 type qualityType = 'low' | 'medium' | 'high';
 const INCORRECT_INPUT_PATH = 'Incorrect input path. Please provide a valid one';
 const INCORRECT_OUTPUT_PATH =
@@ -77,7 +76,6 @@ const isRemoteMedia = (path: string | null) => {
   return typeof path === 'string' ? path.split(':/')[0].includes('http') : null;
 };
 
-export const getFileInfo = RNFS.stat;
 export const getDetails = (
   mediaFullPath: string,
   extesnion: 'mp3' | 'mp4' = 'mp3'

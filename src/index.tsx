@@ -1,7 +1,7 @@
 import Video, { VideoCompressorType } from './Video';
 import Audio from './Audio';
 import Image from './Image';
-import { getDetails, getFileInfo } from './utils';
+import { getDetails } from './utils';
 
 export {
   Video,
@@ -10,12 +10,10 @@ export {
   //type
   VideoCompressorType,
   getDetails,
-  getFileInfo,
 };
 export default {
   Video,
   Audio,
   Image,
   getDetails,
-  getFileInfo,
 };

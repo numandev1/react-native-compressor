@@ -10,7 +10,8 @@ import Button from '../../Components/Button';
 import Row from '../../Components/Row';
 import * as ImagePicker from 'react-native-image-picker';
 const prettyBytes = require('pretty-bytes');
-import { Image, getFileInfo } from 'react-native-compressor';
+import { Image } from 'react-native-compressor';
+import { getFileInfo } from '../../Utils';
 const Index = () => {
   const dimension = useWindowDimensions();
   const [orignalUri, setOrignalUri] = useState<string>();

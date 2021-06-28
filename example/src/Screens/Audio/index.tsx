@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import Button from '../../Components/Button';
 import Row from '../../Components/Row';
-import { Audio, getFileInfo } from 'react-native-compressor';
+import { Audio } from 'react-native-compressor';
 import DocumentPicker from 'react-native-document-picker';
 const prettyBytes = require('pretty-bytes');
+import { getFileInfo } from '../../Utils';
 
 const Index = () => {
   const [fileName, setFileName] = useState('');

@@ -1,6 +1,22 @@
 # react-native-compressor
 
-react-native-compressor package is a set of functions that allow you compress `Image`,`Audio` and `Video`
+<!-- Title -->
+<p align="center">
+<img src="/media/icon.png" alt="alt text" width="150"/>
+</p>
+
+<!-- Header -->
+
+<p align="center">
+  <b>Compress videos, images and audio before upload</b>
+  <br />
+</p>
+
+<p align="center">
+  <img height="450" src="/media/cover.png">
+</p>
+
+**react-native-compressor** package is a set of functions that allow you compress `Image`,`Audio` and `Video`
 
 ## Installation
 
@@ -81,17 +97,6 @@ const result = await Image.compress('file://path_of_file/image.jpg', {
 });
 ```
 
-### Audio
-
-```js
-import { Audio } from 'react-native-compressor';
-
-const result = await Audio.compress(
-  'file://path_of_file/file_example_MP3_2MG.mp3',
-  { quality: 'medium' }
-);
-```
-
 ### Video
 
 ##### For Like Whatsapp Video Compression
@@ -134,6 +139,17 @@ const result = await Video.compress(
 );
 ```
 
+### Audio
+
+```js
+import { Audio } from 'react-native-compressor';
+
+const result = await Audio.compress(
+  'file://path_of_file/file_example_MP3_2MG.mp3',
+  { quality: 'medium' }
+);
+```
+
 # API
 
 ## Image
@@ -173,15 +189,6 @@ const result = await Video.compress(
 - ###### `returnableOutputType: ReturnableOutputType` (default: uri)
   Can be either `uri` or `base64`, defines the Returnable output image format.
 
-## Audio
-
-- ###### `compress(url: string, options?: audioCompresssionType): Promise<string>`
-
-### audioCompresssionType
-
-- ###### `quality: qualityType` (default: medium)
-  we can also control bitrate through quality. qualityType can be `low` | `medium` | `high`
-
 ## Video
 
 - ###### `compress(url: string, options?: videoCompresssionType , onProgress?: (progress: number)): Promise<string>`
@@ -198,6 +205,17 @@ const result = await Video.compress(
 
 - ###### `bitrate: string`
   bitrate of video which reduce or increase video size. if compressionMethod will auto then this prop will not work
+
+## Audio
+
+- ###### `compress(url: string, options?: audioCompresssionType): Promise<string>`
+
+### audioCompresssionType
+
+- ###### `quality: qualityType` (default: medium)
+  we can also control bitrate through quality. qualityType can be `low` | `medium` | `high`
+
+**Note: Audio compression will be add soon**
 
 ## Contributing
 

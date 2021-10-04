@@ -50,8 +50,8 @@
     
     if (self) {
         self.autoCompress = false;
-        self.maxWidth = 640;
-        self.maxHeight = 480;
+        self.maxWidth = 1280;
+        self.maxHeight = 1280;
         self.quality = 1.0f;
         self.input = uri;
         self.output = jpg;

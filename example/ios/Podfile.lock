@@ -282,7 +282,7 @@ PODS:
   - React-jsinspector (0.64.1)
   - react-native-background-upload (6.2.4):
     - React
-  - react-native-compressor (0.5.0):
+  - react-native-compressor (0.5.4):
     - NextLevelSessionExporter
     - React-Core
   - react-native-create-thumbnail (1.4.1):
@@ -591,7 +591,7 @@ SPEC CHECKSUMS:
   React-jsiexecutor: 124e8f99992490d0d13e0649d950d3e1aae06fe9
   React-jsinspector: 500a59626037be5b3b3d89c5151bc3baa9abf1a9
   react-native-background-upload: b85fac36cfee561c8b3a282e5700e50dc98249c5
-  react-native-compressor: 5ae58223e3f002e0141961698dab14741b2c95fe
+  react-native-compressor: 7498a4fe615d741ea2813c54d0737264738b33e8
   react-native-create-thumbnail: d31c84dd69fb4d60aec0ff2f49bc0de41ede7b2c
   react-native-document-picker: 1a7518132d4a06b67f459be9bb1464a567d2b3b4
   react-native-image-picker: 474cf2c33c2b6671da53d293a16c97995f0aec15
@@ -618,4 +618,4 @@ SPEC CHECKSUMS:
 
 PODFILE CHECKSUM: bb749eb87ce9dffa35f38e2685495d067b557e5f
 
-COCOAPODS: 1.10.1
+COCOAPODS: 1.11.0

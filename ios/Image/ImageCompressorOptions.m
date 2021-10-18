@@ -52,7 +52,7 @@
         self.autoCompress = false;
         self.maxWidth = 1280;
         self.maxHeight = 1280;
-        self.quality = 1.0f;
+        self.quality = 0.8f;
         self.input = uri;
         self.output = jpg;
         self.returnableOutputType = uri;

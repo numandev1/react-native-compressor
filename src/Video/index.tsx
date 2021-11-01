@@ -1,4 +1,9 @@
-import { NativeModules, NativeEventEmitter, Platform } from 'react-native';
+import {
+  NativeModules,
+  NativeEventEmitter,
+  Platform,
+  NativeEventSubscription,
+} from 'react-native';
 import { v4 as uuidv4 } from 'uuid';
 
 export declare enum FileSystemUploadType {
@@ -65,6 +70,43 @@ const VideoCompressEventEmitter = new NativeEventEmitter(
 
 const NativeVideoCompressor = NativeModules.VideoCompressor;
 
+export const backgroundUpload = async (
+  url: string,
+  fileUrl: string,
+  options: FileSystemUploadOptions,
+  onProgress?: (writtem: number, total: number) => void
+): Promise<any> => {
+  const uuid = uuidv4();
+  let subscription: NativeEventSubscription;
+  try {
+    if (onProgress) {
+      subscription = VideoCompressEventEmitter.addListener(
+        'VideoCompressorProgress',
+        (event: any) => {
+          if (event.uuid === uuid) {
+            onProgress(event.data.written, event.data.total);
+          }
+        }
+      );
+    }
+    if (Platform.OS === 'android' && fileUrl.includes('file://')) {
+      fileUrl = fileUrl.replace('file://', '');
+    }
+    const result = await NativeVideoCompressor.upload(fileUrl, {
+      uuid,
+      method: options.httpMethod,
+      headers: options.headers,
+      url,
+    });
+    return result;
+  } finally {
+    // @ts-ignore
+    if (subscription) {
+      subscription.remove();
+    }
+  }
+};
+
 const Video: VideoCompressorType = {
   compress: async (
     fileUrl: string,
@@ -76,7 +118,7 @@ const Video: VideoCompressorType = {
     onProgress?: (progress: number) => void
   ) => {
     const uuid = uuidv4();
-    let subscription = null;
+    let subscription: NativeEventSubscription;
     try {
       if (onProgress) {
         subscription = VideoCompressEventEmitter.addListener(
@@ -111,50 +153,25 @@ const Video: VideoCompressorType = {
       );
       return result;
     } finally {
+      // @ts-ignore
       if (subscription) {
-        VideoCompressEventEmitter.removeSubscription(subscription);
+        subscription.remove();
       }
     }
   },
-  backgroundUpload: async (url, fileUrl, options, onProgress) => {
-    const uuid = uuidv4();
-    let subscription = null;
-    try {
-      if (onProgress) {
-        subscription = VideoCompressEventEmitter.addListener(
-          'VideoCompressorProgress',
+  backgroundUpload,
+  activateBackgroundTask(onExpired?) {
+    if (onExpired) {
+      const subscription: NativeEventSubscription =
+        VideoCompressEventEmitter.addListener(
+          'backgroundTaskExpired',
           (event: any) => {
-            if (event.uuid === uuid) {
-              onProgress(event.data.written, event.data.total);
+            onExpired(event);
+            if (subscription) {
+              subscription.remove();
             }
           }
         );
-      }
-      if (Platform.OS === 'android' && fileUrl.includes('file://')) {
-        fileUrl = fileUrl.replace('file://', '');
-      }
-      const result = await NativeVideoCompressor.upload(fileUrl, {
-        uuid,
-        method: options.httpMethod,
-        headers: options.headers,
-        url,
-      });
-      return result;
-    } finally {
-      if (subscription) {
-        VideoCompressEventEmitter.removeSubscription(subscription);
-      }
-    }
-  },
-  activateBackgroundTask(onExpired?) {
-    if (onExpired) {
-      const subscription = VideoCompressEventEmitter.addListener(
-        'backgroundTaskExpired',
-        (event: any) => {
-          onExpired(event);
-          VideoCompressEventEmitter.removeSubscription(subscription);
-        }
-      );
     }
     return NativeVideoCompressor.activateBackgroundTask({});
   },

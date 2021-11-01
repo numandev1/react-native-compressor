@@ -31,26 +31,28 @@ const Index = () => {
           } else if (result.errorCode) {
             Alert.alert('Failed selecting video');
           } else {
-            const source: any = result.assets[0];
-            if (source) {
-              setOrignalSize(prettyBytes(source.fileSize));
+            if (result.assets) {
+              const source: any = result.assets[0];
+              if (source) {
+                setOrignalSize(prettyBytes(source.fileSize));
 
-              setFileName(source.fileName);
-              setMimeType(source.type);
-              setOrignalUri(source.uri);
-            }
+                setFileName(source.fileName);
+                setMimeType(source.type);
+                setOrignalUri(source.uri);
+              }
 
-            Image.compress(source.uri, {
-              compressionMethod: 'auto',
-            })
-              .then(async (compressedFileUri) => {
-                setCommpressedUri(compressedFileUri);
-                const detail: any = await getFileInfo(compressedFileUri);
-                setCompressedSize(prettyBytes(parseInt(detail.size)));
+              Image.compress(source.uri, {
+                compressionMethod: 'auto',
               })
-              .catch((e) => {
-                console.log(e, 'error');
-              });
+                .then(async (compressedFileUri) => {
+                  setCommpressedUri(compressedFileUri);
+                  const detail: any = await getFileInfo(compressedFileUri);
+                  setCompressedSize(prettyBytes(parseInt(detail.size)));
+                })
+                .catch((e) => {
+                  console.log(e, 'error');
+                });
+            }
           }
         }
       );

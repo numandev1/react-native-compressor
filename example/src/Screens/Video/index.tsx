@@ -92,12 +92,14 @@ export default function App() {
           } else if (result.errorCode) {
             Alert.alert('Failed selecting video');
           } else {
-            const source: any = result.assets[0];
-            let uri = source.uri;
-            if (Platform.OS === 'android' && uri.includes('content://')) {
-              uri = await getAbsolutePath(uri, 'mp4');
+            if (result.assets) {
+              const source: any = result.assets[0];
+              let uri = source.uri;
+              if (Platform.OS === 'android' && uri.includes('content://')) {
+                uri = await getAbsolutePath(uri, 'mp4');
+              }
+              setSourceVideo(uri);
             }
-            setSourceVideo(uri);
           }
         }
       );

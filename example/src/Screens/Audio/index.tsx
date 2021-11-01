@@ -14,7 +14,7 @@ const Index = () => {
   const [compressedSize, setCompressedSize] = useState(0);
   const chooseAudioHandler = async () => {
     try {
-      const res = await DocumentPicker.pick({
+      const res: any = await DocumentPicker.pick({
         type: [DocumentPicker.types.audio],
       });
       setOrignalSize(prettyBytes(res.size));

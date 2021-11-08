@@ -20,16 +20,16 @@
 
 ## Installation
 
-Using Yarn
+#### For React Native 0.64 or lower
+
+```sh
+yarn add react-native-compressor@0.5.6
+```
+
+#### For React Native 0.65 or greater
 
 ```sh
 yarn add react-native-compressor
-```
-
-Using Npm
-
-```sh
-npm install react-native-compressor --save
 ```
 
 ### Automatic linking (for React Native >= 0.60 only)

@@ -18,6 +18,8 @@
 
 **react-native-compressor** package is a set of functions that allow you compress `Image`,`Audio` and `Video`
 
+If you find this package useful hit the star 🌟
+
 ## Installation
 
 #### For React Native 0.64 or lower
@@ -150,6 +152,23 @@ const result = await Audio.compress(
 );
 ```
 
+### Background Upload
+
+```js
+import { backgroundUpload } from 'react-native-compressor';
+
+const headers = {};
+
+const uploadResult = await backgroundUpload(
+  url,
+  fileUrl,
+  { httpMethod: 'PUT', headers },
+  (written, total) => {
+    console.log(written, total);
+  }
+);
+```
+
 # API
 
 ## Image
@@ -216,6 +235,30 @@ const result = await Audio.compress(
   we can also control bitrate through quality. qualityType can be `low` | `medium` | `high`
 
 **Note: Audio compression will be add soon**
+
+## Background Upload
+
+- ###### `backgroundUpload: (url: string, fileUrl: string, options: FileSystemUploadOptions, onProgress?: ((writtem: number, total: number) => void) | undefined) => Promise<any>
+
+- ###### ` FileSystemUploadOptions`
+
+```js
+type FileSystemUploadOptions = (
+  | {
+      uploadType?: FileSystemUploadType.BINARY_CONTENT,
+    }
+  | {
+      uploadType: FileSystemUploadType.MULTIPART,
+      fieldName?: string,
+      mimeType?: string,
+      parameters?: Record<string, string>,
+    }
+) & {
+  headers?: Record<string, string>,
+  httpMethod?: FileSystemAcceptedUploadHttpMethod,
+  sessionType?: FileSystemSessionType,
+};
+```
 
 ## Contributing
 

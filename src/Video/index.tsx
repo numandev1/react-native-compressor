@@ -19,6 +19,7 @@ export declare type FileSystemAcceptedUploadHttpMethod =
 export type compressionMethod = 'auto' | 'manual';
 type videoCompresssionType = {
   bitrate?: number;
+  maxSize?: number;
   compressionMethod?: compressionMethod;
 };
 

@@ -293,12 +293,14 @@ PODS:
     - glog
   - react-native-background-upload (6.5.0):
     - React
-  - react-native-compressor (1.0.2):
+  - react-native-compressor (1.0.3):
     - NextLevelSessionExporter
     - React-Core
   - react-native-create-thumbnail (1.4.1):
     - React
   - react-native-document-picker (5.3.0):
+    - React-Core
+  - react-native-get-random-values (1.7.1):
     - React-Core
   - react-native-image-picker (4.1.2):
     - React-Core
@@ -459,6 +461,7 @@ DEPENDENCIES:
   - react-native-compressor (from `../..`)
   - react-native-create-thumbnail (from `../node_modules/react-native-create-thumbnail`)
   - react-native-document-picker (from `../node_modules/react-native-document-picker`)
+  - react-native-get-random-values (from `../node_modules/react-native-get-random-values`)
   - react-native-image-picker (from `../node_modules/react-native-image-picker`)
   - react-native-safe-area-context (from `../node_modules/react-native-safe-area-context`)
   - React-perflogger (from `../node_modules/react-native/ReactCommon/reactperflogger`)
@@ -545,6 +548,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native-create-thumbnail"
   react-native-document-picker:
     :path: "../node_modules/react-native-document-picker"
+  react-native-get-random-values:
+    :path: "../node_modules/react-native-get-random-values"
   react-native-image-picker:
     :path: "../node_modules/react-native-image-picker"
   react-native-safe-area-context:
@@ -622,9 +627,10 @@ SPEC CHECKSUMS:
   React-jsinspector: 8c0517dee5e8c70cd6c3066f20213ff7ce54f176
   React-logger: bfddd3418dc1d45b77b822958f3e31422e2c179b
   react-native-background-upload: 994d4e8abbcc1d0b0cff68d950429906ed68ca67
-  react-native-compressor: 3eb2118dc1da59c134cdffa721e0b76486d7a404
+  react-native-compressor: fd8cc4b27fcd00e5e784b4d8d00583075326811f
   react-native-create-thumbnail: d31c84dd69fb4d60aec0ff2f49bc0de41ede7b2c
   react-native-document-picker: 226068006be4c52f8ef7f32d855ee025a12e9e64
+  react-native-get-random-values: 2c4ff6b44cb71291dabe9a8ae87d3877dcf387da
   react-native-image-picker: 9c8a2687b69300ad9e95cec5d38f35ab9d32467d
   react-native-safe-area-context: 584dc04881deb49474363f3be89e4ca0e854c057
   React-perflogger: fcac6090a80e3d967791b4c7f1b1a017f9d4a398

@@ -21,6 +21,7 @@ type videoCompresssionType = {
   bitrate?: number;
   maxSize?: number;
   compressionMethod?: compressionMethod;
+  minimumFileSizeForCompress?: number;
 };
 
 export declare enum FileSystemSessionType {
@@ -116,6 +117,7 @@ const Video: VideoCompressorType = {
       bitrate?: number;
       compressionMethod?: compressionMethod;
       maxSize?: number;
+      minimumFileSizeForCompress?: number;
     },
     onProgress?: (progress: number) => void
   ) => {
@@ -137,6 +139,7 @@ const Video: VideoCompressorType = {
         bitrate?: number;
         compressionMethod?: compressionMethod;
         maxSize?: number;
+        minimumFileSizeForCompress?: number;
       } = { uuid };
       if (options?.bitrate) modifiedOptions.bitrate = options?.bitrate;
       if (options?.compressionMethod) {
@@ -148,6 +151,10 @@ const Video: VideoCompressorType = {
         modifiedOptions.maxSize = options?.maxSize;
       } else {
         modifiedOptions.maxSize = 640;
+      }
+      if (options?.minimumFileSizeForCompress) {
+        modifiedOptions.minimumFileSizeForCompress =
+          options?.minimumFileSizeForCompress;
       }
       const result = await NativeVideoCompressor.compress(
         fileUrl,

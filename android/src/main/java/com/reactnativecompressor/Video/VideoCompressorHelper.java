@@ -102,6 +102,7 @@ public class VideoCompressorHelper {
   public float bitrate = 0;
   public String uuid = "";
   public float maxSize = 640.0f;
+  public float minimumFileSizeForCompress = 16.0f;
 
   public static VideoCompressorHelper fromMap(ReadableMap map) {
     final VideoCompressorHelper options = new VideoCompressorHelper();
@@ -119,6 +120,9 @@ public class VideoCompressorHelper {
           break;
           case "uuid":
           options.uuid = map.getString(key);
+          break;
+        case "minimumFileSizeForCompress":
+          options.minimumFileSizeForCompress =(float) map.getDouble(key);
           break;
 
       }

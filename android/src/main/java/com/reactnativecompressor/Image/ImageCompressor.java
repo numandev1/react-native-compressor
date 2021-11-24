@@ -66,7 +66,7 @@ public class ImageCompressor {
 
 
 
-  public static String encodeImage(ByteArrayOutputStream imageDataByteArrayOutputStream, Boolean isBase64, Bitmap bitmapImage,String outputExtension, ReactApplicationContext reactContext) {
+  public static String encodeImage(ByteArrayOutputStream imageDataByteArrayOutputStream, Boolean isBase64,String outputExtension, ReactApplicationContext reactContext) {
     if(isBase64)
     {
       byte[] imageData=imageDataByteArrayOutputStream.toByteArray();
@@ -124,16 +124,16 @@ public class ImageCompressor {
     final ByteArrayOutputStream imageDataByteArrayOutputStream = ImageCompressor.compress(resizedImage, options.output, options.quality);
     Boolean isBase64=options.returnableOutputType==ImageCompressorOptions.ReturnableOutputType.base64;
 
-    String returnableResult = ImageCompressor.encodeImage(imageDataByteArrayOutputStream,isBase64,image,options.output.toString(),reactContext);
+    String returnableResult = ImageCompressor.encodeImage(imageDataByteArrayOutputStream,isBase64,options.output.toString(),reactContext);
     return  returnableResult;
   }
 
 
   public static String autoCompressImage(String imagePath,ImageCompressorOptions compressorOptions, ReactApplicationContext reactContext) {
     String outputExtension=compressorOptions.output.toString();
-    int quality= (int) (compressorOptions.quality*100);
     float autoCompressMaxHeight = compressorOptions.maxHeight;
     float autoCompressMaxWidth = compressorOptions.maxWidth;
+    Boolean isBase64=compressorOptions.returnableOutputType==ImageCompressorOptions.ReturnableOutputType.base64;
 
     Uri uri= Uri.parse(imagePath);
     imagePath = uri.getPath();
@@ -217,18 +217,10 @@ public class ImageCompressor {
     } catch (IOException e) {
       e.printStackTrace();
     }
-    FileOutputStream out = null;
-    String filepath = generateCacheFilePath(outputExtension,reactContext);;
-    try {
-      out = new FileOutputStream(filepath);
 
-      //write the compressed bitmap at the destination specified by filename.
-      scaledBitmap.compress(Bitmap.CompressFormat.JPEG, quality, out);
-
-    } catch (FileNotFoundException e) {
-      e.printStackTrace();
-    }
-    return getRNFileUrl(filepath);
+    final ByteArrayOutputStream imageDataByteArrayOutputStream = ImageCompressor.compress(scaledBitmap, compressorOptions.output, compressorOptions.quality);
+    String returnableResult = ImageCompressor.encodeImage(imageDataByteArrayOutputStream,isBase64,compressorOptions.output.toString(),reactContext);
+    return  returnableResult;
   }
 
   public static int calculateInSampleSize(BitmapFactory.Options options, int reqWidth, int reqHeight) {

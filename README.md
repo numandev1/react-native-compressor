@@ -204,7 +204,11 @@ const result = await Audio.compress(
   The maximum size can be height in case of portrait video or can be width in case of landscape video.
 
 - ###### `bitrate: string`
+
   bitrate of video which reduce or increase video size. if compressionMethod will auto then this prop will not work
+
+- ###### `minimumFileSizeForCompress: number` (default: 16)
+  16 means 16mb. default our package do not compress under 16mb video file. minimumFileSizeForCompress will allow us to change this 16mb offset. fixed [#26](https://github.com/Shobbak/react-native-compressor/issues/26)
 
 ## Audio
 

@@ -199,10 +199,13 @@ func makeValidUri(filePath: String) -> String {
   
   
   func compressVideo(url: URL, options: [String: Any], onProgress: @escaping (Float) -> Void,  onCompletion: @escaping (URL) -> Void, onFailure: @escaping (Error) -> Void){
-    
+      var minimumFileSizeForCompress:Double=16.0;
     let fileSize=self.getfileSize(forURL: url);
-    
-    if(fileSize>16)
+      if((options["minimumFileSizeForCompress"]) != nil)
+    {
+          minimumFileSizeForCompress=options["minimumFileSizeForCompress"] as! Double;
+    }
+    if(fileSize>minimumFileSizeForCompress)
     {
         if(options["compressionMethod"] as! String=="auto")
         {
@@ -379,14 +382,11 @@ func makeValidUri(filePath: String) -> String {
               onCompletion(exporter.outputURL!)
               break
             default:
-//              let error = CompressionError(message: "Compression didn't complete")
-//              onFailure(error)
                 onCompletion(url)
               break
             }
             break
           case .failure(let error):
-//            onFailure(error)
             onCompletion(url)
             break
           }

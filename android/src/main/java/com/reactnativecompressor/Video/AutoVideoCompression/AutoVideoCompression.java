@@ -26,7 +26,8 @@ public class AutoVideoCompression {
   static int currentVideoCompression=0;
 
   public static void createCompressionSettings(String fileUrl,VideoCompressorHelper options,Promise promise, ReactApplicationContext reactContext) {
-    float maxSize = options.maxSize;;
+    float maxSize = options.maxSize;
+    float minimumFileSizeForCompress=options.minimumFileSizeForCompress;
     try{
     Uri uri= Uri.parse(fileUrl);
     String srcPath = uri.getPath();
@@ -35,7 +36,7 @@ public class AutoVideoCompression {
     File file=new File(srcPath);
     float sizeInBytes = file.length();
     float sizeInMb = sizeInBytes / (1024 * 1024);
-    if(sizeInMb>16)
+    if(sizeInMb>minimumFileSizeForCompress)
     {
       String destinationPath = generateCacheFilePath("mp4", reactContext);
       int actualHeight =Integer.parseInt(metaRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT));

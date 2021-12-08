@@ -152,9 +152,9 @@ const Video: VideoCompressorType = {
       } else {
         modifiedOptions.maxSize = 640;
       }
-      if (options?.minimumFileSizeForCompress) {
+      if (options?.minimumFileSizeForCompress !== undefined) {
         modifiedOptions.minimumFileSizeForCompress =
-          options?.minimumFileSizeForCompress;
+          options.minimumFileSizeForCompress;
       }
       const result = await NativeVideoCompressor.compress(
         fileUrl,

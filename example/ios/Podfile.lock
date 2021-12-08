@@ -293,7 +293,7 @@ PODS:
     - glog
   - react-native-background-upload (6.5.0):
     - React
-  - react-native-compressor (1.0.3):
+  - react-native-compressor (1.1.0):
     - NextLevelSessionExporter
     - React-Core
   - react-native-create-thumbnail (1.4.1):
@@ -627,7 +627,7 @@ SPEC CHECKSUMS:
   React-jsinspector: 8c0517dee5e8c70cd6c3066f20213ff7ce54f176
   React-logger: bfddd3418dc1d45b77b822958f3e31422e2c179b
   react-native-background-upload: 994d4e8abbcc1d0b0cff68d950429906ed68ca67
-  react-native-compressor: fd8cc4b27fcd00e5e784b4d8d00583075326811f
+  react-native-compressor: 2b0f75c5e887830955b32e0ddf22ef2efe0f179e
   react-native-create-thumbnail: d31c84dd69fb4d60aec0ff2f49bc0de41ede7b2c
   react-native-document-picker: 226068006be4c52f8ef7f32d855ee025a12e9e64
   react-native-get-random-values: 2c4ff6b44cb71291dabe9a8ae87d3877dcf387da

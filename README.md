@@ -1,3 +1,9 @@
+### Would you like to support me?
+
+<a href="https://www.buymeacoffee.com/numan.dev" target="_blank"><img src="https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png" alt="Buy Me A Coffee" style="height: auto !important;width: auto !important;" ></a>
+
+---
+
 # react-native-compressor
 
 <!-- Title -->

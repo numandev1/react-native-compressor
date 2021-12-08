@@ -112,7 +112,7 @@ export default function App() {
       sourceVideo,
       {
         compressionMethod: 'auto',
-        minimumFileSizeForCompress: 16,
+        minimumFileSizeForCompress: 2,
       },
       (progress) => {
         if (backgroundMode) {

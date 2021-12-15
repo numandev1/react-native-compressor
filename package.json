@@ -82,7 +82,8 @@
   "peerDependencies": {
     "react": "*",
     "react-native": "*",
-    "uuid": "*"
+    "uuid": "*",
+    "react-native-get-random-values": "*"
   },
   "jest": {
     "preset": "react-native",
@@ -162,8 +163,5 @@
         }
       ]
     ]
-  },
-  "dependencies": {
-    "react-native-get-random-values": "^1.7.0"
   }
 }

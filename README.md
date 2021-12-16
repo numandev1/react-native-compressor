@@ -26,10 +26,10 @@
 
 ## Installation
 
-Using Yarn
+#### For React Native<0.65
 
 ```sh
-yarn add react-native-compressor
+yarn add react-native-compressor@0.5.8
 ```
 
 Using Npm

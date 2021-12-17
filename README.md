@@ -28,16 +28,33 @@ If you find this package useful hit the star 🌟
 
 ## Installation
 
+### React Native
+
 #### For React Native<0.65
 
 ```sh
-yarn add react-native-compressor@0.5.8
+yarn add react-native-compressor@0.5.9
 ```
 
 #### For React Native 0.65 or greater
 
 ```sh
 yarn add react-native-compressor
+```
+
+### Managed Expo
+
+```
+expo install react-native-compressor
+```
+
+Add the Compressor plugin to your Expo config (`app.json`, `app.config.json` or `app.config.js`):
+
+```json
+{
+  "name": "my app",
+  "plugins": ["react-native-compressor"]
+}
 ```
 
 ### Automatic linking (for React Native >= 0.60 only)

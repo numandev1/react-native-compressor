@@ -16,7 +16,7 @@
     "react": "^17.0.2",
     "react-native": "^0.66.1",
     "react-native-background-upload": "^6.2.4",
-    "react-native-create-thumbnail": "^1.4.1",
+    "react-native-create-thumbnail": "^1.5.1",
     "react-native-document-picker": "^5.0.4",
     "react-native-fs": "^2.18.0",
     "react-native-gesture-handler": "^1.10.3",

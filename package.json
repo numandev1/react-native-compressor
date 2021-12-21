@@ -66,7 +66,6 @@
     "@types/jest": "^26.0.0",
     "@types/react": "^17.0.8",
     "@types/react-native": "^0.64.7",
-    "@types/uuid": "^8.0.0",
     "commitlint": "^11.0.0",
     "eslint": "^7.2.0",
     "eslint-config-prettier": "^7.0.0",
@@ -83,8 +82,7 @@
   },
   "peerDependencies": {
     "react": "*",
-    "react-native": "*",
-    "uuid": "*"
+    "react-native": "*"
   },
   "jest": {
     "preset": "react-native",
@@ -164,8 +162,5 @@
         }
       ]
     ]
-  },
-  "dependencies": {
-    "react-native-get-random-values": "^1.7.0"
   }
 }

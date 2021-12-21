@@ -114,7 +114,6 @@ export default function App() {
       {
         compressionMethod: 'auto',
         minimumFileSizeForCompress: 5,
-        maxSize: 1000,
       },
       (progress) => {
         if (backgroundMode) {

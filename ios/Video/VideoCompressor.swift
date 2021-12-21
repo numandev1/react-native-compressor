@@ -247,7 +247,7 @@ func makeValidUri(filePath: String) -> String {
         let maxBitrate:Int = 1669000
         let minValue:Float=min(Float(originalHeight)/Float(height),Float(originalWidth)/Float(width))
         var remeasuredBitrate:Int = Int(Float(originalBitrate) / minValue)
-        remeasuredBitrate = remeasuredBitrate*Int(compressFactor)
+        remeasuredBitrate = Int(Float(remeasuredBitrate)*compressFactor)
         let minBitrate:Int = self.getVideoBitrateWithFactor(f: minCompressFactor) / (1280 * 720 / (width * height))
         if (originalBitrate < minBitrate) {
           return remeasuredBitrate;

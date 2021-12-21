@@ -1,11 +1,10 @@
 import * as React from 'react';
 import { View, Text, Button, Image, Alert, Platform } from 'react-native';
-import { Video } from 'react-native-compressor';
+import { Video, uuidv4 } from 'react-native-compressor';
 import * as ImagePicker from 'react-native-image-picker';
 import { createThumbnail } from 'react-native-create-thumbnail';
 import * as Progress from 'react-native-progress';
 const prettyBytes = require('pretty-bytes');
-import { v4 as uuidv4 } from 'uuid';
 const RNFS = require('react-native-fs');
 import { getFileInfo } from '../../Utils';
 

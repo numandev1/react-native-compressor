@@ -285,6 +285,7 @@ PODS:
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
   - react-native-compressor (0.5.4):
 =======
   - react-native-compressor (1.0.3):
@@ -295,6 +296,9 @@ PODS:
 =======
   - react-native-compressor (1.0.2):
 >>>>>>> bfc3da3... fix: getRandomValues error due to uuid
+=======
+  - react-native-compressor (1.2.0):
+>>>>>>> 022cf11... fix: uuid issue by making js base uuid
     - NextLevelSessionExporter
     - React-Core
   - react-native-create-thumbnail (1.4.1):
@@ -646,10 +650,14 @@ SPEC CHECKSUMS:
   React-logger: bfddd3418dc1d45b77b822958f3e31422e2c179b
   react-native-background-upload: 994d4e8abbcc1d0b0cff68d950429906ed68ca67
 <<<<<<< HEAD
+<<<<<<< HEAD
   react-native-compressor: 2b0f75c5e887830955b32e0ddf22ef2efe0f179e
 =======
   react-native-compressor: 3eb2118dc1da59c134cdffa721e0b76486d7a404
 >>>>>>> bfc3da3... fix: getRandomValues error due to uuid
+=======
+  react-native-compressor: 5b01bc19d1817c5ce89f8d5117b7c282e67615b9
+>>>>>>> 022cf11... fix: uuid issue by making js base uuid
   react-native-create-thumbnail: d31c84dd69fb4d60aec0ff2f49bc0de41ede7b2c
   react-native-document-picker: 226068006be4c52f8ef7f32d855ee025a12e9e64
   react-native-get-random-values: 2c4ff6b44cb71291dabe9a8ae87d3877dcf387da

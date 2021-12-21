@@ -57,6 +57,18 @@ Add the Compressor plugin to your Expo config (`app.json`, `app.config.json` or 
 }
 ```
 
+Finally, compile the mods:
+
+```
+expo prebuild
+```
+
+To apply the changes, build a new binary with EAS:
+
+```
+eas build
+```
+
 ### Automatic linking (for React Native >= 0.60 only)
 
 Automatic linking is supported for both `Android` and `IOS`

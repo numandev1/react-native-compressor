@@ -113,7 +113,8 @@ export default function App() {
       sourceVideo,
       {
         compressionMethod: 'auto',
-        minimumFileSizeForCompress: 2,
+        minimumFileSizeForCompress: 5,
+        maxSize: 1000,
       },
       (progress) => {
         if (backgroundMode) {
@@ -123,6 +124,7 @@ export default function App() {
         }
       }
     );
+    console.log({ sourceVideo, dstUrl }, 'biss');
     setCompressedVideo(dstUrl);
     setCompressingProgress(0);
   };

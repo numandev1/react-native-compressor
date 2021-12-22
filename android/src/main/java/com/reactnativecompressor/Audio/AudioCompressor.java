@@ -14,9 +14,9 @@ import android.os.Build;
 
 import androidx.annotation.RequiresApi;
 
-import com.zolad.videoslimmer.VideoSlimmer;
-import com.zolad.videoslimmer.listner.SlimProgressListener;
-import com.zolad.videoslimmer.muxer.CodecInputSurface;
+import com.reactnativecompressor.Video.videoslimmer.VideoSlimmer;
+import com.reactnativecompressor.Video.videoslimmer.listner.SlimProgressListener;
+import com.reactnativecompressor.Video.videoslimmer.muxer.CodecInputSurface;
 
 import java.io.File;
 import java.io.IOException;

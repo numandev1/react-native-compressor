@@ -1,26 +1,25 @@
 package com.reactnativecompressor.Utils;
 
+import androidx.annotation.Nullable;
+
+import com.facebook.react.bridge.Arguments;
+import com.facebook.react.bridge.Promise;
 import com.facebook.react.bridge.ReactApplicationContext;
-<<<<<<< HEAD
-=======
 import com.facebook.react.bridge.ReactContext;
 import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.modules.core.DeviceEventManagerModule;
 import numan.dev.videocompressor.VideoCompressTask;
 import numan.dev.videocompressor.VideoCompressor;
->>>>>>> chore: add video compression cancel and fix stretch video
-
 import java.io.File;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 public class Utils {
-<<<<<<< HEAD
-=======
   static int videoCompressionThreshold=10;
   static int currentVideoCompression=0;
   static Map<String, VideoCompressTask> compressorExports = new HashMap<>();
 
->>>>>>> chore: add video compression cancel and fix stretch video
   public static String generateCacheFilePath(String extension, ReactApplicationContext reactContext){
     File outputDir = reactContext.getCacheDir();
 

@@ -44,7 +44,7 @@ public class Utils {
 
       @Override
       public void onError(String errorMessage) {
-        promise.resolve(srcPath);
+        promise.reject("Compression has canncelled");
       }
 
       @Override

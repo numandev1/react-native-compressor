@@ -382,20 +382,17 @@ func makeValidUri(filePath: String) -> String {
             
         }, completionHandler: { result in
             self.videoCompressionCounter=0;
-          switch result {
-          case .success(let status):
-            switch status {
+            switch exporter.status {
             case .completed:
               onCompletion(exporter.outputURL!)
               break
+            case .cancelled:
+                let error = CompressionError(message: "Compression has canncelled")
+                onFailure(error)
+                break
             default:
                 onCompletion(url)
               break
-            }
-            break
-          case .failure(let error):
-            onCompletion(url)
-            break
           }
         })
     }

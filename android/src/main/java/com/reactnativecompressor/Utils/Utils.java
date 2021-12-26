@@ -1,26 +1,11 @@
 package com.reactnativecompressor.Utils;
 
-import androidx.annotation.Nullable;
-
-import com.facebook.react.bridge.Arguments;
-import com.facebook.react.bridge.Promise;
 import com.facebook.react.bridge.ReactApplicationContext;
-import com.facebook.react.bridge.ReactContext;
-import com.facebook.react.bridge.WritableMap;
-import com.facebook.react.modules.core.DeviceEventManagerModule;
-import com.reactnativecompressor.Video.videoslimmer.VideoSlimTask;
-import com.reactnativecompressor.Video.videoslimmer.VideoSlimmer;
 
 import java.io.File;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.UUID;
 
 public class Utils {
-  static int videoCompressionThreshold=10;
-  static int currentVideoCompression=0;
-  static Map<String, VideoSlimTask> compressorExports = new HashMap<>();
-
   public static String generateCacheFilePath(String extension, ReactApplicationContext reactContext){
     File outputDir = reactContext.getCacheDir();
 

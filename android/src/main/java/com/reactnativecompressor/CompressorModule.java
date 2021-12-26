@@ -23,7 +23,7 @@ import com.facebook.react.modules.core.DeviceEventManagerModule;
 import com.reactnativecompressor.Image.ImageCompressor;
 import com.reactnativecompressor.Image.utils.ImageCompressorOptions;
 import com.reactnativecompressor.Video.VideoCompressorHelper;
-import com.reactnativecompressor.Video.videoslimmer.VideoSlimmer;
+import com.zolad.videoslimmer.VideoSlimmer;
 
 import static com.reactnativecompressor.Utils.Utils.generateCacheFilePath;
 import java.io.ByteArrayOutputStream;
@@ -110,10 +110,6 @@ public class CompressorModule extends ReactContextBaseJavaModule {
           Log.d("nomi onFinish", "onProgress: ");
         }
 
-        @Override
-        public void onError(String  errorMessage) {
-
-        }
 
         @Override
         public void onProgress(float percent) {

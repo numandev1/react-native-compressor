@@ -239,7 +239,5 @@ RCT_EXTERN_METHOD(deactivateBackgroundTask: (NSDictionary *)options
                  withResolver:(RCTPromiseResolveBlock)resolve
                  withRejecter:(RCTPromiseRejectBlock)reject)
 
-RCT_EXTERN_METHOD(cancelCompression:(NSString *)uuid)
-
 @end
 

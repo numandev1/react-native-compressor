@@ -21,7 +21,6 @@ type videoCompresssionType = {
   maxSize?: number;
   compressionMethod?: compressionMethod;
   minimumFileSizeForCompress?: number;
-  getCancellationId?: (cancellationId: string) => void;
 };
 
 export declare enum FileSystemSessionType {
@@ -57,7 +56,6 @@ export type VideoCompressorType = {
     options?: videoCompresssionType,
     onProgress?: (progress: number) => void
   ): Promise<string>;
-  cancelCompression(cancellationId: string): void;
   backgroundUpload(
     url: string,
     fileUrl: string,
@@ -111,14 +109,15 @@ export const backgroundUpload = async (
   }
 };
 
-export const cancelCompression = (cancellationId: string) => {
-  return NativeVideoCompressor.cancelCompression(cancellationId);
-};
-
 const Video: VideoCompressorType = {
   compress: async (
     fileUrl: string,
-    options?: videoCompresssionType,
+    options?: {
+      bitrate?: number;
+      compressionMethod?: compressionMethod;
+      maxSize?: number;
+      minimumFileSizeForCompress?: number;
+    },
     onProgress?: (progress: number) => void
   ) => {
     const uuid = uuidv4();
@@ -156,9 +155,6 @@ const Video: VideoCompressorType = {
         modifiedOptions.minimumFileSizeForCompress =
           options?.minimumFileSizeForCompress;
       }
-      if (options?.getCancellationId) {
-        options?.getCancellationId(uuid);
-      }
       const result = await NativeVideoCompressor.compress(
         fileUrl,
         modifiedOptions
@@ -172,7 +168,6 @@ const Video: VideoCompressorType = {
     }
   },
   backgroundUpload,
-  cancelCompression,
   activateBackgroundTask(onExpired?) {
     if (onExpired) {
       const subscription: NativeEventSubscription =

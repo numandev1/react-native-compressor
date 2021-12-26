@@ -1,23 +1,30 @@
 package com.reactnativecompressor.Video.AutoVideoCompression;
 
+import android.media.MediaCodecInfo;
 import android.media.MediaMetadataRetriever;
+import android.media.session.MediaController;
 import android.net.Uri;
+import android.os.Build;
 
 import androidx.annotation.Nullable;
 
+import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.Promise;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContext;
 import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.modules.core.DeviceEventManagerModule;
 import com.reactnativecompressor.Video.VideoCompressorHelper;
-import static com.reactnativecompressor.Utils.Utils.compressVideo;
+import com.zolad.videoslimmer.VideoSlimmer;
 
 import java.io.File;
 
 import static com.reactnativecompressor.Utils.Utils.generateCacheFilePath;
 
 public class AutoVideoCompression {
+  static int videoCompressionThreshold=10;
+  static int currentVideoCompression=0;
+
   public static void createCompressionSettings(String fileUrl,VideoCompressorHelper options,Promise promise, ReactApplicationContext reactContext) {
     float maxSize = options.maxSize;
     float minimumFileSizeForCompress=options.minimumFileSizeForCompress;
@@ -45,15 +52,42 @@ public class AutoVideoCompression {
         bitrate,
         resultHeight, resultWidth
       );
-      compressVideo(srcPath, destinationPath, resultWidth, resultHeight,  videoBitRate,options.uuid,promise,reactContext);
+
+      VideoSlimmer.convertVideo(srcPath, destinationPath, resultWidth, resultHeight, (int) videoBitRate, new VideoSlimmer.ProgressListener() {
+        @Override
+        public void onStart() {
+          //convert start
+        }
+        @Override
+        public void onFinish(boolean result) {
+          //convert finish,result(true is success,false is fail)
+          promise.resolve("file:/"+destinationPath);
+        }
+        @Override
+        public void onProgress(float percent) {
+          int roundProgress=Math.round(percent);
+          if(roundProgress%videoCompressionThreshold==0&&roundProgress>currentVideoCompression) {
+            WritableMap params = Arguments.createMap();
+            WritableMap data = Arguments.createMap();
+            params.putString("uuid", options.uuid);
+            data.putDouble("progress", percent / 100);
+            params.putMap("data", data);
+            sendEvent(reactContext, "videoCompressProgress", params);
+            currentVideoCompression=roundProgress;
+          }
+        }
+      });
+
       }
       else
       {
         promise.resolve(fileUrl);
       }
-
     } catch (Exception ex) {
       promise.reject(ex);
+    }
+    finally {
+      currentVideoCompression=0;
     }
   }
 

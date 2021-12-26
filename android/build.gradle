@@ -58,5 +58,6 @@ dependencies {
   implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.4.0"
   implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.4.0"
   implementation "com.googlecode.mp4parser:isoparser:1.0.6"
+  implementation 'com.github.zolad:VideoSlimmer:master-SNAPSHOT'
   implementation 'io.github.lizhangqu:coreprogress:1.0.2'
 }

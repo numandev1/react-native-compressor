@@ -1,6 +1,5 @@
 package com.reactnativecompressor;
 
-import android.graphics.Bitmap;
 import android.media.MediaMetadataRetriever;
 import android.net.Uri;
 import android.os.Build;
@@ -10,7 +9,6 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 
-import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.Promise;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContext;
@@ -23,10 +21,12 @@ import com.facebook.react.modules.core.DeviceEventManagerModule;
 import com.reactnativecompressor.Image.ImageCompressor;
 import com.reactnativecompressor.Image.utils.ImageCompressorOptions;
 import com.reactnativecompressor.Video.VideoCompressorHelper;
+<<<<<<< HEAD
 import com.zolad.videoslimmer.VideoSlimmer;
+=======
+>>>>>>> chore: add video compression cancel and fix stretch video
 
 import static com.reactnativecompressor.Utils.Utils.generateCacheFilePath;
-import java.io.ByteArrayOutputStream;
 import com.reactnativecompressor.Audio.AudioCompressor;
 
 @ReactModule(name = CompressorModule.NAME)
@@ -93,6 +93,7 @@ public class CompressorModule extends ReactContextBaseJavaModule {
 
       float bitrate = options.bitrate;
       Log.d("nomi onStart", destinationPath+"onProgress: "+bitrate);
+<<<<<<< HEAD
       new AudioCompressor().CompressAudio(srcPath, destinationPath, (int) bitrate*1000, new VideoSlimmer.ProgressListener() {
 
 
@@ -122,6 +123,9 @@ public class CompressorModule extends ReactContextBaseJavaModule {
           sendEvent(reactContext, "videoCompressProgress", params);
         }
       });
+=======
+      new AudioCompressor().CompressAudio(srcPath, destinationPath, (int) bitrate*1000);
+>>>>>>> chore: add video compression cancel and fix stretch video
 
     } catch (Exception ex) {
       promise.reject(ex);

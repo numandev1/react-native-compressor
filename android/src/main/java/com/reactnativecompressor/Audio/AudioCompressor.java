@@ -14,9 +14,13 @@ import android.os.Build;
 
 import androidx.annotation.RequiresApi;
 
+<<<<<<< HEAD
 import com.zolad.videoslimmer.VideoSlimmer;
 import com.zolad.videoslimmer.listner.SlimProgressListener;
 import com.zolad.videoslimmer.muxer.CodecInputSurface;
+=======
+import numan.dev.videocompressor.codecinputsurface.CodecInputSurface;
+>>>>>>> chore: add video compression cancel and fix stretch video
 
 import java.io.File;
 import java.io.IOException;
@@ -46,7 +50,7 @@ public class AudioCompressor {
    * */
   @SuppressLint("LongLogTag")
   @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
-  public boolean CompressAudio(final String sourcePath, String destinationPath, int nbitrate, VideoSlimmer.ProgressListener listener) {
+  public boolean CompressAudio(final String sourcePath, String destinationPath, int nbitrate) {
 
     this.path = sourcePath;
     this.outputPath = destinationPath;
@@ -350,6 +354,7 @@ public class AudioCompressor {
   }
 
 
+  @SuppressLint("WrongConstant")
   @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
   private long simpleReadAndWriteTrack(MediaExtractor extractor, MediaMuxer mediaMuxer, MediaCodec.BufferInfo info, long start, long end, File file, boolean isAudio) throws Exception {
     int trackIndex = selectTrack(extractor, isAudio);

@@ -1,11 +1,26 @@
 package com.reactnativecompressor.Utils;
 
 import com.facebook.react.bridge.ReactApplicationContext;
+<<<<<<< HEAD
+=======
+import com.facebook.react.bridge.ReactContext;
+import com.facebook.react.bridge.WritableMap;
+import com.facebook.react.modules.core.DeviceEventManagerModule;
+import numan.dev.videocompressor.VideoCompressTask;
+import numan.dev.videocompressor.VideoCompressor;
+>>>>>>> chore: add video compression cancel and fix stretch video
 
 import java.io.File;
 import java.util.UUID;
 
 public class Utils {
+<<<<<<< HEAD
+=======
+  static int videoCompressionThreshold=10;
+  static int currentVideoCompression=0;
+  static Map<String, VideoCompressTask> compressorExports = new HashMap<>();
+
+>>>>>>> chore: add video compression cancel and fix stretch video
   public static String generateCacheFilePath(String extension, ReactApplicationContext reactContext){
     File outputDir = reactContext.getCacheDir();
 
@@ -16,7 +31,7 @@ public class Utils {
 
   public static void compressVideo(String srcPath, String destinationPath, int resultWidth, int resultHeight, float videoBitRate, String uuid, Promise promise, ReactApplicationContext reactContext){
     try{
-    VideoSlimTask export=VideoSlimmer.convertVideo(srcPath, destinationPath, resultWidth, resultHeight, (int) videoBitRate, new VideoSlimmer.ProgressListener() {
+      VideoCompressTask export=VideoCompressor.convertVideo(srcPath, destinationPath, resultWidth, resultHeight, (int) videoBitRate, new VideoCompressor.ProgressListener() {
       @Override
       public void onStart() {
         //convert start
@@ -57,7 +72,7 @@ public class Utils {
 
   public static void cancelCompressionHelper(String uuid){
     try{
-      VideoSlimTask export=compressorExports.get(uuid);
+      VideoCompressTask export=compressorExports.get(uuid);
       export.cancel(true);
     }
     catch (Exception ex) {

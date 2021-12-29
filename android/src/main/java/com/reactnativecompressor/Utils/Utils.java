@@ -8,8 +8,8 @@ import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContext;
 import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.modules.core.DeviceEventManagerModule;
-import com.reactnativecompressor.Video.videoslimmer.VideoSlimTask;
-import com.reactnativecompressor.Video.videoslimmer.VideoSlimmer;
+import numan.dev.videoslimmer.VideoSlimTask;
+import numan.dev.videoslimmer.VideoSlimmer;
 
 import java.io.File;
 import java.util.HashMap;

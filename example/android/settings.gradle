@@ -4,3 +4,6 @@ include ':app'
 
 include ':reactnativecompressor'
 project(':reactnativecompressor').projectDir = new File(rootProject.projectDir, '../../android')
+
+// include ':videoslimmer'
+// project(':videoslimmer').projectDir = new File(rootProject.projectDir,'../../../packages/VideoSlimmer/videoslimmer')

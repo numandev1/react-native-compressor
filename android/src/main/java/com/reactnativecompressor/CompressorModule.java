@@ -1,6 +1,5 @@
 package com.reactnativecompressor;
 
-import android.graphics.Bitmap;
 import android.media.MediaMetadataRetriever;
 import android.net.Uri;
 import android.os.Build;
@@ -10,7 +9,6 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 
-import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.Promise;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContext;
@@ -23,10 +21,8 @@ import com.facebook.react.modules.core.DeviceEventManagerModule;
 import com.reactnativecompressor.Image.ImageCompressor;
 import com.reactnativecompressor.Image.utils.ImageCompressorOptions;
 import com.reactnativecompressor.Video.VideoCompressorHelper;
-import com.zolad.videoslimmer.VideoSlimmer;
 
 import static com.reactnativecompressor.Utils.Utils.generateCacheFilePath;
-import java.io.ByteArrayOutputStream;
 import com.reactnativecompressor.Audio.AudioCompressor;
 
 @ReactModule(name = CompressorModule.NAME)
@@ -93,35 +89,7 @@ public class CompressorModule extends ReactContextBaseJavaModule {
 
       float bitrate = options.bitrate;
       Log.d("nomi onStart", destinationPath+"onProgress: "+bitrate);
-      new AudioCompressor().CompressAudio(srcPath, destinationPath, (int) bitrate*1000, new VideoSlimmer.ProgressListener() {
-
-
-        @Override
-        public void onStart() {
-          //convert start
-          Log.d("nomi onStart", "onProgress: ");
-
-        }
-
-        @Override
-        public void onFinish(boolean result) {
-          //convert finish,result(true is success,false is fail)
-          promise.resolve(destinationPath);
-          Log.d("nomi onFinish", "onProgress: ");
-        }
-
-
-        @Override
-        public void onProgress(float percent) {
-          WritableMap params = Arguments.createMap();
-          WritableMap data = Arguments.createMap();
-          params.putString("uuid", options.uuid);
-          data.putDouble("progress",  percent/100);
-          params.putMap("data", data);
-          Log.d("nomi onProgress", "onProgress: "+percent);
-          sendEvent(reactContext, "videoCompressProgress", params);
-        }
-      });
+      new AudioCompressor().CompressAudio(srcPath, destinationPath, (int) bitrate*1000);
 
     } catch (Exception ex) {
       promise.reject(ex);

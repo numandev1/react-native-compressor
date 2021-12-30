@@ -10,7 +10,6 @@ import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.modules.core.DeviceEventManagerModule;
 import numan.dev.videocompressor.VideoCompressTask;
 import numan.dev.videocompressor.VideoCompressor;
-
 import java.io.File;
 import java.util.HashMap;
 import java.util.Map;

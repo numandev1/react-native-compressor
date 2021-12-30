@@ -21,7 +21,6 @@ import com.facebook.react.modules.core.DeviceEventManagerModule;
 import com.reactnativecompressor.Image.ImageCompressor;
 import com.reactnativecompressor.Image.utils.ImageCompressorOptions;
 import com.reactnativecompressor.Video.VideoCompressorHelper;
-
 import static com.reactnativecompressor.Utils.Utils.generateCacheFilePath;
 import com.reactnativecompressor.Audio.AudioCompressor;
 

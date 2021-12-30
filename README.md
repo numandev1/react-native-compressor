@@ -33,7 +33,7 @@ If you find this package useful hit the star 🌟
 #### For React Native<0.65
 
 ```sh
-yarn add react-native-compressor@0.5.9
+yarn add react-native-compressor@0.5.11
 ```
 
 #### For React Native 0.65 or greater
@@ -176,6 +176,34 @@ const result = await Video.compress(
 );
 ```
 
+##### Cancel Video Compression
+
+```js
+import { Video } from 'react-native-compressor';
+
+let cancellationVideoId = '';
+
+const result = await Video.compress(
+  'file://path_of_file/BigBuckBunny.mp4',
+  {
+    compressionMethod: 'auto',
+    // getCancellationId for get video id which we can use for cancel compression
+    getCancellationId: (cancellationId) =>
+      (cancellationVideoId = cancellationId),
+  },
+  (progress) => {
+    if (backgroundMode) {
+      console.log('Compression Progress: ', progress);
+    } else {
+      setCompressingProgress(progress);
+    }
+  }
+);
+
+// we can cancel video compression by calling cancelCompression with cancel video id which we can get from getCancellationId function while compression
+Video.cancelCompression(cancellationVideoId);
+```
+
 ### Audio
 
 ```js
@@ -247,6 +275,9 @@ const uploadResult = await backgroundUpload(
 
 - ###### `compress(url: string, options?: videoCompresssionType , onProgress?: (progress: number)): Promise<string>`
 
+- ###### `cancelCompression(cancellationId: string): void`
+  we can get cancellationId from `getCancellationId` which is the callback method of compress method options
+
 ### videoCompresssionType
 
 - ###### `compressionMethod: compressionMethod` (default: "manual")
@@ -262,7 +293,11 @@ const uploadResult = await backgroundUpload(
   bitrate of video which reduce or increase video size. if compressionMethod will auto then this prop will not work
 
 - ###### `minimumFileSizeForCompress: number` (default: 16)
+
   16 means 16mb. default our package do not compress under 16mb video file. minimumFileSizeForCompress will allow us to change this 16mb offset. fixed [#26](https://github.com/Shobbak/react-native-compressor/issues/26)
+
+- ###### `getCancellationId: function`
+  `getCancellationId` is a callback function that gives us compress video id, which can be used in `Video.cancelCompression` method to cancel the compression
 
 ## Audio
 

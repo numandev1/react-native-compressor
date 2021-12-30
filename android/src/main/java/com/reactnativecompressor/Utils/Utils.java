@@ -1,16 +1,23 @@
 package com.reactnativecompressor.Utils;
 
+import static com.facebook.react.bridge.UiThreadUtil.runOnUiThread;
+
 import androidx.annotation.Nullable;
 
+import com.abedelazizshe.lightcompressorlibrary.CompressionListener;
+import com.abedelazizshe.lightcompressorlibrary.config.Configuration;
 import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.Promise;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContext;
 import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.modules.core.DeviceEventManagerModule;
+
+import kotlin.Pair;
 import numan.dev.videoslimmer.VideoSlimTask;
 import numan.dev.videoslimmer.VideoSlimmer;
-
+import com.abedelazizshe.lightcompressorlibrary.VideoCompressor;
+import com.abedelazizshe.lightcompressorlibrary.VideoQuality;
 import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
@@ -19,7 +26,7 @@ import java.util.UUID;
 public class Utils {
   static int videoCompressionThreshold=10;
   static int currentVideoCompression=0;
-  static Map<String, VideoSlimTask> compressorExports = new HashMap<>();
+  static Map<String, VideoCompressor> compressorExports = new HashMap<>();
 
   public static String generateCacheFilePath(String extension, ReactApplicationContext reactContext){
     File outputDir = reactContext.getCacheDir();
@@ -30,50 +37,66 @@ public class Utils {
 
 
   public static void compressVideo(String srcPath, String destinationPath, int resultWidth, int resultHeight, float videoBitRate, String uuid, Promise promise, ReactApplicationContext reactContext){
-    try{
-    VideoSlimTask export=VideoSlimmer.convertVideo(srcPath, destinationPath, resultWidth, resultHeight, (int) videoBitRate, new VideoSlimmer.ProgressListener() {
-      @Override
-      public void onStart() {
-        //convert start
-      }
-      @Override
-      public void onFinish(boolean result) {
-        //convert finish,result(true is success,false is fail)
-        promise.resolve("file:/"+destinationPath);
-      }
-
-      @Override
-      public void onError(String errorMessage) {
-        promise.resolve(srcPath);
-      }
-
-      @Override
-      public void onProgress(float percent) {
-        int roundProgress=Math.round(percent);
-        if(roundProgress%videoCompressionThreshold==0&&roundProgress>currentVideoCompression) {
-          WritableMap params = Arguments.createMap();
-          WritableMap data = Arguments.createMap();
-          params.putString("uuid", uuid);
-          data.putDouble("progress", percent / 100);
-          params.putMap("data", data);
-          sendEvent(reactContext, "videoCompressProgress", params);
-          currentVideoCompression=roundProgress;
+    VideoCompressor nomi=new VideoCompressor();
+    nomi.start(
+      null,
+      null, // => Source can be provided as content uri, it requires context.
+      srcPath, // => This could be null if srcUri and context are provided.
+      destinationPath,
+      null, /*String, or null*/
+      new CompressionListener() {
+        @Override
+        public void onStart() {
+          // Compression start
         }
-      }
-    });
-      compressorExports.put(uuid, export);
-  } catch (Exception ex) {
-    promise.reject(ex);
-  }
-    finally {
+
+        @Override
+        public void onSuccess() {
+          promise.resolve("file:/"+destinationPath);
+        }
+
+        @Override
+        public void onFailure(String failureMessage) {
+          // On Failure
+        }
+
+        @Override
+        public void onProgress(float percent) {
+          runOnUiThread(new Runnable() {
+            public void run() {
+              int roundProgress=Math.round(percent);
+              if(roundProgress%videoCompressionThreshold==0&&roundProgress>currentVideoCompression) {
+                WritableMap params = Arguments.createMap();
+                WritableMap data = Arguments.createMap();
+                params.putString("uuid", uuid);
+                data.putDouble("progress", percent / 100);
+                params.putMap("data", data);
+                sendEvent(reactContext, "videoCompressProgress", params);
+                currentVideoCompression=roundProgress;
+              }
+            }
+          });
+        }
+
+        @Override
+        public void onCancelled() {
+          promise.resolve(srcPath);
+        }
+      }, new Configuration(
+        VideoQuality.VERY_HIGH,
+        25,
+        false,
+        (int) videoBitRate,
+        false,
+        new Pair(resultWidth,resultHeight)
+      )
+    );
     currentVideoCompression=0;
-  }
   }
 
   public static void cancelCompressionHelper(String uuid){
     try{
-      VideoSlimTask export=compressorExports.get(uuid);
-      export.cancel(true);
+//      VideoCompressor.cancel();
     }
     catch (Exception ex) {
     }

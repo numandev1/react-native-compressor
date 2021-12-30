@@ -60,6 +60,8 @@ dependencies {
   implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.4.0"
   implementation "com.googlecode.mp4parser:isoparser:1.0.6"
   implementation 'io.github.lizhangqu:coreprogress:1.0.2'
- implementation 'com.github.nomi9995:VideoSlimmer:master-SNAPSHOT'
-//   implementation project(path: ':videoslimmer')
+// implementation 'com.github.nomi9995:VideoSlimmer:master-SNAPSHOT'
+   implementation project(path: ':videoslimmer')
+   implementation project(path: ':lightcompressor')
+//   implementation 'com.github.AbedElazizShe:LightCompressor:1.0.1'
 }

@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, Button, Image, Alert, Platform } from 'react-native';
 import { Video, uuidv4 } from 'react-native-compressor';
 import * as ImagePicker from 'react-native-image-picker';
@@ -9,26 +9,24 @@ const RNFS = require('react-native-fs');
 import { getFileInfo } from '../../Utils';
 
 export default function App() {
-  const [sourceVideo, setSourceVideo] = React.useState<string>();
-  const [sourceSize, setSourceSize] = React.useState<number>();
-  const [sourceVideoThumbnail, setSourceVideoThumbnail] =
-    React.useState<string>();
-  const [compressedVideo, setCompressedVideo] = React.useState<string>();
-  const [compressedSize, setCompressedSize] = React.useState<number>();
+  const cancellationIdRef = useRef<string>('');
+  const [sourceVideo, setSourceVideo] = useState<string>();
+  const [sourceSize, setSourceSize] = useState<number>();
+  const [sourceVideoThumbnail, setSourceVideoThumbnail] = useState<string>();
+  const [compressedVideo, setCompressedVideo] = useState<string>();
+  const [compressedSize, setCompressedSize] = useState<number>();
   const [compressedVideoThumbnail, setcompressedVideoThumbnail] =
-    React.useState<string>();
+    useState<string>();
 
-  const [compressingProgress, setCompressingProgress] =
-    React.useState<number>(0);
-  const [sourceUploadProgress, setSourceUploadProgress] =
-    React.useState<number>(0);
+  const [compressingProgress, setCompressingProgress] = useState<number>(0);
+  const [sourceUploadProgress, setSourceUploadProgress] = useState<number>(0);
   const [compressedUploadProgress, setCompressedUploadProgress] =
-    React.useState<number>(0);
+    useState<number>(0);
 
-  const [doingSomething, setDoingSomething] = React.useState<boolean>(false);
-  const [backgroundMode, setBackgroundMode] = React.useState<boolean>(false);
+  const [doingSomething, setDoingSomething] = useState<boolean>(false);
+  const [backgroundMode, setBackgroundMode] = useState<boolean>(false);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (!sourceVideo) return;
     createThumbnail({
       url: sourceVideo,
@@ -41,7 +39,7 @@ export default function App() {
     })();
   }, [sourceVideo]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (!compressedVideo) return;
     setcompressedVideoThumbnail(sourceVideoThumbnail);
     createThumbnail({
@@ -60,7 +58,7 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [compressedVideo]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (doingSomething) {
       let counter = 1;
       const timer = setInterval(() => {
@@ -109,23 +107,34 @@ export default function App() {
 
   const testCompress = async () => {
     if (!sourceVideo) return;
-    const dstUrl = await Video.compress(
-      sourceVideo,
-      {
-        compressionMethod: 'auto',
-        minimumFileSizeForCompress: 5,
-      },
-      (progress) => {
-        if (backgroundMode) {
-          console.log('Compression Progress: ', progress);
-        } else {
-          setCompressingProgress(progress);
+    try {
+      const dstUrl = await Video.compress(
+        sourceVideo,
+        {
+          compressionMethod: 'auto',
+          minimumFileSizeForCompress: 5,
+          getCancellationId: (cancellationId) =>
+            (cancellationIdRef.current = cancellationId),
+        },
+        (progress) => {
+          if (backgroundMode) {
+            console.log('Compression Progress: ', progress);
+          } else {
+            setCompressingProgress(progress);
+          }
         }
-      }
-    );
-    console.log({ sourceVideo, dstUrl }, 'biss');
-    setCompressedVideo(dstUrl);
-    setCompressingProgress(0);
+      );
+      console.log({ sourceVideo, dstUrl }, 'biss');
+      setCompressedVideo(dstUrl);
+      setCompressingProgress(0);
+    } catch (error) {
+      setCompressedVideo(sourceVideo);
+      setCompressingProgress(0);
+    }
+  };
+
+  const cancelCompression = () => {
+    Video.cancelCompression(cancellationIdRef.current);
   };
 
   const uploadSource = async () => {
@@ -188,12 +197,7 @@ export default function App() {
                 resizeMode="contain"
               />
               {sourceSize && <Text>Size: {sourceSize}</Text>}
-              <Button
-                title="Upload"
-                onPress={() => {
-                  uploadSource();
-                }}
-              />
+              <Button title="Upload" onPress={uploadSource} />
               {sourceUploadProgress > 0 && (
                 <Progress.Bar progress={sourceUploadProgress} width={200} />
               )}
@@ -210,12 +214,7 @@ export default function App() {
                 resizeMode="contain"
               />
               {compressedSize && <Text>Size: {compressedSize}</Text>}
-              <Button
-                title="Upload"
-                onPress={() => {
-                  uploadCompressed();
-                }}
-              />
+              <Button title="Upload" onPress={uploadCompressed} />
               {compressedUploadProgress > 0 && (
                 <View>
                   <Progress.Bar
@@ -239,22 +238,16 @@ export default function App() {
           backgroundColor: '#0f0',
         }}
       >
-        <Button
-          title="Select Video"
-          onPress={() => {
-            selectVideo();
-          }}
-        />
+        <Button title="Select Video" onPress={selectVideo} />
 
         <Button
           title="Compress"
           disabled={!sourceVideo}
-          onPress={() => {
-            testCompress();
-          }}
+          onPress={testCompress}
         />
       </View>
       <View style={{ height: 200 }}>
+        <Button title="Cancel Compression" onPress={cancelCompression} />
         <Text>Put app in background and check console output</Text>
         <View
           style={{

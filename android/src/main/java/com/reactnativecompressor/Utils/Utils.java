@@ -17,7 +17,6 @@ import java.util.UUID;
 
 public class Utils {
   static int videoCompressionThreshold=10;
-  static int currentVideoCompression=0;
   static Map<String, VideoCompressTask> compressorExports = new HashMap<>();
 
   public static String generateCacheFilePath(String extension, ReactApplicationContext reactContext){
@@ -29,6 +28,7 @@ public class Utils {
 
 
   public static void compressVideo(String srcPath, String destinationPath, int resultWidth, int resultHeight, float videoBitRate, String uuid, Promise promise, ReactApplicationContext reactContext){
+    final int[] currentVideoCompression = {0};
     try{
       VideoCompressTask export=VideoCompressor.convertVideo(srcPath, destinationPath, resultWidth, resultHeight, (int) videoBitRate, new VideoCompressor.ProgressListener() {
       @Override
@@ -49,14 +49,14 @@ public class Utils {
       @Override
       public void onProgress(float percent) {
         int roundProgress=Math.round(percent);
-        if(roundProgress%videoCompressionThreshold==0&&roundProgress>currentVideoCompression) {
+        if(roundProgress%videoCompressionThreshold==0&&roundProgress> currentVideoCompression[0]) {
           WritableMap params = Arguments.createMap();
           WritableMap data = Arguments.createMap();
           params.putString("uuid", uuid);
           data.putDouble("progress", percent / 100);
           params.putMap("data", data);
           sendEvent(reactContext, "videoCompressProgress", params);
-          currentVideoCompression=roundProgress;
+          currentVideoCompression[0] =roundProgress;
         }
       }
     });
@@ -65,7 +65,7 @@ public class Utils {
     promise.reject(ex);
   }
     finally {
-    currentVideoCompression=0;
+    currentVideoCompression[0] =0;
   }
   }
 

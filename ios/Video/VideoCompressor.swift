@@ -36,7 +36,7 @@ class VideoCompressor: RCTEventEmitter, URLSessionTaskDelegate {
   var uploadRejectors: [String: RCTPromiseRejectBlock] = [:]
   var compressorExports: [String: NextLevelSessionExporter] = [:]
     let videoCompressionThreshold:Int=7
-    var videoCompressionCounter:Int=0
+    
 
   override static func requiresMainQueueSetup() -> Bool {
     return false
@@ -343,6 +343,7 @@ func makeValidUri(filePath: String) -> String {
       }
     
     func exportVideoHelper(url: URL,asset: AVAsset, bitRate: Int,resultWidth:Float,resultHeight:Float,uuid:String, onProgress: @escaping (Float) -> Void,  onCompletion: @escaping (URL) -> Void, onFailure: @escaping (Error) -> Void){
+        var videoCompressionCounter:Int=0
         var tmpURL = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
           .appendingPathComponent(ProcessInfo().globallyUniqueString)
           .appendingPathExtension("mp4")
@@ -374,14 +375,14 @@ func makeValidUri(filePath: String) -> String {
         compressorExports[uuid] = exporter
         exporter.export(progressHandler: { (progress) in
             let _progress:Float=progress*100;
-            if(Int(_progress)==self.videoCompressionCounter)
+            if(Int(_progress)==videoCompressionCounter)
             {
-            self.videoCompressionCounter=Int(_progress)+self.videoCompressionThreshold
+            videoCompressionCounter=Int(_progress)+self.videoCompressionThreshold
             onProgress(progress)
             }
             
         }, completionHandler: { result in
-            self.videoCompressionCounter=0;
+            videoCompressionCounter=0;
             switch exporter.status {
             case .completed:
               onCompletion(exporter.outputURL!)

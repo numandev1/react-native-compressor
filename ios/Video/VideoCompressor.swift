@@ -35,7 +35,7 @@ class VideoCompressor: RCTEventEmitter, URLSessionTaskDelegate {
   var uploadResolvers: [String: RCTPromiseResolveBlock] = [:]
   var uploadRejectors: [String: RCTPromiseRejectBlock] = [:]
     let videoCompressionThreshold:Int=7
-    var videoCompressionCounter:Int=0
+    
 
   override static func requiresMainQueueSetup() -> Bool {
     return false
@@ -335,7 +335,12 @@ func makeValidUri(filePath: String) -> String {
         }
       }
     
+<<<<<<< HEAD
     func exportVideoHelper(url: URL,asset: AVAsset, bitRate: Int,resultWidth:Float,resultHeight:Float, onProgress: @escaping (Float) -> Void,  onCompletion: @escaping (URL) -> Void, onFailure: @escaping (Error) -> Void){
+=======
+    func exportVideoHelper(url: URL,asset: AVAsset, bitRate: Int,resultWidth:Float,resultHeight:Float,uuid:String, onProgress: @escaping (Float) -> Void,  onCompletion: @escaping (URL) -> Void, onFailure: @escaping (Error) -> Void){
+        var videoCompressionCounter:Int=0
+>>>>>>> 5dc257f... fix: multiple video progress
         var tmpURL = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
           .appendingPathComponent(ProcessInfo().globallyUniqueString)
           .appendingPathExtension("mp4")
@@ -367,17 +372,22 @@ func makeValidUri(filePath: String) -> String {
 
         exporter.export(progressHandler: { (progress) in
             let _progress:Float=progress*100;
-            if(Int(_progress)==self.videoCompressionCounter)
+            if(Int(_progress)==videoCompressionCounter)
             {
-            self.videoCompressionCounter=Int(_progress)+self.videoCompressionThreshold
+            videoCompressionCounter=Int(_progress)+self.videoCompressionThreshold
             onProgress(progress)
             }
             
         }, completionHandler: { result in
+<<<<<<< HEAD
             self.videoCompressionCounter=0;
           switch result {
           case .success(let status):
             switch status {
+=======
+            videoCompressionCounter=0;
+            switch exporter.status {
+>>>>>>> 5dc257f... fix: multiple video progress
             case .completed:
               onCompletion(exporter.outputURL!)
               break

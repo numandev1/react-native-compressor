@@ -59,7 +59,7 @@ const Audio: AudioType = {
           quality: options.quality,
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       throw error.message;
     }
   },

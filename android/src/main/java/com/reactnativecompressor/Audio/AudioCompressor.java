@@ -14,13 +14,7 @@ import android.os.Build;
 
 import androidx.annotation.RequiresApi;
 
-<<<<<<< HEAD
-import com.zolad.videoslimmer.VideoSlimmer;
-import com.zolad.videoslimmer.listner.SlimProgressListener;
-import com.zolad.videoslimmer.muxer.CodecInputSurface;
-=======
 import numan.dev.videocompressor.codecinputsurface.CodecInputSurface;
->>>>>>> chore: add video compression cancel and fix stretch video
 
 import java.io.File;
 import java.io.IOException;

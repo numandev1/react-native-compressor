@@ -282,36 +282,16 @@ PODS:
   - React-jsinspector (0.64.1)
   - react-native-background-upload (6.2.4):
     - React
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-  - react-native-compressor (0.5.4):
-=======
-  - react-native-compressor (1.0.3):
->>>>>>> e12330f... feat: add minimumFileSizeForCompress for customize minimum video file to compress
-=======
-  - react-native-compressor (1.1.0):
->>>>>>> aec9e45... fix: measuredBitRate divided by zero crash. fixed #49
-=======
-  - react-native-compressor (1.0.2):
->>>>>>> bfc3da3... fix: getRandomValues error due to uuid
-=======
-  - react-native-compressor (1.2.0):
->>>>>>> 022cf11... fix: uuid issue by making js base uuid
+  - react-native-compressor (0.5.12):
     - NextLevelSessionExporter
     - React-Core
   - react-native-create-thumbnail (1.4.1):
     - React
-  - react-native-document-picker (5.0.4):
+  - react-native-document-picker (7.1.2):
     - React-Core
-<<<<<<< HEAD
-  - react-native-image-picker (4.0.3):
-=======
   - react-native-get-random-values (1.7.1):
     - React-Core
-  - react-native-image-picker (4.1.2):
->>>>>>> e12330f... feat: add minimumFileSizeForCompress for customize minimum video file to compress
+  - react-native-image-picker (4.0.3):
     - React-Core
   - react-native-safe-area-context (3.2.0):
     - React-Core
@@ -604,7 +584,6 @@ SPEC CHECKSUMS:
   libevent: 4049cae6c81cdb3654a443be001fb9bdceff7913
   NextLevelSessionExporter: 4d8aa5e617f1c709724f2453efe5d4628480f65a
   OpenSSL-Universal: 1aa4f6a6ee7256b83db99ec1ccdaa80d10f9af9b
-<<<<<<< HEAD
   RCT-Folly: ec7a233ccc97cc556cf7237f0db1ff65b986f27c
   RCTRequired: ec2ebc96b7bfba3ca5c32740f5a0c6a014a274d2
   RCTTypeSafety: 22567f31e67c3e088c7ac23ea46ab6d4779c0ea5
@@ -617,9 +596,10 @@ SPEC CHECKSUMS:
   React-jsiexecutor: 124e8f99992490d0d13e0649d950d3e1aae06fe9
   React-jsinspector: 500a59626037be5b3b3d89c5151bc3baa9abf1a9
   react-native-background-upload: b85fac36cfee561c8b3a282e5700e50dc98249c5
-  react-native-compressor: 7498a4fe615d741ea2813c54d0737264738b33e8
+  react-native-compressor: 29e7ab092ab7f3851d73d62fe70e85b5f06bbd9c
   react-native-create-thumbnail: d31c84dd69fb4d60aec0ff2f49bc0de41ede7b2c
-  react-native-document-picker: 1a7518132d4a06b67f459be9bb1464a567d2b3b4
+  react-native-document-picker: b0f989906fda1c1af4257cf0c7958229defe51ac
+  react-native-get-random-values: 2c4ff6b44cb71291dabe9a8ae87d3877dcf387da
   react-native-image-picker: 474cf2c33c2b6671da53d293a16c97995f0aec15
   react-native-safe-area-context: f0906bf8bc9835ac9a9d3f97e8bde2a997d8da79
   React-perflogger: aad6d4b4a267936b3667260d1f649b6f6069a675
@@ -634,48 +614,6 @@ SPEC CHECKSUMS:
   React-RCTVibration: 4b99a7f5c6c0abbc5256410cc5425fb8531986e1
   React-runtimeexecutor: ff951a0c241bfaefc4940a3f1f1a229e7cb32fa6
   ReactCommon: bedc99ed4dae329c4fcf128d0c31b9115e5365ca
-=======
-  RCT-Folly: a21c126816d8025b547704b777a2ba552f3d9fa9
-  RCTRequired: 3cc065b52aa18db729268b9bd78a2feffb4d0f91
-  RCTTypeSafety: 3c4fc37d5dea452d2ef17324db5504ec2f05083a
-  React: 4a00720816c52a213424442954acb7e4b724804a
-  React-callinvoker: 911fc6570538f3bb5c61edf9dc907c1beb4355bf
-  React-Core: e134d3a5d7b2a1a731589be776e20dbb14868f27
-  React-CoreModules: 2f8588b2aa47e7fef27125c8eaaabda963b3ac62
-  React-cxxreact: 8f1382538cad0cc8b8eafca6d66268828e353bea
-  React-hermes: 503642bd7704c60dcd1385c2da9607eac5260077
-  React-jsi: 9fe1854d2c0486216acebd5db3c38b4ccb23ca0b
-  React-jsiexecutor: db2f6e22a534d466fc0e34e622df47d9d20bab2f
-  React-jsinspector: 8c0517dee5e8c70cd6c3066f20213ff7ce54f176
-  React-logger: bfddd3418dc1d45b77b822958f3e31422e2c179b
-  react-native-background-upload: 994d4e8abbcc1d0b0cff68d950429906ed68ca67
-<<<<<<< HEAD
-<<<<<<< HEAD
-  react-native-compressor: 2b0f75c5e887830955b32e0ddf22ef2efe0f179e
-=======
-  react-native-compressor: 3eb2118dc1da59c134cdffa721e0b76486d7a404
->>>>>>> bfc3da3... fix: getRandomValues error due to uuid
-=======
-  react-native-compressor: 5b01bc19d1817c5ce89f8d5117b7c282e67615b9
->>>>>>> 022cf11... fix: uuid issue by making js base uuid
-  react-native-create-thumbnail: d31c84dd69fb4d60aec0ff2f49bc0de41ede7b2c
-  react-native-document-picker: 226068006be4c52f8ef7f32d855ee025a12e9e64
-  react-native-get-random-values: 2c4ff6b44cb71291dabe9a8ae87d3877dcf387da
-  react-native-image-picker: 9c8a2687b69300ad9e95cec5d38f35ab9d32467d
-  react-native-safe-area-context: 584dc04881deb49474363f3be89e4ca0e854c057
-  React-perflogger: fcac6090a80e3d967791b4c7f1b1a017f9d4a398
-  React-RCTActionSheet: caf5913d9f9e605f5467206cf9d1caa6d47d7ad6
-  React-RCTAnimation: 6539e3bf594f6a529cd861985ba6548286ae1ead
-  React-RCTBlob: 6e2e999d28b15fd03ed533f164ce33e0fcde571a
-  React-RCTImage: c6bbb10eedb6b840c4474f2108b864173b83de15
-  React-RCTLinking: 8fda9bb8fdb104e78110a903a9a77754318c7d11
-  React-RCTNetwork: 2b26daad93830501cf14aab03eac04e304f942d3
-  React-RCTSettings: 89c0dcee7adb706c749383596f57c1e882a27843
-  React-RCTText: 71734fce8e6cb854daeb4a5eec182c303ea58473
-  React-RCTVibration: 6600b5eed7c0fda4a433fa1198d1cb2690151791
-  React-runtimeexecutor: 33a949a51bec5f8a3c9e8d8092deb259600d761e
-  ReactCommon: 620442811dc6f707b4bf5e3b27d4f19c12d5a821
->>>>>>> e12330f... feat: add minimumFileSizeForCompress for customize minimum video file to compress
   RNCMaskedView: 0e1bc4bfa8365eba5fbbb71e07fbdc0555249489
   RNFS: 3ab21fa6c56d65566d1fb26c2228e2b6132e5e32
   RNGestureHandler: a479ebd5ed4221a810967000735517df0d2db211
@@ -686,8 +624,4 @@ SPEC CHECKSUMS:
 
 PODFILE CHECKSUM: bb749eb87ce9dffa35f38e2685495d067b557e5f
 
-<<<<<<< HEAD
-COCOAPODS: 1.11.0
-=======
 COCOAPODS: 1.11.2
->>>>>>> bfc3da3... fix: getRandomValues error due to uuid

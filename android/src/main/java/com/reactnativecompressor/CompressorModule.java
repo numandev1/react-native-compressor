@@ -21,10 +21,6 @@ import com.facebook.react.modules.core.DeviceEventManagerModule;
 import com.reactnativecompressor.Image.ImageCompressor;
 import com.reactnativecompressor.Image.utils.ImageCompressorOptions;
 import com.reactnativecompressor.Video.VideoCompressorHelper;
-<<<<<<< HEAD
-import com.zolad.videoslimmer.VideoSlimmer;
-=======
->>>>>>> chore: add video compression cancel and fix stretch video
 
 import static com.reactnativecompressor.Utils.Utils.generateCacheFilePath;
 import com.reactnativecompressor.Audio.AudioCompressor;
@@ -93,39 +89,7 @@ public class CompressorModule extends ReactContextBaseJavaModule {
 
       float bitrate = options.bitrate;
       Log.d("nomi onStart", destinationPath+"onProgress: "+bitrate);
-<<<<<<< HEAD
-      new AudioCompressor().CompressAudio(srcPath, destinationPath, (int) bitrate*1000, new VideoSlimmer.ProgressListener() {
-
-
-        @Override
-        public void onStart() {
-          //convert start
-          Log.d("nomi onStart", "onProgress: ");
-
-        }
-
-        @Override
-        public void onFinish(boolean result) {
-          //convert finish,result(true is success,false is fail)
-          promise.resolve(destinationPath);
-          Log.d("nomi onFinish", "onProgress: ");
-        }
-
-
-        @Override
-        public void onProgress(float percent) {
-          WritableMap params = Arguments.createMap();
-          WritableMap data = Arguments.createMap();
-          params.putString("uuid", options.uuid);
-          data.putDouble("progress",  percent/100);
-          params.putMap("data", data);
-          Log.d("nomi onProgress", "onProgress: "+percent);
-          sendEvent(reactContext, "videoCompressProgress", params);
-        }
-      });
-=======
       new AudioCompressor().CompressAudio(srcPath, destinationPath, (int) bitrate*1000);
->>>>>>> chore: add video compression cancel and fix stretch video
 
     } catch (Exception ex) {
       promise.reject(ex);

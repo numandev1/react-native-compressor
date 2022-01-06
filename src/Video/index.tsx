@@ -16,6 +16,7 @@ type videoCompresssionType = {
   maxSize?: number;
   compressionMethod?: compressionMethod;
   minimumFileSizeForCompress?: number;
+  getCancellationId?: (cancellationId: string) => void;
 };
 
 export declare enum FileSystemSessionType {
@@ -51,6 +52,7 @@ export type VideoCompressorType = {
     options?: videoCompresssionType,
     onProgress?: (progress: number) => void
   ): Promise<string>;
+  cancelCompression(cancellationId: string): void;
   backgroundUpload(
     url: string,
     fileUrl: string,
@@ -67,15 +69,50 @@ const VideoCompressEventEmitter = new NativeEventEmitter(
 
 const NativeVideoCompressor = NativeModules.VideoCompressor;
 
+export const backgroundUpload = async (
+  url: string,
+  fileUrl: string,
+  options: FileSystemUploadOptions,
+  onProgress?: (writtem: number, total: number) => void
+): Promise<any> => {
+  const uuid = uuidv4();
+  let subscription = null;
+  try {
+    if (onProgress) {
+      subscription = VideoCompressEventEmitter.addListener(
+        'VideoCompressorProgress',
+        (event: any) => {
+          if (event.uuid === uuid) {
+            onProgress(event.data.written, event.data.total);
+          }
+        }
+      );
+    }
+    if (Platform.OS === 'android' && fileUrl.includes('file://')) {
+      fileUrl = fileUrl.replace('file://', '');
+    }
+    const result = await NativeVideoCompressor.upload(fileUrl, {
+      uuid,
+      method: options.httpMethod,
+      headers: options.headers,
+      url,
+    });
+    return result;
+  } finally {
+    if (subscription) {
+      VideoCompressEventEmitter.removeSubscription(subscription);
+    }
+  }
+};
+
+export const cancelCompression = (cancellationId: string) => {
+  return NativeVideoCompressor.cancelCompression(cancellationId);
+};
+
 const Video: VideoCompressorType = {
   compress: async (
     fileUrl: string,
-    options?: {
-      bitrate?: number;
-      compressionMethod?: compressionMethod;
-      maxSize?: number;
-      minimumFileSizeForCompress?: number;
-    },
+    options?: videoCompresssionType,
     onProgress?: (progress: number) => void
   ) => {
     const uuid = uuidv4();
@@ -113,6 +150,9 @@ const Video: VideoCompressorType = {
         modifiedOptions.minimumFileSizeForCompress =
           options?.minimumFileSizeForCompress;
       }
+      if (options?.getCancellationId) {
+        options?.getCancellationId(uuid);
+      }
       const result = await NativeVideoCompressor.compress(
         fileUrl,
         modifiedOptions
@@ -124,36 +164,8 @@ const Video: VideoCompressorType = {
       }
     }
   },
-  backgroundUpload: async (url, fileUrl, options, onProgress) => {
-    const uuid = uuidv4();
-    let subscription = null;
-    try {
-      if (onProgress) {
-        subscription = VideoCompressEventEmitter.addListener(
-          'VideoCompressorProgress',
-          (event: any) => {
-            if (event.uuid === uuid) {
-              onProgress(event.data.written, event.data.total);
-            }
-          }
-        );
-      }
-      if (Platform.OS === 'android' && fileUrl.includes('file://')) {
-        fileUrl = fileUrl.replace('file://', '');
-      }
-      const result = await NativeVideoCompressor.upload(fileUrl, {
-        uuid,
-        method: options.httpMethod,
-        headers: options.headers,
-        url,
-      });
-      return result;
-    } finally {
-      if (subscription) {
-        VideoCompressEventEmitter.removeSubscription(subscription);
-      }
-    }
-  },
+  backgroundUpload: backgroundUpload,
+  cancelCompression,
   activateBackgroundTask(onExpired?) {
     if (onExpired) {
       const subscription = VideoCompressEventEmitter.addListener(

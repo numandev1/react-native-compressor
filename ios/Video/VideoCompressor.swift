@@ -34,6 +34,7 @@ class VideoCompressor: RCTEventEmitter, URLSessionTaskDelegate {
   var hasListener: Bool=false
   var uploadResolvers: [String: RCTPromiseResolveBlock] = [:]
   var uploadRejectors: [String: RCTPromiseRejectBlock] = [:]
+  var compressorExports: [String: NextLevelSessionExporter] = [:]
     let videoCompressionThreshold:Int=7
     
 
@@ -71,7 +72,7 @@ class VideoCompressor: RCTEventEmitter, URLSessionTaskDelegate {
   @objc(compress:withOptions:withResolver:withRejecter:)
   func compress(fileUrl: String, options: [String: Any], resolve:@escaping RCTPromiseResolveBlock, reject:@escaping RCTPromiseRejectBlock) -> Void {
     compressVideo(url: URL(string: fileUrl)!, options:options,
-    onProgress: { progress in 
+    onProgress: { progress in
       print("Progress", progress)
       if(self.hasListener){
         self.sendEvent(withName: "videoCompressProgress", body: ["uuid": options["uuid"], "data": ["progress": progress]])
@@ -82,6 +83,11 @@ class VideoCompressor: RCTEventEmitter, URLSessionTaskDelegate {
       reject("failed", "Compression Failed", error)
     })
   }
+    
+    @objc(cancelCompression:)
+    func cancelCompression(uuid: String) -> Void {
+        compressorExports[uuid]?.cancelExport()
+    }
     
 func makeValidUri(filePath: String) -> String {
     let fileWithUrl = URL(fileURLWithPath: filePath)
@@ -219,7 +225,7 @@ func makeValidUri(filePath: String) -> String {
         }
         else
         {
-            manualCompressionHelper(url: url, bitRate: options["bitrate"] as! Float?) { progress in
+            manualCompressionHelper(url: url, options:options) { progress in
                 onProgress(progress)
             } onCompletion: { outputURL in
                 onCompletion(outputURL)
@@ -263,6 +269,7 @@ func makeValidUri(filePath: String) -> String {
     
     func autoCompressionHelper(url: URL, options: [String: Any], onProgress: @escaping (Float) -> Void,  onCompletion: @escaping (URL) -> Void, onFailure: @escaping (Error) -> Void){
         let maxSize:Float = options["maxSize"] as! Float;
+        let uuid:String = options["uuid"] as! String
     
         let asset = AVAsset(url: url)
         guard asset.tracks.count >= 1 else {
@@ -286,8 +293,8 @@ func makeValidUri(filePath: String) -> String {
             originalBitrate: Int(bitrate),
             height: Int(resultHeight), width: Int(resultWidth)
             );
-
-        exportVideoHelper(url: url, asset: asset, bitRate: videoBitRate, resultWidth: resultWidth, resultHeight: resultHeight) { progress in
+        
+        exportVideoHelper(url: url, asset: asset, bitRate: videoBitRate, resultWidth: resultWidth, resultHeight: resultHeight,uuid: uuid) { progress in
             onProgress(progress)
         } onCompletion: { outputURL in
             onCompletion(outputURL)
@@ -296,9 +303,9 @@ func makeValidUri(filePath: String) -> String {
         }
       }
 
-    func manualCompressionHelper(url: URL, bitRate: Float?, onProgress: @escaping (Float) -> Void,  onCompletion: @escaping (URL) -> Void, onFailure: @escaping (Error) -> Void){
-        
-        var _bitRate=bitRate;
+    func manualCompressionHelper(url: URL, options: [String: Any], onProgress: @escaping (Float) -> Void,  onCompletion: @escaping (URL) -> Void, onFailure: @escaping (Error) -> Void){
+        let uuid:String = options["uuid"] as! String
+        var bitRate=options["bitrate"] as! Float?;
         let asset = AVAsset(url: url)
         guard asset.tracks.count >= 1 else {
           let error = CompressionError(message: "Invalid video URL, no track found")
@@ -321,12 +328,12 @@ func makeValidUri(filePath: String) -> String {
         }
         else
         {
-            _bitRate=bitRate ?? Float(abs(track.estimatedDataRate))*0.8
+            bitRate=bitRate ?? Float(abs(track.estimatedDataRate))*0.8
         }
 
-        let videoBitRate = _bitRate ?? height*width*1.5
+        let videoBitRate = bitRate ?? height*width*1.5
 
-        exportVideoHelper(url: url, asset: asset, bitRate: Int(videoBitRate), resultWidth: width, resultHeight: height) { progress in
+        exportVideoHelper(url: url, asset: asset, bitRate: Int(videoBitRate), resultWidth: width, resultHeight: height,uuid: uuid) { progress in
             onProgress(progress)
         } onCompletion: { outputURL in
             onCompletion(outputURL)
@@ -365,7 +372,7 @@ func makeValidUri(filePath: String) -> String {
           AVSampleRateKey: NSNumber(value: Float(44100))
         ]
         
-
+        compressorExports[uuid] = exporter
         exporter.export(progressHandler: { (progress) in
             let _progress:Float=progress*100;
             if(Int(_progress)==videoCompressionCounter)
@@ -380,14 +387,13 @@ func makeValidUri(filePath: String) -> String {
             case .completed:
               onCompletion(exporter.outputURL!)
               break
+            case .cancelled:
+                let error = CompressionError(message: "Compression has canncelled")
+                onFailure(error)
+                break
             default:
                 onCompletion(url)
               break
-            }
-            break
-          case .failure(let error):
-            onCompletion(url)
-            break
           }
         })
     }
@@ -405,4 +411,6 @@ func makeValidUri(filePath: String) -> String {
         let track = asset.tracks[videoTrackIndex];
         return track;
         }
+    
+    
     }

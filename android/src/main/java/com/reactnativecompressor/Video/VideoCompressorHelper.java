@@ -8,7 +8,6 @@ import android.os.PowerManager;
 
 import androidx.annotation.Nullable;
 
-import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.LifecycleEventListener;
 import com.facebook.react.bridge.Promise;
 import com.facebook.react.bridge.ReactApplicationContext;
@@ -17,13 +16,12 @@ import com.facebook.react.bridge.ReadableMap;
 import com.facebook.react.bridge.ReadableMapKeySetIterator;
 import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.modules.core.DeviceEventManagerModule;
-import com.reactnativecompressor.Image.utils.ImageCompressorOptions;
 import com.reactnativecompressor.Utils.FileUplaoder.FileUploader;
 import com.reactnativecompressor.Video.AutoVideoCompression.AutoVideoCompression;
-import com.zolad.videoslimmer.VideoSlimmer;
 
 import java.util.UUID;
 
+import static com.reactnativecompressor.Utils.Utils.compressVideo;
 import static com.reactnativecompressor.Utils.Utils.generateCacheFilePath;
 
 public class VideoCompressorHelper {
@@ -50,8 +48,8 @@ public class VideoCompressorHelper {
   };
 
   private static void  sendEventString(ReactContext reactContext,
-                               String eventName,
-                               @Nullable String params) {
+                                       String eventName,
+                                       @Nullable String params) {
     reactContext
       .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
       .emit(eventName, params);
@@ -118,7 +116,7 @@ public class VideoCompressorHelper {
         case "maxSize":
           options.maxSize = (float) map.getDouble(key);
           break;
-          case "uuid":
+        case "uuid":
           options.uuid = map.getString(key);
           break;
         case "minimumFileSizeForCompress":
@@ -166,43 +164,9 @@ public class VideoCompressorHelper {
         }
       }
       float videoBitRate = (options.bitrate>0)?options.bitrate: (float) (height * width * 1.5);
-
-      VideoSlimmer.convertVideo(srcPath, destinationPath, width, height, (int) videoBitRate, new VideoSlimmer.ProgressListener() {
-
-
-        @Override
-        public void onStart() {
-          //convert start
-
-        }
-
-        @Override
-        public void onFinish(boolean result) {
-          //convert finish,result(true is success,false is fail)
-          promise.resolve("file:/"+destinationPath);
-        }
-
-
-        @Override
-        public void onProgress(float percent) {
-          int roundProgress=Math.round(percent);
-          if(roundProgress%videoCompressionThreshold==0&&roundProgress>currentVideoCompression) {
-            WritableMap params = Arguments.createMap();
-            WritableMap data = Arguments.createMap();
-            params.putString("uuid", options.uuid);
-            data.putDouble("progress", percent / 100);
-            params.putMap("data", data);
-            sendEvent(reactContext, "videoCompressProgress", params);
-            currentVideoCompression=roundProgress;
-          }
-        }
-      });
-
+      compressVideo(srcPath, destinationPath, width, height,  videoBitRate,options.uuid,promise,reactContext);
     } catch (Exception ex) {
       promise.reject(ex);
-    }
-    finally {
-      currentVideoCompression=0;
     }
   }
 
@@ -212,4 +176,4 @@ public class VideoCompressorHelper {
   }
 
 
-  }
+}

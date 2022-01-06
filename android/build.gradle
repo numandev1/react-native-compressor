@@ -1,65 +1,61 @@
 buildscript {
-    if (project == rootProject) {
-        repositories {
-            google()
-            mavenCentral()
-        }
-
-        dependencies {
-            classpath 'com.android.tools.build:gradle:3.5.3'
-        }
+  if (project == rootProject) {
+    repositories {
+      google()
+      mavenCentral()
     }
+
+    dependencies {
+      classpath 'com.android.tools.build:gradle:3.5.3'
+    }
+  }
 }
 
 apply plugin: 'com.android.library'
 
 def safeExtGet(prop, fallback) {
-    rootProject.ext.has(prop) ? rootProject.ext.get(prop) : fallback
+  rootProject.ext.has(prop) ? rootProject.ext.get(prop) : fallback
 }
 
 android {
-    compileSdkVersion safeExtGet('Compressor_compileSdkVersion', 29)
-    buildToolsVersion safeExtGet('Compressor_buildToolsVersion', '29.0.2')
-    defaultConfig {
-        minSdkVersion safeExtGet('Compressor_minSdkVersion', 16)
-        targetSdkVersion safeExtGet('Compressor_targetSdkVersion', 29)
-        versionCode 1
-        versionName "1.0"
+  compileSdkVersion safeExtGet('Compressor_compileSdkVersion', 29)
+  buildToolsVersion safeExtGet('Compressor_buildToolsVersion', '29.0.2')
+  defaultConfig {
+    minSdkVersion safeExtGet('Compressor_minSdkVersion', 16)
+    targetSdkVersion safeExtGet('Compressor_targetSdkVersion', 29)
+    versionCode 1
+    versionName "1.0"
 
-    }
+  }
 
-    buildTypes {
-        release {
-            minifyEnabled false
-        }
+  buildTypes {
+    release {
+      minifyEnabled false
     }
-    lintOptions {
-        disable 'GradleCompatible'
-    }
-    compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
-    }
+  }
+  lintOptions {
+    disable 'GradleCompatible'
+  }
+  compileOptions {
+    sourceCompatibility JavaVersion.VERSION_1_8
+    targetCompatibility JavaVersion.VERSION_1_8
+  }
 }
 
 repositories {
-    google()
-    mavenLocal()
-    maven {
-        // All of React Native (JS, Obj-C sources, Android binaries) is installed from npm
-        url("$rootDir/../node_modules/react-native/android")
-    }
-    mavenCentral()
-    maven { url "https://www.jitpack.io" }
+  google()
+  mavenLocal()
+  maven {
+    // All of React Native (JS, Obj-C sources, Android binaries) is installed from npm
+    url("$rootDir/../node_modules/react-native/android")
+  }
+  mavenCentral()
+  maven { url "https://www.jitpack.io" }
 }
 
 dependencies {
-    //noinspection GradleDynamicVersion
+  //noinspection GradleDynamicVersion
   implementation "com.facebook.react:react-native:+"  // From node_modules
-  implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.4.0"
-  implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.4.0"
-  implementation "com.googlecode.mp4parser:isoparser:1.0.6"
-  implementation 'com.github.zolad:VideoSlimmer:master-SNAPSHOT'
   implementation 'io.github.lizhangqu:coreprogress:1.0.2'
   implementation 'com.github.nomi9995:VideoCompressor:43ec740572'
 //   implementation project(path: ':videocompressor')

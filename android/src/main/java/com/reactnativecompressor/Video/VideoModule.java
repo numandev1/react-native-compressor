@@ -1,12 +1,10 @@
 package com.reactnativecompressor.Video;
 
-import android.media.MediaMetadataRetriever;
-import android.net.Uri;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.Promise;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContext;
@@ -16,16 +14,13 @@ import com.facebook.react.bridge.ReadableMap;
 import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.module.annotations.ReactModule;
 import com.facebook.react.modules.core.DeviceEventManagerModule;
-import com.reactnativecompressor.Image.utils.ImageCompressorOptions;
-import com.zolad.videoslimmer.VideoSlimmer;
 
-import static com.reactnativecompressor.Utils.Utils.generateCacheFilePath;
 import static com.reactnativecompressor.Video.VideoCompressorHelper.video_activateBackgroundTask_helper;
 import static com.reactnativecompressor.Video.VideoCompressorHelper.video_deactivateBackgroundTask_helper;
 import static com.reactnativecompressor.Video.VideoCompressorHelper.video_upload_helper;
-
+import static com.reactnativecompressor.Utils.Utils.cancelCompressionHelper;
 @ReactModule(name = VideoModule.NAME)
-public class VideoModule extends ReactContextBaseJavaModule {
+public class  VideoModule extends ReactContextBaseJavaModule {
   public static final String NAME = "VideoCompressor";
   private final ReactApplicationContext reactContext;
   public VideoModule(ReactApplicationContext reactContext) {
@@ -53,18 +48,25 @@ public class VideoModule extends ReactContextBaseJavaModule {
     String fileUrl,
     ReadableMap optionMap,
     Promise promise) {
-      final VideoCompressorHelper options = VideoCompressorHelper.fromMap(optionMap);
+    final VideoCompressorHelper options = VideoCompressorHelper.fromMap(optionMap);
 
-      if(options.compressionMethod==VideoCompressorHelper.CompressionMethod.auto)
-      {
-        VideoCompressorHelper.VideoCompressAuto(fileUrl,options,promise,reactContext);
-      }
-      else
-      {
-        VideoCompressorHelper.VideoCompressManual(fileUrl,options,promise,reactContext);
-      }
+    if(options.compressionMethod==VideoCompressorHelper.CompressionMethod.auto)
+    {
+      VideoCompressorHelper.VideoCompressAuto(fileUrl,options,promise,reactContext);
+    }
+    else
+    {
+      VideoCompressorHelper.VideoCompressManual(fileUrl,options,promise,reactContext);
+    }
 
 
+  }
+
+  @ReactMethod
+  public void cancelCompression(
+    String uuid) {
+    cancelCompressionHelper(uuid);
+    Log.d("cancelCompression", uuid);
   }
 
   @ReactMethod

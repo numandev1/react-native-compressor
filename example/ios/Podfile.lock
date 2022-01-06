@@ -293,7 +293,7 @@ PODS:
     - glog
   - react-native-background-upload (6.5.0):
     - React
-  - react-native-compressor (1.2.0):
+  - react-native-compressor (1.3.2):
     - NextLevelSessionExporter
     - React-Core
   - react-native-create-thumbnail (1.4.1):
@@ -595,7 +595,7 @@ SPEC CHECKSUMS:
   boost: a7c83b31436843459a1961bfd74b96033dc77234
   boost-for-react-native: 39c7adb57c4e60d6c5479dd8623128eb5b3f0f2c
   CocoaAsyncSocket: 065fd1e645c7abab64f7a6a2007a48038fdc6a99
-  DoubleConversion: 831926d9b8bf8166fd87886c4abab286c2422662
+  DoubleConversion: cf9b38bf0b2d048436d9a82ad2abe1404f11e7de
   FBLazyVector: 500821d196c3d1bd10e7e828bc93ce075234080f
   FBReactNativeSpec: 74c869e2cffa2ffec685cd1bac6788c021da6005
   Flipper: 1bd2db48dcc31e4b167b9a33ec1df01c2ded4893
@@ -608,7 +608,7 @@ SPEC CHECKSUMS:
   Flipper-RSocket: 127954abe8b162fcaf68d2134d34dc2bd7076154
   FlipperKit: 651f50a42eb95c01b3e89a60996dd6aded529eeb
   fmt: ff9d55029c625d3757ed641535fd4a75fedc7ce9
-  glog: 5337263514dd6f09803962437687240c5dc39aa4
+  glog: 73c2498ac6884b13ede40eda8228cb1eee9d9d62
   hermes-engine: bf7577d12ac6ccf53ab8b5af3c6ccf0dd8458c5c
   libevent: 4049cae6c81cdb3654a443be001fb9bdceff7913
   NextLevelSessionExporter: 4d8aa5e617f1c709724f2453efe5d4628480f65a
@@ -627,7 +627,7 @@ SPEC CHECKSUMS:
   React-jsinspector: 8c0517dee5e8c70cd6c3066f20213ff7ce54f176
   React-logger: bfddd3418dc1d45b77b822958f3e31422e2c179b
   react-native-background-upload: 994d4e8abbcc1d0b0cff68d950429906ed68ca67
-  react-native-compressor: 5b01bc19d1817c5ce89f8d5117b7c282e67615b9
+  react-native-compressor: 1b77b03cc2ee094dcb831e602fbda8294b7804b1
   react-native-create-thumbnail: d31c84dd69fb4d60aec0ff2f49bc0de41ede7b2c
   react-native-document-picker: 226068006be4c52f8ef7f32d855ee025a12e9e64
   react-native-get-random-values: 2c4ff6b44cb71291dabe9a8ae87d3877dcf387da

@@ -61,6 +61,7 @@
   "devDependencies": {
     "@commitlint/config-conventional": "^11.0.0",
     "@expo/config-plugins": "^4.0.14",
+    "@jamesacarr/eslint-formatter-github-actions": "^0.1.0",
     "@react-native-community/eslint-config": "^2.0.0",
     "@release-it/conventional-changelog": "^2.0.0",
     "@types/jest": "^26.0.0",

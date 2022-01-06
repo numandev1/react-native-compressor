@@ -33,7 +33,7 @@ If you find this package useful hit the star 🌟
 #### For React Native<0.65
 
 ```sh
-yarn add react-native-compressor@0.5.11
+yarn add react-native-compressor@0.5.14
 ```
 
 #### For React Native 0.65 or greater

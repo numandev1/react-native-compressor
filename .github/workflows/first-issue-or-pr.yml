@@ -1,0 +1,20 @@
+name: First Issue Or PR
+on:
+  pull_request:
+    types: [opened, closed]
+  issues:
+    types: [opened]
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: wow-actions/welcome@v1
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          FIRST_ISSUE: |
+            👋 @{{ author }}
+             Thanks for opening your issue here! **If you find this package useful hit the star🌟!**
+
+          FIRST_PR: |
+            👋 @{{ author }}
+            Thanks for opening this pull request! **If you find this package useful hit the star🌟!**

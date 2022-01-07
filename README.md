@@ -24,7 +24,7 @@
 
 **react-native-compressor** package is a set of functions that allow you compress `Image`,`Audio` and `Video`
 
-If you find this package useful hit the star 🌟
+**If you find this package useful hit the star** 🌟
 
 ## Installation
 

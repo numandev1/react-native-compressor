@@ -31,7 +31,11 @@
 #### For React Native<0.65
 
 ```sh
+<<<<<<< HEAD
 yarn add react-native-compressor@0.5.9
+=======
+yarn add react-native-compressor@0.5.15
+>>>>>>> 801dd7a... fix: sound of compressed video
 ```
 
 Using Npm

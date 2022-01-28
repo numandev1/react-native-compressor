@@ -43,7 +43,14 @@ public class Utils {
 
       @Override
       public void onError(String errorMessage) {
-        promise.reject("Compression has canncelled");
+        if(errorMessage.equals(("class java.lang.AssertionError")))
+        {
+          promise.resolve(srcPath);
+        }
+        else
+        {
+          promise.reject("Compression has canncelled");
+        }
       }
 
       @Override

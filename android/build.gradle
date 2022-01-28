@@ -57,6 +57,6 @@ dependencies {
     //noinspection GradleDynamicVersion
   implementation "com.facebook.react:react-native:+"  // From node_modules
   implementation 'io.github.lizhangqu:coreprogress:1.0.2'
-  implementation 'com.github.nomi9995:VideoCompressor:4f72b53490'
+  implementation 'com.github.nomi9995:VideoCompressor:715bcc16e9'
 //   implementation project(path: ':videocompressor')
 }

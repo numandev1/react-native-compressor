@@ -12,4 +12,5 @@
 +(NSString *)autoCompressHandler:(NSString *)imagePath options:(ImageCompressorOptions*)options;
 + (NSString *)manualCompress:(UIImage *)image output:(enum OutputType)output quality:(float)quality outputExtension:(NSString*)outputExtension isBase64:(Boolean)isBase64;
 + (UIImage *)scaleAndRotateImage:(UIImage *)image;
++ (void)getAbsoluteImagePath:(NSString *)imagePath completionHandler:(void (^)(NSString *absoluteImagePath))completionHandler;
 @end

@@ -20,17 +20,20 @@ RCT_EXPORT_METHOD(
     rejecter: (RCTPromiseRejectBlock) reject) {
     @try {
         ImageCompressorOptions *options = [ImageCompressorOptions fromDictionary:optionsDict];
+        [ImageCompressor getAbsoluteImagePath:imagePath completionHandler:^(NSString* absoluteImagePath){
+            NSLog(@"nomi= %@",absoluteImagePath);
+            if(options.autoCompress)
+            {
+                NSString *result = [ImageCompressor autoCompressHandler:absoluteImagePath options:options];
+                resolve(result);
+            }
+            else
+            {
+                NSString *result = [ImageCompressor manualCompressHandler:absoluteImagePath options:options];
+                resolve(result);
+            }
+        }];
         
-        if(options.autoCompress)
-        {
-            NSString *result = [ImageCompressor autoCompressHandler:imagePath options:options];
-            resolve(result);
-        }
-        else
-        {
-            NSString *result = [ImageCompressor manualCompressHandler:imagePath options:options];
-            resolve(result);
-        }
     }
     @catch (NSException *exception) {
         reject(exception.name, exception.reason, nil);
@@ -242,4 +245,3 @@ RCT_EXTERN_METHOD(deactivateBackgroundTask: (NSDictionary *)options
 RCT_EXTERN_METHOD(cancelCompression:(NSString *)uuid)
 
 @end
-

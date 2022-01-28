@@ -1,6 +1,8 @@
 #import <Accelerate/Accelerate.h>
 #import <CoreGraphics/CoreGraphics.h>
-
+#import <Photos/Photos.h>
+#import <React/RCTUtils.h>
+#import <React/RCTImageLoader.h>
 #import "ImageCompressor.h"
 
 @implementation ImageCompressor
@@ -286,6 +288,76 @@
         [imageData writeToFile:filePath atomically:YES];
         NSString *returnablePath=[self makeValidUri:filePath];
         return returnablePath;
+}
+
++(void)getAbsoluteImagePath:(NSString *)imagePath completionHandler:(void (^)(NSString *absoluteImagePath))completionHandler
+{
+  if (![imagePath containsString:@"ph://"]) {
+    completionHandler(imagePath);
+    return;
+  }
+  NSURL *imageURL = [NSURL URLWithString:[imagePath stringByReplacingOccurrencesOfString:@" " withString:@"%20"]];
+  CGSize size = CGSizeZero;
+  CGFloat scale = 1;
+  RCTResizeMode resizeMode = RCTResizeModeContain;
+  NSString *assetID = @"";
+  PHFetchResult *results;
+  if (!imageURL) {
+    NSString *errorText = @"Cannot load a photo library asset with no URL";
+    @throw([NSException exceptionWithName:errorText reason:errorText userInfo:nil]);
+  } else if ([imageURL.scheme caseInsensitiveCompare:@"assets-library"] == NSOrderedSame) {
+    assetID = [imageURL absoluteString];
+    results = [PHAsset fetchAssetsWithALAssetURLs:@[imageURL] options:nil];
+  } else {
+    assetID = [imageURL.absoluteString substringFromIndex:@"ph://".length];
+    results = [PHAsset fetchAssetsWithLocalIdentifiers:@[assetID] options:nil];
+  }
+  if (results.count == 0) {
+    NSString *errorText = [NSString stringWithFormat:@"Failed to fetch PHAsset with local identifier %@ with no error message.", assetID];
+   @throw([NSException exceptionWithName:errorText reason:errorText userInfo:nil]);
+  }
+  PHAsset *asset = [results firstObject]; // <-- WE GOT THE ASSET
+  PHImageRequestOptions *imageOptions = [PHImageRequestOptions new];
+  imageOptions.networkAccessAllowed = YES;
+  imageOptions.deliveryMode = PHImageRequestOptionsDeliveryModeHighQualityFormat;
+
+  BOOL useMaximumSize = CGSizeEqualToSize(size, CGSizeZero);
+  CGSize targetSize;
+  if (useMaximumSize) {
+    targetSize = PHImageManagerMaximumSize;
+    imageOptions.resizeMode = PHImageRequestOptionsResizeModeNone;
+  } else {
+    targetSize = CGSizeApplyAffineTransform(size, CGAffineTransformMakeScale(scale, scale));
+    imageOptions.resizeMode = PHImageRequestOptionsResizeModeFast;
+  }
+
+  PHImageContentMode contentMode = PHImageContentModeAspectFill;
+  if (resizeMode == RCTResizeModeContain) {
+    contentMode = PHImageContentModeAspectFit;
+  }
+  [[PHImageManager defaultManager] requestImageForAsset:asset
+                                             targetSize:targetSize
+                                            contentMode:contentMode
+                                                options:imageOptions
+                                          resultHandler:^(UIImage *result, NSDictionary<NSString *, id> *info) {
+    // WE GOT THE IMAGE
+    if (result) {
+      UIImage *image = result;
+      NSString *imageName = [assetID stringByReplacingOccurrencesOfString:@"/" withString:@"_"];
+      NSString *imagePath = [self saveImageIntoCache:image withName:imageName];
+    completionHandler(imagePath);
+    } else {
+        @throw([NSException exceptionWithName:@"image not found" reason:@"image not found" userInfo:nil]);
+    }
+  }];
+}
+
++(NSString*) saveImageIntoCache:(UIImage *)image withName:(NSString *)name {
+  NSData *imageData = UIImageJPEGRepresentation(image, 1);
+    NSString *path =[self generateCacheFilePath:@".jpg"];
+  [[NSFileManager defaultManager] createFileAtPath:path contents:imageData attributes:NULL];
+  NSLog(@"\n\n\n\nCameraRollFetcher: image saved \nname=%@\npath=%@\n\n\n", name, path);
+  return path;
 }
 
 @end

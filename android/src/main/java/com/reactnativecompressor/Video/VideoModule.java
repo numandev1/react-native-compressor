@@ -1,5 +1,6 @@
 package com.reactnativecompressor.Video;
 
+import android.net.Uri;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
@@ -14,14 +15,17 @@ import com.facebook.react.bridge.ReadableMap;
 import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.module.annotations.ReactModule;
 import com.facebook.react.modules.core.DeviceEventManagerModule;
+import com.reactnativecompressor.Utils.RealPathUtil;
 
 import static com.reactnativecompressor.Video.VideoCompressorHelper.video_activateBackgroundTask_helper;
 import static com.reactnativecompressor.Video.VideoCompressorHelper.video_deactivateBackgroundTask_helper;
 import static com.reactnativecompressor.Video.VideoCompressorHelper.video_upload_helper;
 import static com.reactnativecompressor.Utils.Utils.cancelCompressionHelper;
+
 @ReactModule(name = VideoModule.NAME)
 public class  VideoModule extends ReactContextBaseJavaModule {
   public static final String NAME = "VideoCompressor";
+  private static final String TAG = "react-native-compessor";
   private final ReactApplicationContext reactContext;
   public VideoModule(ReactApplicationContext reactContext) {
     super(reactContext);
@@ -49,6 +53,17 @@ public class  VideoModule extends ReactContextBaseJavaModule {
     ReadableMap optionMap,
     Promise promise) {
     final VideoCompressorHelper options = VideoCompressorHelper.fromMap(optionMap);
+
+    if(fileUrl.startsWith("content://"))
+    {
+      try {
+        Uri uri= Uri.parse(fileUrl);
+        fileUrl= RealPathUtil.getRealPath(reactContext,uri);
+      }
+      catch (Exception ex) {
+        Log.d(TAG, " Please see this issue: https://github.com/Shobbak/react-native-compressor/issues/25");
+      }
+    }
 
     if(options.compressionMethod==VideoCompressorHelper.CompressionMethod.auto)
     {

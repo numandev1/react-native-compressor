@@ -5,6 +5,7 @@ import {
   Alert,
   useWindowDimensions,
   Image as RNImage,
+  Platform,
 } from 'react-native';
 import Button from '../../Components/Button';
 import Row from '../../Components/Row';
@@ -107,10 +108,12 @@ const Index = () => {
         <Row label="Orignal Size" value={orignalSize} />
         <Row label="Compressed Size" value={compressedSize} />
         <Button onPress={chooseAudioHandler} title="Choose Image" />
-        <Button
-          title={'compress image from camera roll (ph://)'}
-          onPress={onCompressImagefromCameraoll}
-        />
+        {Platform.OS === 'ios' && (
+          <Button
+            title={'compress image from camera roll (ph://)'}
+            onPress={onCompressImagefromCameraoll}
+          />
+        )}
       </View>
     </View>
   );

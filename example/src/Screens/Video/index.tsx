@@ -113,7 +113,7 @@ export default function App() {
         sourceVideo,
         {
           compressionMethod: 'auto',
-          minimumFileSizeForCompress: 5,
+          minimumFileSizeForCompress: 0,
           getCancellationId: (cancellationId) =>
             (cancellationIdRef.current = cancellationId),
         },
@@ -267,10 +267,12 @@ export default function App() {
             justifyContent: 'space-around',
           }}
         >
-          <Button
-            title={'Compress video from camera roll (ph://)'}
-            onPress={onCompressVideofromCameraoll}
-          />
+          {Platform.OS === 'ios' && (
+            <Button
+              title={'Compress video from camera roll (ph://)'}
+              onPress={onCompressVideofromCameraoll}
+            />
+          )}
           <Button
             title={doingSomething ? 'Stop Work' : 'Start Work'}
             onPress={() => {

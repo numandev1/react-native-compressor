@@ -108,7 +108,7 @@ const Index = () => {
         <Row label="Compressed Size" value={compressedSize} />
         <Button onPress={chooseAudioHandler} title="Choose Image" />
         <Button
-          title={'compress image from camera roll'}
+          title={'compress image from camera roll (ph://)'}
           onPress={onCompressImagefromCameraoll}
         />
       </View>

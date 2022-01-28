@@ -125,9 +125,11 @@ export default function App() {
           }
         }
       );
+      console.log({ dstUrl }, 'compression result');
       setCompressedVideo(dstUrl);
       setCompressingProgress(0);
     } catch (error) {
+      console.log({ error }, 'compression error');
       setCompressedVideo(sourceVideo);
       setCompressingProgress(0);
     }
@@ -181,7 +183,7 @@ export default function App() {
   const onCompressVideofromCameraoll = async () => {
     const photos = await CameraRoll.getPhotos({
       first: 1,
-      assetType: 'Photos',
+      assetType: 'Videos',
     });
     const phUrl = photos.page_info.end_cursor;
     setSourceVideo(phUrl);
@@ -266,7 +268,7 @@ export default function App() {
           }}
         >
           <Button
-            title={'compress image from camera roll'}
+            title={'Compress video from camera roll (ph://)'}
             onPress={onCompressVideofromCameraoll}
           />
           <Button

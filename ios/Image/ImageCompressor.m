@@ -4,6 +4,9 @@
 #import <React/RCTUtils.h>
 #import <React/RCTImageLoader.h>
 #import "ImageCompressor.h"
+#import <React/RCTConvert.h>
+#import <Foundation/Foundation.h>
+#import <MobileCoreServices/MobileCoreServices.h>
 
 @implementation ImageCompressor
 + (CGSize) findTargetSize: (UIImage *) image maxWidth: (int) maxWidth maxHeight: (int) maxHeight {
@@ -354,10 +357,86 @@
 
 +(NSString*) saveImageIntoCache:(UIImage *)image withName:(NSString *)name {
   NSData *imageData = UIImageJPEGRepresentation(image, 1);
-    NSString *path =[self generateCacheFilePath:@".jpg"];
+    NSString *path =[self generateCacheFilePath:@"jpg"];
   [[NSFileManager defaultManager] createFileAtPath:path contents:imageData attributes:NULL];
-  NSLog(@"\n\n\n\nCameraRollFetcher: image saved \nname=%@\npath=%@\n\n\n", name, path);
   return path;
+}
+
+/// for vide
+    
++(void)getAbsoluteVideoPath:(NSString *)videoPath completionHandler:(void (^)(NSString *absoluteImagePath))completionHandler
+{
+    if (![videoPath containsString:@"ph://"]) {
+      completionHandler(videoPath);
+      return;
+    }
+    NSString *assetId =[videoPath stringByReplacingOccurrencesOfString:@"ph://"
+                                                      withString:@""];
+    AVFileType outputFileType = AVFileTypeMPEG4;
+    NSString *pressetType = AVAssetExportPresetPassthrough;
+    
+    // Throwing some errors to the user if he is not careful enough
+    if ([assetId isEqualToString:@""]) {
+        NSError *error = [NSError errorWithDomain:@"RNGalleryManager" code: -91 userInfo:nil];
+        @throw([NSException exceptionWithName:error reason:error userInfo:nil]);
+        return;
+    }
+    
+    // Getting Video Asset
+    NSArray* localIds = [NSArray arrayWithObjects: assetId, nil];
+    PHAsset * _Nullable videoAsset = [PHAsset fetchAssetsWithLocalIdentifiers:localIds options:nil].firstObject;
+    
+    // Getting information from the asset
+    NSString *mimeType = (NSString *)CFBridgingRelease(UTTypeCopyPreferredTagWithClass((__bridge CFStringRef _Nonnull)(outputFileType), kUTTagClassMIMEType));
+    CFStringRef uti = UTTypeCreatePreferredIdentifierForTag(kUTTagClassMIMEType, (__bridge CFStringRef _Nonnull)(mimeType), NULL);
+     NSString *extension = (NSString *)CFBridgingRelease(UTTypeCopyPreferredTagWithClass(uti, kUTTagClassFilenameExtension));
+    
+    // Creating output url and temp file name
+    NSString *path =[self generateCacheFilePath:extension];
+    NSURL *outputUrl = [NSURL URLWithString:[@"file://" stringByAppendingString:path]];
+    
+    // Setting video export session options
+    PHVideoRequestOptions *videoRequestOptions = [[PHVideoRequestOptions alloc] init];
+    videoRequestOptions.networkAccessAllowed = YES;
+    videoRequestOptions.deliveryMode = PHVideoRequestOptionsDeliveryModeHighQualityFormat;
+    
+    // Creating new export session
+    [[PHImageManager defaultManager] requestExportSessionForVideo:videoAsset options:videoRequestOptions exportPreset:pressetType resultHandler:^(AVAssetExportSession * _Nullable exportSession, NSDictionary * _Nullable info) {
+        
+        exportSession.shouldOptimizeForNetworkUse = YES;
+        exportSession.outputFileType = outputFileType;
+        exportSession.outputURL = outputUrl;
+        // Converting the video and waiting to see whats going to happen
+        [exportSession exportAsynchronouslyWithCompletionHandler:^{
+            switch ([exportSession status])
+            {
+                case AVAssetExportSessionStatusFailed:
+                {
+                    NSError* error = exportSession.error;
+                    NSString *codeWithDomain = [NSString stringWithFormat:@"E%@%zd", error.domain.uppercaseString, error.code];
+                    @throw([NSException exceptionWithName:error reason:error userInfo:nil]);
+                    break;
+                }
+                case AVAssetExportSessionStatusCancelled:
+                {
+                    NSError *error = [NSError errorWithDomain:@"RNGalleryManager" code: -91 userInfo:nil];
+                    @throw([NSException exceptionWithName:error reason:error userInfo:nil]);
+                    break;
+                }
+                case AVAssetExportSessionStatusCompleted:
+                {
+                    completionHandler(outputUrl.absoluteString);
+                    break;
+                }
+                default:
+                {
+                    NSError *error = [NSError errorWithDomain:@"RNGalleryManager" code: -91 userInfo:nil];
+                    @throw([NSException exceptionWithName:@"Unknown status" reason:@"Unknown status" userInfo:nil]);
+                    break;
+                }
+            }
+        }];
+    }];
 }
 
 @end

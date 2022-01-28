@@ -9,6 +9,7 @@ import {
 import Button from '../../Components/Button';
 import Row from '../../Components/Row';
 import * as ImagePicker from 'react-native-image-picker';
+import CameraRoll from '@react-native-community/cameraroll';
 const prettyBytes = require('pretty-bytes');
 import { Image } from 'react-native-compressor';
 import { getFileInfo } from '../../Utils';
@@ -58,6 +59,26 @@ const Index = () => {
       );
     } catch (err) {}
   };
+
+  const onCompressImagefromCameraoll = async () => {
+    const photos = await CameraRoll.getPhotos({
+      first: 1,
+      assetType: 'Photos',
+    });
+    const phUrl: any = photos.page_info.end_cursor;
+    Image.compress(phUrl, {
+      compressionMethod: 'auto',
+    })
+      .then(async (compressedFileUri) => {
+        setCommpressedUri(compressedFileUri);
+        const detail: any = await getFileInfo(compressedFileUri);
+        setCompressedSize(prettyBytes(parseInt(detail.size)));
+      })
+      .catch((e) => {
+        console.log(e, 'error');
+      });
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.imageContainer}>
@@ -86,6 +107,10 @@ const Index = () => {
         <Row label="Orignal Size" value={orignalSize} />
         <Row label="Compressed Size" value={compressedSize} />
         <Button onPress={chooseAudioHandler} title="Choose Image" />
+        <Button
+          title={'compress image from camera roll (ph://)'}
+          onPress={onCompressImagefromCameraoll}
+        />
       </View>
     </View>
   );

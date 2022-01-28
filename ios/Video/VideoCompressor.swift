@@ -2,6 +2,7 @@ import Foundation
 import AssetsLibrary
 import AVFoundation
 import NextLevelSessionExporter
+import Photos
 
 struct CompressionError: Error {
   private let message: String
@@ -205,45 +206,45 @@ func makeValidUri(filePath: String) -> String {
   
   
   func compressVideo(url: URL, options: [String: Any], onProgress: @escaping (Float) -> Void,  onCompletion: @escaping (URL) -> Void, onFailure: @escaping (Error) -> Void){
-      var minimumFileSizeForCompress:Double=16.0;
-    let fileSize=self.getfileSize(forURL: url);
-      if((options["minimumFileSizeForCompress"]) != nil)
-    {
-          minimumFileSizeForCompress=options["minimumFileSizeForCompress"] as! Double;
-    }
-    if(fileSize>minimumFileSizeForCompress)
-    {
-        if(options["compressionMethod"] as! String=="auto")
+      ImageCompressor.getAbsoluteVideoPath(url.absoluteString) { absoluteVideoPath in
+        var minimumFileSizeForCompress:Double=16.0;
+        let videoURL = URL(string: absoluteVideoPath!)
+        let fileSize=self.getfileSize(forURL: videoURL!);
+          if((options["minimumFileSizeForCompress"]) != nil)
         {
-            autoCompressionHelper(url: url, options:options) { progress in
-                onProgress(progress)
-            } onCompletion: { outputURL in
-                onCompletion(outputURL)
-            } onFailure: { error in
-                onFailure(error)
+              minimumFileSizeForCompress=options["minimumFileSizeForCompress"] as! Double;
+        }
+        if(fileSize>minimumFileSizeForCompress)
+        {
+            if(options["compressionMethod"] as! String=="auto")
+            {
+                self.autoCompressionHelper(url: videoURL!, options:options) { progress in
+                    onProgress(progress)
+                } onCompletion: { outputURL in
+                    onCompletion(outputURL)
+                } onFailure: { error in
+                    onFailure(error)
+                }
             }
+            else
+            {
+                self.manualCompressionHelper(url: videoURL!, options:options) { progress in
+                    onProgress(progress)
+                } onCompletion: { outputURL in
+                    onCompletion(outputURL)
+                } onFailure: { error in
+                    onFailure(error)
+                }
+            }
+            
+            
+
         }
         else
         {
-            manualCompressionHelper(url: url, options:options) { progress in
-                onProgress(progress)
-            } onCompletion: { outputURL in
-                onCompletion(outputURL)
-            } onFailure: { error in
-                onFailure(error)
-            }
+            onCompletion(url)
         }
-        
-        
-
-    }
-    else
-    {
-        onCompletion(url)
-    }
-    
-    
-  
+      }
 }
 
 
@@ -411,6 +412,5 @@ func makeValidUri(filePath: String) -> String {
         let track = asset.tracks[videoTrackIndex];
         return track;
         }
-    
     
     }

@@ -4,6 +4,7 @@ import { Video, uuidv4 } from 'react-native-compressor';
 import * as ImagePicker from 'react-native-image-picker';
 import { createThumbnail } from 'react-native-create-thumbnail';
 import * as Progress from 'react-native-progress';
+import CameraRoll from '@react-native-community/cameraroll';
 const prettyBytes = require('pretty-bytes');
 const RNFS = require('react-native-fs');
 import { getFileInfo } from '../../Utils';
@@ -124,9 +125,11 @@ export default function App() {
           }
         }
       );
+      console.log({ dstUrl }, 'compression result');
       setCompressedVideo(dstUrl);
       setCompressingProgress(0);
     } catch (error) {
+      console.log({ error }, 'compression error');
       setCompressedVideo(sourceVideo);
       setCompressingProgress(0);
     }
@@ -177,6 +180,15 @@ export default function App() {
     }
   };
 
+  const onCompressVideofromCameraoll = async () => {
+    const photos = await CameraRoll.getPhotos({
+      first: 1,
+      assetType: 'Videos',
+    });
+    const phUrl = photos.page_info.end_cursor;
+    setSourceVideo(phUrl);
+    console.log('nomi', phUrl);
+  };
   return (
     <View style={{ flex: 1 }}>
       <View
@@ -255,6 +267,10 @@ export default function App() {
             justifyContent: 'space-around',
           }}
         >
+          <Button
+            title={'Compress video from camera roll (ph://)'}
+            onPress={onCompressVideofromCameraoll}
+          />
           <Button
             title={doingSomething ? 'Stop Work' : 'Start Work'}
             onPress={() => {

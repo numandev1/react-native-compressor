@@ -1,7 +1,12 @@
 #import <Accelerate/Accelerate.h>
 #import <CoreGraphics/CoreGraphics.h>
-
+#import <Photos/Photos.h>
+#import <React/RCTUtils.h>
+#import <React/RCTImageLoader.h>
 #import "ImageCompressor.h"
+#import <React/RCTConvert.h>
+#import <Foundation/Foundation.h>
+#import <MobileCoreServices/MobileCoreServices.h>
 
 @implementation ImageCompressor
 + (CGSize) findTargetSize: (UIImage *) image maxWidth: (int) maxWidth maxHeight: (int) maxHeight {
@@ -286,6 +291,152 @@
         [imageData writeToFile:filePath atomically:YES];
         NSString *returnablePath=[self makeValidUri:filePath];
         return returnablePath;
+}
+
++(void)getAbsoluteImagePath:(NSString *)imagePath completionHandler:(void (^)(NSString *absoluteImagePath))completionHandler
+{
+  if (![imagePath containsString:@"ph://"]) {
+    completionHandler(imagePath);
+    return;
+  }
+  NSURL *imageURL = [NSURL URLWithString:[imagePath stringByReplacingOccurrencesOfString:@" " withString:@"%20"]];
+  CGSize size = CGSizeZero;
+  CGFloat scale = 1;
+  RCTResizeMode resizeMode = RCTResizeModeContain;
+  NSString *assetID = @"";
+  PHFetchResult *results;
+  if (!imageURL) {
+    NSString *errorText = @"Cannot load a photo library asset with no URL";
+    @throw([NSException exceptionWithName:errorText reason:errorText userInfo:nil]);
+  } else if ([imageURL.scheme caseInsensitiveCompare:@"assets-library"] == NSOrderedSame) {
+    assetID = [imageURL absoluteString];
+    results = [PHAsset fetchAssetsWithALAssetURLs:@[imageURL] options:nil];
+  } else {
+    assetID = [imageURL.absoluteString substringFromIndex:@"ph://".length];
+    results = [PHAsset fetchAssetsWithLocalIdentifiers:@[assetID] options:nil];
+  }
+  if (results.count == 0) {
+    NSString *errorText = [NSString stringWithFormat:@"Failed to fetch PHAsset with local identifier %@ with no error message.", assetID];
+   @throw([NSException exceptionWithName:errorText reason:errorText userInfo:nil]);
+  }
+  PHAsset *asset = [results firstObject]; // <-- WE GOT THE ASSET
+  PHImageRequestOptions *imageOptions = [PHImageRequestOptions new];
+  imageOptions.networkAccessAllowed = YES;
+  imageOptions.deliveryMode = PHImageRequestOptionsDeliveryModeHighQualityFormat;
+
+  BOOL useMaximumSize = CGSizeEqualToSize(size, CGSizeZero);
+  CGSize targetSize;
+  if (useMaximumSize) {
+    targetSize = PHImageManagerMaximumSize;
+    imageOptions.resizeMode = PHImageRequestOptionsResizeModeNone;
+  } else {
+    targetSize = CGSizeApplyAffineTransform(size, CGAffineTransformMakeScale(scale, scale));
+    imageOptions.resizeMode = PHImageRequestOptionsResizeModeFast;
+  }
+
+  PHImageContentMode contentMode = PHImageContentModeAspectFill;
+  if (resizeMode == RCTResizeModeContain) {
+    contentMode = PHImageContentModeAspectFit;
+  }
+  [[PHImageManager defaultManager] requestImageForAsset:asset
+                                             targetSize:targetSize
+                                            contentMode:contentMode
+                                                options:imageOptions
+                                          resultHandler:^(UIImage *result, NSDictionary<NSString *, id> *info) {
+    // WE GOT THE IMAGE
+    if (result) {
+      UIImage *image = result;
+      NSString *imageName = [assetID stringByReplacingOccurrencesOfString:@"/" withString:@"_"];
+      NSString *imagePath = [self saveImageIntoCache:image withName:imageName];
+    completionHandler(imagePath);
+    } else {
+        @throw([NSException exceptionWithName:@"image not found" reason:@"image not found" userInfo:nil]);
+    }
+  }];
+}
+
++(NSString*) saveImageIntoCache:(UIImage *)image withName:(NSString *)name {
+  NSData *imageData = UIImageJPEGRepresentation(image, 1);
+    NSString *path =[self generateCacheFilePath:@"jpg"];
+  [[NSFileManager defaultManager] createFileAtPath:path contents:imageData attributes:NULL];
+  return path;
+}
+
+/// for vide
+    
++(void)getAbsoluteVideoPath:(NSString *)videoPath completionHandler:(void (^)(NSString *absoluteImagePath))completionHandler
+{
+    if (![videoPath containsString:@"ph://"]) {
+      completionHandler(videoPath);
+      return;
+    }
+    NSString *assetId =[videoPath stringByReplacingOccurrencesOfString:@"ph://"
+                                                      withString:@""];
+    AVFileType outputFileType = AVFileTypeMPEG4;
+    NSString *pressetType = AVAssetExportPresetPassthrough;
+    
+    // Throwing some errors to the user if he is not careful enough
+    if ([assetId isEqualToString:@""]) {
+        NSError *error = [NSError errorWithDomain:@"RNGalleryManager" code: -91 userInfo:nil];
+        @throw([NSException exceptionWithName:error reason:error userInfo:nil]);
+        return;
+    }
+    
+    // Getting Video Asset
+    NSArray* localIds = [NSArray arrayWithObjects: assetId, nil];
+    PHAsset * _Nullable videoAsset = [PHAsset fetchAssetsWithLocalIdentifiers:localIds options:nil].firstObject;
+    
+    // Getting information from the asset
+    NSString *mimeType = (NSString *)CFBridgingRelease(UTTypeCopyPreferredTagWithClass((__bridge CFStringRef _Nonnull)(outputFileType), kUTTagClassMIMEType));
+    CFStringRef uti = UTTypeCreatePreferredIdentifierForTag(kUTTagClassMIMEType, (__bridge CFStringRef _Nonnull)(mimeType), NULL);
+     NSString *extension = (NSString *)CFBridgingRelease(UTTypeCopyPreferredTagWithClass(uti, kUTTagClassFilenameExtension));
+    
+    // Creating output url and temp file name
+    NSString *path =[self generateCacheFilePath:extension];
+    NSURL *outputUrl = [NSURL URLWithString:[@"file://" stringByAppendingString:path]];
+    
+    // Setting video export session options
+    PHVideoRequestOptions *videoRequestOptions = [[PHVideoRequestOptions alloc] init];
+    videoRequestOptions.networkAccessAllowed = YES;
+    videoRequestOptions.deliveryMode = PHVideoRequestOptionsDeliveryModeHighQualityFormat;
+    
+    // Creating new export session
+    [[PHImageManager defaultManager] requestExportSessionForVideo:videoAsset options:videoRequestOptions exportPreset:pressetType resultHandler:^(AVAssetExportSession * _Nullable exportSession, NSDictionary * _Nullable info) {
+        
+        exportSession.shouldOptimizeForNetworkUse = YES;
+        exportSession.outputFileType = outputFileType;
+        exportSession.outputURL = outputUrl;
+        // Converting the video and waiting to see whats going to happen
+        [exportSession exportAsynchronouslyWithCompletionHandler:^{
+            switch ([exportSession status])
+            {
+                case AVAssetExportSessionStatusFailed:
+                {
+                    NSError* error = exportSession.error;
+                    NSString *codeWithDomain = [NSString stringWithFormat:@"E%@%zd", error.domain.uppercaseString, error.code];
+                    @throw([NSException exceptionWithName:error reason:error userInfo:nil]);
+                    break;
+                }
+                case AVAssetExportSessionStatusCancelled:
+                {
+                    NSError *error = [NSError errorWithDomain:@"RNGalleryManager" code: -91 userInfo:nil];
+                    @throw([NSException exceptionWithName:error reason:error userInfo:nil]);
+                    break;
+                }
+                case AVAssetExportSessionStatusCompleted:
+                {
+                    completionHandler(outputUrl.absoluteString);
+                    break;
+                }
+                default:
+                {
+                    NSError *error = [NSError errorWithDomain:@"RNGalleryManager" code: -91 userInfo:nil];
+                    @throw([NSException exceptionWithName:@"Unknown status" reason:@"Unknown status" userInfo:nil]);
+                    break;
+                }
+            }
+        }];
+    }];
 }
 
 @end

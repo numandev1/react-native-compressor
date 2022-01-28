@@ -17,6 +17,7 @@ import com.facebook.react.module.annotations.ReactModule;
 import com.facebook.react.modules.core.DeviceEventManagerModule;
 import com.reactnativecompressor.Utils.RealPathUtil;
 
+import static com.reactnativecompressor.Utils.Utils.getRealPath;
 import static com.reactnativecompressor.Video.VideoCompressorHelper.video_activateBackgroundTask_helper;
 import static com.reactnativecompressor.Video.VideoCompressorHelper.video_deactivateBackgroundTask_helper;
 import static com.reactnativecompressor.Video.VideoCompressorHelper.video_upload_helper;
@@ -53,17 +54,7 @@ public class  VideoModule extends ReactContextBaseJavaModule {
     ReadableMap optionMap,
     Promise promise) {
     final VideoCompressorHelper options = VideoCompressorHelper.fromMap(optionMap);
-
-    if(fileUrl.startsWith("content://"))
-    {
-      try {
-        Uri uri= Uri.parse(fileUrl);
-        fileUrl= RealPathUtil.getRealPath(reactContext,uri);
-      }
-      catch (Exception ex) {
-        Log.d(TAG, " Please see this issue: https://github.com/Shobbak/react-native-compressor/issues/25");
-      }
-    }
+    fileUrl=getRealPath(fileUrl,reactContext);
 
     if(options.compressionMethod==VideoCompressorHelper.CompressionMethod.auto)
     {

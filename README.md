@@ -334,6 +334,29 @@ type FileSystemUploadOptions = (
 };
 ```
 
+# Get Real Path
+if you want to convert 
+
+- `content://` to `file:///` for android
+- `ph://` to `file:///` for IOS
+
+the you can you `getRealPath` function like this
+```js
+import { getRealPath } from 'react-native-compressor';
+
+const realPath = await getRealPath(fileUri, 'video');        //   file://file_path.extension
+```
+- ###### `getRealPath(path: string, type: string = 'video'|'image')`
+
+# Get Temp file Path
+if you wanna make random file path in cache folder then you can use this method like this
+
+```js
+import { getRealPath } from 'react-native-compressor';
+
+const realPath = await generateFilePath(fileUri, 'video');        //   file://file_path.extension
+```
+
 ## Contributing
 
 See the [contributing guide](CONTRIBUTING.md) to learn how to contribute to the repository and the development workflow.

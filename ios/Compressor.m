@@ -21,7 +21,6 @@ RCT_EXPORT_METHOD(
     @try {
         ImageCompressorOptions *options = [ImageCompressorOptions fromDictionary:optionsDict];
         [ImageCompressor getAbsoluteImagePath:imagePath completionHandler:^(NSString* absoluteImagePath){
-            NSLog(@"nomi= %@",absoluteImagePath);
             if(options.autoCompress)
             {
                 NSString *result = [ImageCompressor autoCompressHandler:absoluteImagePath options:options];
@@ -179,12 +178,36 @@ RCT_EXPORT_METHOD(
 
 //general
 RCT_EXPORT_METHOD(
-    generateFile: (NSString*) extension
+    generateFilePath: (NSString*) extension
     resolver: (RCTPromiseResolveBlock) resolve
     rejecter: (RCTPromiseRejectBlock) reject) {
     @try {
         NSString *outputUri =[ImageCompressor generateCacheFilePath:extension];
         resolve(outputUri);
+    }
+    @catch (NSException *exception) {
+        reject(exception.name, exception.reason, nil);
+    }
+}
+
+RCT_EXPORT_METHOD(
+    getRealPath: (NSString*) path
+    type: (NSString*) type
+    resolver: (RCTPromiseResolveBlock) resolve
+    rejecter: (RCTPromiseRejectBlock) reject) {
+    @try {
+        if([type isEqualToString:@"video"])
+        {
+            [ImageCompressor getAbsoluteVideoPath:path completionHandler:^(NSString* absoluteImagePath){
+                resolve(absoluteImagePath);
+            }];
+        }
+        else
+        {
+            [ImageCompressor getAbsoluteImagePath:path completionHandler:^(NSString* absoluteImagePath){
+                resolve(absoluteImagePath);
+            }];
+        }
     }
     @catch (NSException *exception) {
         reject(exception.name, exception.reason, nil);

@@ -20,8 +20,10 @@ import com.facebook.react.module.annotations.ReactModule;
 import com.facebook.react.modules.core.DeviceEventManagerModule;
 import com.reactnativecompressor.Image.ImageCompressor;
 import com.reactnativecompressor.Image.utils.ImageCompressorOptions;
+import com.reactnativecompressor.Utils.Utils;
 import com.reactnativecompressor.Video.VideoCompressorHelper;
 import static com.reactnativecompressor.Utils.Utils.generateCacheFilePath;
+
 import com.reactnativecompressor.Audio.AudioCompressor;
 
 @ReactModule(name = CompressorModule.NAME)
@@ -54,6 +56,7 @@ public class CompressorModule extends ReactContextBaseJavaModule {
     ReadableMap optionMap,
     Promise promise) {
     try {
+      imagePath=Utils.getRealPath(imagePath,reactContext);
       final ImageCompressorOptions options = ImageCompressorOptions.fromMap(optionMap);
 
       if(options.compressionMethod==ImageCompressorOptions.CompressionMethod.auto)
@@ -98,7 +101,7 @@ public class CompressorModule extends ReactContextBaseJavaModule {
 
   //General
     @ReactMethod
-   public void generateFile(String extension, Promise promise) {
+   public void generateFilePath(String extension, Promise promise) {
      try {
        final String outputUri =generateCacheFilePath(extension,reactContext);
        promise.resolve(outputUri);
@@ -106,4 +109,14 @@ public class CompressorModule extends ReactContextBaseJavaModule {
        promise.reject(e);
      }
    }
+
+  @ReactMethod
+  public void getRealPath(String path,String type, Promise promise) {
+    try {
+      final String realPath =Utils.getRealPath(path,reactContext);
+      promise.resolve("file://"+realPath);
+    } catch (Exception e) {
+      promise.reject(e);
+    }
+  }
 }

@@ -30,12 +30,16 @@ export type AudioType = {
   compress(value: string, options?: audioCompresssionType): Promise<string>;
 };
 
-const generateFile: any = (extension: string) => {
+export const generateFilePath: any = (extension: string) => {
   return new Promise((resolve, reject) => {
-    Compressor.generateFile(extension)
+    Compressor.generateFilePath(extension)
       .then((result: any) => resolve('file://' + result))
       .catch((error: any) => reject(error));
   });
+};
+
+export const getRealPath: any = (path: string, type: string = '') => {
+  return Compressor.getRealPath(path, type);
 };
 
 const isValidUrl = (url: string) =>
@@ -135,7 +139,7 @@ export const checkUrlAndOptions = async (
       outputFilePath = options.outputFilePath;
       defaultResult.outputFilePath = outputFilePath;
     } else {
-      outputFilePath = await generateFile('mp3');
+      outputFilePath = await generateFilePath('mp3');
       defaultResult.outputFilePath = outputFilePath;
     }
     if (outputFilePath === undefined || outputFilePath === null) {

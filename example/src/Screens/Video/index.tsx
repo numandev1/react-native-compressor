@@ -1,12 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, Button, Image, Alert, Platform } from 'react-native';
-import { Video, uuidv4 } from 'react-native-compressor';
+import { Video, getRealPath } from 'react-native-compressor';
 import * as ImagePicker from 'react-native-image-picker';
 import { createThumbnail } from 'react-native-create-thumbnail';
 import * as Progress from 'react-native-progress';
 import CameraRoll from '@react-native-community/cameraroll';
 const prettyBytes = require('pretty-bytes');
-const RNFS = require('react-native-fs');
 import { getFileInfo } from '../../Utils';
 
 export default function App() {
@@ -73,12 +72,6 @@ export default function App() {
     return undefined;
   }, [doingSomething]);
 
-  const getAbsolutePath = async (uri: string, extension: string) => {
-    const destPath = `${RNFS.TemporaryDirectoryPath}/${uuidv4()}.${extension}`;
-    await RNFS.copyFile(uri, destPath);
-    return `file://${destPath}`;
-  };
-
   const selectVideo = async () => {
     try {
       ImagePicker.launchImageLibrary(
@@ -94,7 +87,8 @@ export default function App() {
               const source: any = result.assets[0];
               let uri = source.uri;
               if (Platform.OS === 'android' && uri.includes('content://')) {
-                uri = await getAbsolutePath(uri, 'mp4');
+                const realPath = await getRealPath(uri, 'video');
+                console.log('old path==>', uri, 'realPath ==>', realPath);
               }
               setSourceVideo(uri);
             }
@@ -188,6 +182,10 @@ export default function App() {
     const phUrl = photos.page_info.end_cursor;
     setSourceVideo(phUrl);
     console.log('nomi', phUrl);
+    if (phUrl?.includes('ph://')) {
+      const realPath = await getRealPath(phUrl, 'video');
+      console.log('old path==>', phUrl, 'realPath ==>', realPath);
+    }
   };
   return (
     <View style={{ flex: 1 }}>

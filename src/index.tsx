@@ -1,7 +1,7 @@
 import Video, { VideoCompressorType, backgroundUpload } from './Video';
 import Audio from './Audio';
 import Image from './Image';
-import { getDetails, uuidv4 } from './utils';
+import { getDetails, uuidv4, generateFilePath, getRealPath } from './utils';
 
 export {
   Video,
@@ -12,6 +12,8 @@ export {
   VideoCompressorType,
   getDetails,
   uuidv4,
+  generateFilePath,
+  getRealPath,
 };
 export default {
   Video,
@@ -20,4 +22,6 @@ export default {
   backgroundUpload,
   getDetails,
   uuidv4,
+  generateFilePath,
+  getRealPath,
 };

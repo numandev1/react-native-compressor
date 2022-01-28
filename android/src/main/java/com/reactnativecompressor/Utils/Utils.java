@@ -1,5 +1,8 @@
 package com.reactnativecompressor.Utils;
 
+import android.net.Uri;
+import android.util.Log;
+
 import androidx.annotation.Nullable;
 
 import com.facebook.react.bridge.Arguments;
@@ -17,6 +20,7 @@ import java.util.UUID;
 
 public class Utils {
   static int videoCompressionThreshold=10;
+  private static final String TAG = "react-native-compessor";
   static Map<String, VideoCompressTask> compressorExports = new HashMap<>();
 
   public static String generateCacheFilePath(String extension, ReactApplicationContext reactContext){
@@ -91,5 +95,19 @@ public class Utils {
     reactContext
       .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
       .emit(eventName, params);
+  }
+
+  public static String getRealPath(String fileUrl,ReactApplicationContext reactContext){
+    if(fileUrl.startsWith("content://"))
+    {
+      try {
+        Uri uri= Uri.parse(fileUrl);
+        fileUrl= RealPathUtil.getRealPath(reactContext,uri);
+      }
+      catch (Exception ex) {
+        Log.d(TAG, " Please see this issue: https://github.com/Shobbak/react-native-compressor/issues/25");
+      }
+    }
+    return fileUrl;
   }
 }

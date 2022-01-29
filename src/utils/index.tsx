@@ -38,8 +38,15 @@ export const generateFilePath: any = (extension: string) => {
   });
 };
 
-export const getRealPath: any = (path: string, type: string = '') => {
+export const getRealPath: any = (
+  path: string,
+  type: 'video' | 'imaage' = 'video'
+) => {
   return Compressor.getRealPath(path, type);
+};
+
+export const getVideoMetaData: any = (path: string) => {
+  return Compressor.getVideoMetaData(path);
 };
 
 const isValidUrl = (url: string) =>

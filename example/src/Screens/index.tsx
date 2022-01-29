@@ -4,6 +4,7 @@ import MainScreen from './Main';
 import ImageScreen from './Image';
 import AudioScreen from './Audio';
 import VideoScreen from './Video';
+import UtilScreen from './Util';
 export type Screens = Record<
   string,
   { screen: React.ComponentType; title?: string }
@@ -21,6 +22,10 @@ export const SCREENS: Screens = {
   video_screen: {
     screen: VideoScreen,
     title: 'Video Screen',
+  },
+  util_screen: {
+    screen: UtilScreen,
+    title: 'Util Screen',
   },
 };
 

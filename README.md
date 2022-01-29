@@ -334,27 +334,53 @@ type FileSystemUploadOptions = (
 };
 ```
 
+### Get Metadata Of Video
+
+if you want to get metadata of video than you can use this function
+
+```js
+import { getVideoMetaData } from 'react-native-compressor';
+
+const metaData = await getVideoMetaData(filePath);
+```
+
+```
+{
+	"duration": "6",
+	"extension": "mp4",
+	"height": "1080",
+	"size": "16940.0",
+	"width": "1920"
+}
+```
+
+- ###### `getVideoMetaData(path: string)`
+
 ### Get Real Path
-if you want to convert 
+
+if you want to convert
 
 - `content://` to `file:///` for android
 - `ph://` to `file:///` for IOS
 
 the you can you `getRealPath` function like this
+
 ```js
 import { getRealPath } from 'react-native-compressor';
 
-const realPath = await getRealPath(fileUri, 'video');        //   file://file_path.extension
+const realPath = await getRealPath(fileUri, 'video'); //   file://file_path.extension
 ```
+
 - ###### `getRealPath(path: string, type: string = 'video'|'image')`
 
 ### Get Temp file Path
+
 if you wanna make random file path in cache folder then you can use this method like this
 
 ```js
 import { generateFilePath } from 'react-native-compressor';
 
-const randomFilePathForSaveFile = await generateFilePath("mp4");        //   file://file_path.mp4
+const randomFilePathForSaveFile = await generateFilePath('mp4'); //   file://file_path.mp4
 ```
 
 - ##### `generateFilePath(fileextension: string)`

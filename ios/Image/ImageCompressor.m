@@ -362,10 +362,11 @@
   return path;
 }
 
-/// for vide
+/// for video
     
 +(void)getAbsoluteVideoPath:(NSString *)videoPath completionHandler:(void (^)(NSString *absoluteImagePath))completionHandler
 {
+
     if (![videoPath containsString:@"ph://"]) {
       completionHandler(videoPath);
       return;

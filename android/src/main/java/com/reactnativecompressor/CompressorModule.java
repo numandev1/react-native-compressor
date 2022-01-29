@@ -9,6 +9,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 
+import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.Promise;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContext;
@@ -23,8 +24,11 @@ import com.reactnativecompressor.Image.utils.ImageCompressorOptions;
 import com.reactnativecompressor.Utils.Utils;
 import com.reactnativecompressor.Video.VideoCompressorHelper;
 import static com.reactnativecompressor.Utils.Utils.generateCacheFilePath;
+import static com.reactnativecompressor.Utils.Utils.getRealPath;
 
 import com.reactnativecompressor.Audio.AudioCompressor;
+
+import java.io.File;
 
 @ReactModule(name = CompressorModule.NAME)
 public class CompressorModule extends ReactContextBaseJavaModule {
@@ -115,6 +119,34 @@ public class CompressorModule extends ReactContextBaseJavaModule {
     try {
       final String realPath =Utils.getRealPath(path,reactContext);
       promise.resolve("file://"+realPath);
+    } catch (Exception e) {
+      promise.reject(e);
+    }
+  }
+
+  @ReactMethod
+  public void getVideoMetaData(String filePath, Promise promise) {
+    try {
+      filePath=Utils.getRealPath(filePath,reactContext);
+      Uri uri= Uri.parse(filePath);
+      String srcPath = uri.getPath();
+      MediaMetadataRetriever metaRetriever = new MediaMetadataRetriever();
+      metaRetriever.setDataSource(srcPath);
+      File file=new File(srcPath);
+      float sizeInKBs = file.length()/1024;
+      int actualHeight =Integer.parseInt(metaRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT));
+      int actualWidth = Integer.parseInt(metaRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH));
+      long duration = Long.parseLong(metaRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION));
+      String extension = filePath.substring(filePath.lastIndexOf(".")+1);
+
+      WritableMap params = Arguments.createMap();
+      params.putString("size", String.valueOf(sizeInKBs));
+      params.putString("width", String.valueOf(actualWidth));
+      params.putString("height", String.valueOf(actualHeight));
+      params.putString("duration", String.valueOf(duration/1000));
+      params.putString("extension", extension);
+
+      promise.resolve(params);
     } catch (Exception e) {
       promise.reject(e);
     }

@@ -9,6 +9,30 @@
 #define AlAsset_Library_Scheme @"assets-library"
 @implementation Compressor
 AVAssetWriter *assetWriter=nil;
+static NSArray *metadatas;
+
+- (NSArray *)metadatas
+{
+  if (!metadatas) {
+    metadatas = @[
+      @"albumName",
+      @"artist",
+      @"comment",
+      @"copyrights",
+      @"creationDate",
+      @"date",
+      @"encodedby",
+      @"genre",
+      @"language",
+      @"location",
+      @"lastModifiedDate",
+      @"performer",
+      @"publisher",
+      @"title"
+    ];
+  }
+  return metadatas;
+}
 
 RCT_EXPORT_MODULE()
 
@@ -241,6 +265,63 @@ RCT_EXPORT_METHOD(
             reject(exception.name, exception.reason, nil);
         }
     }
+
+
+RCT_EXPORT_METHOD(
+    getVideoMetaData: (NSString*) filePath
+    resolver: (RCTPromiseResolveBlock) resolve
+    rejecter: (RCTPromiseRejectBlock) reject) {
+    @try {
+        [ImageCompressor getAbsoluteVideoPath:filePath completionHandler:^(NSString *absoluteImagePath) {
+            if([absoluteImagePath containsString:@"file://"])
+            {
+                absoluteImagePath=[absoluteImagePath stringByReplacingOccurrencesOfString:@"file://"
+                                                        withString:@""];
+            }
+            NSFileManager *fileManager = [NSFileManager defaultManager];
+
+              BOOL isDir;
+              if (![fileManager fileExistsAtPath:absoluteImagePath isDirectory:&isDir] || isDir){
+                NSError *err = [NSError errorWithDomain:@"file not found" code:-15 userInfo:nil];
+                reject([NSString stringWithFormat: @"%lu", (long)err.code], err.localizedDescription, err);
+                return;
+              }
+            NSDictionary *attrs = [fileManager attributesOfItemAtPath: absoluteImagePath error: NULL];
+            UInt32 fileSize = [attrs fileSize];
+            NSString *fileSizeString = [@(fileSize) stringValue];
+
+              NSMutableDictionary *result = [NSMutableDictionary new];
+              NSDictionary *assetOptions = @{AVURLAssetPreferPreciseDurationAndTimingKey: @YES};
+              AVURLAsset *asset = [AVURLAsset URLAssetWithURL:[NSURL fileURLWithPath:absoluteImagePath] options:assetOptions];\
+              AVAssetTrack *avAsset = [[asset tracksWithMediaType:AVMediaTypeVideo] objectAtIndex:0];
+              CGSize size = [avAsset naturalSize];
+              NSString *extension = [[absoluteImagePath lastPathComponent] pathExtension];
+              CMTime time = [asset duration];
+              int seconds = ceil(time.value/time.timescale);
+              [result setObject:[NSString stringWithFormat: @"%.2f", size.width] forKey:@"width"];
+              [result setObject:[NSString stringWithFormat: @"%.2f", size.height] forKey:@"height"];
+              [result setObject:extension forKey:@"extension"];
+              [result setObject:fileSizeString forKey:@"size"];
+              [result setObject:[@(seconds) stringValue] forKey:@"duration"];
+              NSArray *keys = [NSArray arrayWithObjects:@"commonMetadata", nil];
+              [asset loadValuesAsynchronouslyForKeys:keys completionHandler:^{
+                // string keys
+                for (NSString *key in [self metadatas]) {
+                  NSArray *items = [AVMetadataItem metadataItemsFromArray:asset.commonMetadata
+                                                                 withKey:key
+                                                                keySpace:AVMetadataKeySpaceCommon];
+                  for (AVMetadataItem *item in items) {
+                    [result setObject:item.value forKey:key];
+                  }
+                }
+                resolve(result);
+              }];
+        }];
+    }
+    @catch (NSException *exception) {
+        reject(exception.name, exception.reason, nil);
+    }
+}
 
 @end
 

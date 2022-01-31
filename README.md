@@ -1,8 +1,16 @@
 ### Would you like to support me?
 
+<div align="center">
 <a href="https://www.buymeacoffee.com/numan.dev" target="_blank"><img src="https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png" alt="Buy Me A Coffee" style="height: auto !important;width: auto !important;" ></a>
+</br>
+<a href="https://github.com/nomi9995?tab=followers">
+    <img src="https://img.shields.io/github/followers/nomi9995?label=Follow%20%40nomi9995&style=social" />
+</a>
+</div>
 
 ---
+
+
 
 # react-native-compressor
 

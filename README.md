@@ -1,11 +1,11 @@
 ### Would you like to support me?
 
 <div align="center">
-<a href="https://www.buymeacoffee.com/numan.dev" target="_blank"><img src="https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png" alt="Buy Me A Coffee" style="height: auto !important;width: auto !important;" ></a>
-</br>
 <a href="https://github.com/nomi9995?tab=followers">
     <img src="https://img.shields.io/github/followers/nomi9995?label=Follow%20%40nomi9995&style=social" />
 </a>
+</br>
+<a href="https://www.buymeacoffee.com/numan.dev" target="_blank"><img src="https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png" alt="Buy Me A Coffee" style="height: auto !important;width: auto !important;" ></a>
 </div>
 
 ---
@@ -33,6 +33,34 @@
 **react-native-compressor** package is a set of functions that allow you compress `Image`,`Audio` and `Video`
 
 **If you find this package useful hit the star** 🌟
+
+# Table of Contents
+<details>
+<summary>Open Table of Contents</summary>
+
+  * [Installation](#installation)
+    + [For React Native](#react-native)
+      - [For React Native<0.65](#for-react-native065)
+      - [For React Native 0.65 or greater](#for-react-native-065-or-greater)
+    + [Managed Expo](#managed-expo)
+  * [Usage](#usage)
+    + [Image](#image)
+        * [Automatic Image Compression Like Whatsapp](#automatic-image-compression-like-whatsapp)
+        * [Manual Image Compression](#manual-image-compression)
+        * [ImageCompressor API Docs](#imagecompressor)
+    + [Video](#video)
+        * [Automatic Video Compression Like Whatsapp](#automatic-video-compression-like-whatsapp)
+        * [Manual Video Compression](#manual-video-compression)
+        * [Cancel Video Compression](#cancel-video-compression)
+        * [Video Api Docs](#video-1)
+    + [Audio](#audio)
+    + [Background Upload](#background-upload)
+- [Other Utilities](#api)
+  * [Background Upload](#background-upload-1)
+  * [Get Metadata Of Video](#get-metadata-of-video)
+  * [Get Real Path](#get-real-path)
+  * [Get Temp file Path](#get-temp-file-path)
+</details>
 
 ## Installation
 
@@ -119,7 +147,7 @@ react-native link react-native-compressor
 
 ### Image
 
-##### For Like Whatsapp Image Compression
+##### Automatic Image Compression Like Whatsapp
 
 ```js
 import { Image } from 'react-native-compressor';
@@ -131,7 +159,7 @@ const result = await Image.compress('file://path_of_file/image.jpg', {
 
 [Here is this package comparison of images compression with WhatsApp](https://docs.google.com/spreadsheets/d/13TsnC1c7NOC9aCjzN6wkKurJQPeGRNwDhWsQOkXQskU/edit?usp=sharing)
 
-##### For manual Compression
+##### Manual Image Compression
 
 ```js
 import { Image } from 'react-native-compressor';
@@ -144,7 +172,7 @@ const result = await Image.compress('file://path_of_file/image.jpg', {
 
 ### Video
 
-##### For Like Whatsapp Video Compression
+##### Automatic Video Compression Like Whatsapp
 
 ```js
 import { Video } from 'react-native-compressor';
@@ -166,7 +194,7 @@ const result = await Video.compress(
 
 [Here is this package comparison of video compression with WhatsApp](https://docs.google.com/spreadsheets/d/13TsnC1c7NOC9aCjzN6wkKurJQPeGRNwDhWsQOkXQskU/edit#gid=1055406534)
 
-##### For manual Compression
+##### Manual Video Compression
 
 ```js
 import { Video } from 'react-native-compressor';

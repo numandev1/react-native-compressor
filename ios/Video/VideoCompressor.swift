@@ -400,17 +400,8 @@ func makeValidUri(filePath: String) -> String {
     }
     
     func getVideoTrack(asset: AVAsset) -> AVAssetTrack {
-        var videoTrackIndex: Int = 0;
-        let trackLength = asset.tracks.count;
-        if(trackLength==2)
-        {
-            if(asset.tracks[0].mediaType.rawValue=="soun")
-            {
-                videoTrackIndex=1;
-            }
-        }
-        let track = asset.tracks[videoTrackIndex];
-        return track;
+        let tracks = asset.tracks(withMediaType: AVMediaType.video)
+        return tracks[0];
         }
     
     }

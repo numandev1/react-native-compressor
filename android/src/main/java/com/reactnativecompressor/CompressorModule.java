@@ -137,6 +137,7 @@ public class CompressorModule extends ReactContextBaseJavaModule {
       int actualHeight =Integer.parseInt(metaRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT));
       int actualWidth = Integer.parseInt(metaRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH));
       long duration = Long.parseLong(metaRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION));
+      String creationTime = metaRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DATE)
       String extension = filePath.substring(filePath.lastIndexOf(".")+1);
 
       WritableMap params = Arguments.createMap();
@@ -145,6 +146,7 @@ public class CompressorModule extends ReactContextBaseJavaModule {
       params.putString("height", String.valueOf(actualHeight));
       params.putString("duration", String.valueOf(duration/1000));
       params.putString("extension", extension);
+      params.putString("creationTime", String.valueOf(creationTime));
 
       promise.resolve(params);
     } catch (Exception e) {

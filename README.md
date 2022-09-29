@@ -1,23 +1,17 @@
 ### Would you like to support me?
 
 <div align="center">
-<a href="https://github.com/nomi9995?tab=followers">
-    <img src="https://img.shields.io/github/followers/nomi9995?label=Follow%20%40nomi9995&style=social" />
+<a href="https://github.com/numandev1?tab=followers">
+    <img src="https://img.shields.io/github/followers/numandev1?label=Follow%20%40numandev1&style=social" height="36" />
 </a>
+<a href="https://www.youtube.com/channel/UCYCUspfN7ZevgCj3W5GlFAw"><img src="https://img.shields.io/youtube/channel/subscribers/UCYCUspfN7ZevgCj3W5GlFAw?style=social" height="36" /><a/>
 </br>
 <a href="https://www.buymeacoffee.com/numan.dev" target="_blank"><img src="https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png" alt="Buy Me A Coffee" style="height: auto !important;width: auto !important;" ></a>
 </div>
 
 ---
 
-
-
 # react-native-compressor
-
-<!-- Title -->
-<p align="center">
-<img src="/media/icon.png" alt="alt text" width="150"/>
-</p>
 
 <!-- Header -->
 
@@ -35,32 +29,34 @@
 **If you find this package useful hit the star** 🌟
 
 # Table of Contents
+
 <details>
 <summary>Open Table of Contents</summary>
 
-  * [Installation](#installation)
-    + [For React Native](#react-native)
-      - [For React Native<0.65](#for-react-native065)
-      - [For React Native 0.65 or greater](#for-react-native-065-or-greater)
-    + [Managed Expo](#managed-expo)
-  * [Usage](#usage)
-    + [Image](#image)
-        * [Automatic Image Compression Like Whatsapp](#automatic-image-compression-like-whatsapp)
-        * [Manual Image Compression](#manual-image-compression)
-        * [ImageCompressor API Docs](#imagecompressor)
-    + [Video](#video)
-        * [Automatic Video Compression Like Whatsapp](#automatic-video-compression-like-whatsapp)
-        * [Manual Video Compression](#manual-video-compression)
-        * [Cancel Video Compression](#cancel-video-compression)
-        * [Video Api Docs](#video-1)
-    + [Audio](#audio)
-    + [Background Upload](#background-upload)
-- [Other Utilities](#api)
-  * [Background Upload](#background-upload-1)
-  * [Get Metadata Of Video](#get-metadata-of-video)
-  * [Get Real Path](#get-real-path)
-  * [Get Temp file Path](#get-temp-file-path)
-</details>
+- [Installation](#installation)
+  - [For React Native](#react-native)
+    - [For React Native<0.65](#for-react-native065)
+    - [For React Native 0.65 or greater](#for-react-native-065-or-greater)
+  - [Managed Expo](#managed-expo)
+- [Usage](#usage)
+  - [Image](#image)
+    - [Automatic Image Compression Like Whatsapp](#automatic-image-compression-like-whatsapp)
+    - [Manual Image Compression](#manual-image-compression)
+    - [ImageCompressor API Docs](#imagecompressor)
+  - [Video](#video)
+    - [Automatic Video Compression Like Whatsapp](#automatic-video-compression-like-whatsapp)
+    - [Manual Video Compression](#manual-video-compression)
+    - [Cancel Video Compression](#cancel-video-compression)
+    - [Video Api Docs](#video-1)
+  - [Audio](#audio)
+  - [Background Upload](#background-upload)
+
+* [Other Utilities](#api)
+  - [Background Upload](#background-upload-1)
+  - [Get Metadata Of Video](#get-metadata-of-video)
+  - [Get Real Path](#get-real-path)
+  - [Get Temp file Path](#get-temp-file-path)
+  </details>
 
 ## Installation
 

@@ -319,7 +319,7 @@ func makeValidUri(filePath: String) -> String {
         var width = Float(abs(videoSize.width))
         var height = Float(abs(videoSize.height))
         let isPortrait = height > width
-        let maxSize = Float(1920);
+        let maxSize = (options["maxSize"] as! Float?) ?? Float(1920);
         if(isPortrait && height > maxSize){
           width = (maxSize/height)*width
           height = maxSize

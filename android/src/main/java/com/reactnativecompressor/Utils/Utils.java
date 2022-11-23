@@ -49,7 +49,7 @@ public class Utils {
       public void onError(String errorMessage) {
         if(errorMessage.equals(("class java.lang.AssertionError")))
         {
-          promise.resolve(srcPath);
+          promise.resolve("file://"+srcPath);
         }
         else
         {

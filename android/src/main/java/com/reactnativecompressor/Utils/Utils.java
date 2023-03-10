@@ -42,14 +42,14 @@ public class Utils {
       @Override
       public void onFinish(boolean result) {
         //convert finish,result(true is success,false is fail)
-        promise.resolve("file:/"+destinationPath);
+        promise.resolve("file://"+destinationPath);
       }
 
       @Override
       public void onError(String errorMessage) {
         if(errorMessage.equals(("class java.lang.AssertionError")))
         {
-          promise.resolve(srcPath);
+          promise.resolve("file://"+srcPath);
         }
         else
         {

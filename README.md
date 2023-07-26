@@ -395,7 +395,7 @@ if you want to convert
 - `content://` to `file:///` for android
 - `ph://` to `file:///` for IOS
 
-the you can you `getRealPath` function like this
+then you can call `getRealPath` function like this
 
 ```js
 import { getRealPath } from 'react-native-compressor';

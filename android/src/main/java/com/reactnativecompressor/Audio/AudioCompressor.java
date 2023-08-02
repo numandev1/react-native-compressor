@@ -407,7 +407,7 @@ public class AudioCompressor {
     return -1;
   }
 
-
+  @SuppressLint("WrongConstant")
   @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
   private long writeAudioTrack(MediaExtractor extractor, MediaMuxer mediaMuxer, MediaCodec.BufferInfo info, File file, int muxerTrackIndex ) throws Exception {
     int trackIndex = selectTrack(extractor, true);

@@ -1,10 +1,20 @@
 <div align="center">
-  <h1 align="center">🗜️Compress Image, Video, and Audio same like Whatsapp <img height="30" src="/media/whatsapp_logo.png"></h1>
+ <img height="150" src="/media/logo.png"></h2>
+</div>
+<br/>
+
+**REACT-NATIVE-COMPRESSOR** is a react-native package, which help us to Compress `Image`, `Video`, and `Audio` same like **Whatsapp** without knowing compression `algorithm`
+
+<div align="center">
+<img height="60" src="/media/whatsapp_logo.png">
+<h2 align="center">🗜️Compress Image, Video, and Audio same like Whatsapp</h2>
 </div>
 
-### Why should we use react-native-compress over [FFmpeg](https://www.ffmpeg.org/)?
+#### Why should we use react-native-compress over [FFmpeg](https://www.ffmpeg.org/)?
 
-We should use **react-native-compressor** instead of **FFmpeg** because **react-native-compressor** gives you same compression **Whatsapp** (`Image, Video, and Audio`) without knowing the algorithm of compression + it is lightweight only increase **50 KB Size**  Size in APK. While in **FFmpeg**, we have to give manual image/video/Audo size and quality as well as  **FFmpeg** increase ~> **9 MB Size** in **APK**  
+We should use **react-native-compressor** instead of **FFmpeg** because **react-native-compressor** gives you same compression of **Whatsapp** (`Image, Video, and Audio`) without knowing the algorithm of compression + it is lightweight only increase **50 KB Size** Size in APK while **FFmpeg** increase ~> **9 MB Size** in **APK**, and we have to give manual image/video/Audo size and quality as well as
+
+**If you find this package useful hit the star** 🌟
 
 ### Would you like to support me?
 
@@ -22,23 +32,7 @@ We should use **react-native-compressor** instead of **FFmpeg** because **react-
 
 ---
 
-<!-- Header -->
-
-<p align="center">
-  <h1>Banchmark between <img height="50" src="/media/whatsapp_logo.png"> VS REACT-NATIVE-COMPRESSOR</h1>
-  <br />
-</p>
-
-  
-<p align="center">
-  <img height="450" src="/media/branchmark_for_images.png">
-   <br /> <br />
-  <img height="450" src="/media/benchmark_for_videos.png">
-</p>
-
-**react-native-compressor** package is a set of functions that allow you compress `Image`,`Audio` and `Video`
-
-**If you find this package useful hit the star** 🌟
+#### See the [Benchmarks](#benchmark)
 
 # Table of Contents
 
@@ -428,6 +422,16 @@ const randomFilePathForSaveFile = await generateFilePath('mp4'); //   file://fil
 ```
 
 - ##### `generateFilePath(fileextension: string)`
+
+## Benchmark
+
+[<img height="30" src="/media/whatsapp_logo.png"> Whatsapp:](https://apps.apple.com/us/app/whatsapp-messenger/id310633997) compresses Images,Videos and Audios in every effect way
+
+<p align="center">
+  <img height="450" src="/media/branchmark_for_images.png">
+   <br /> <br />
+  <img height="450" src="/media/benchmark_for_videos.png">
+</p>
 
 ## Contributing
 

@@ -340,9 +340,9 @@ const uploadResult = await backgroundUpload(
 
   bitrate of video which reduce or increase video size. if compressionMethod will auto then this prop will not work
 
-- ###### `minimumFileSizeForCompress: number` (default: 16)
+- ###### `minimumFileSizeForCompress: number` (default: 0)
 
-  16 means 16mb. default our package do not compress under 16mb video file. minimumFileSizeForCompress will allow us to change this 16mb offset. fixed [#26](https://github.com/Shobbak/react-native-compressor/issues/26)
+  previously default was 16 but now it is 0 by default. 0 mean 0mb. This is an offset, which you can set for minimumFileSizeForCompress will allow this package to dont compress less than or equal to `minimumFileSizeForCompress` ref [#26](https://github.com/numandev1/react-native-compressor/issues/26)
 
 - ###### `getCancellationId: function`
   `getCancellationId` is a callback function that gives us compress video id, which can be used in `Video.cancelCompression` method to cancel the compression

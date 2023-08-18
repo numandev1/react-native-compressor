@@ -207,7 +207,7 @@ func makeValidUri(filePath: String) -> String {
   
   func compressVideo(url: URL, options: [String: Any], onProgress: @escaping (Float) -> Void,  onCompletion: @escaping (URL) -> Void, onFailure: @escaping (Error) -> Void){
       ImageCompressor.getAbsoluteVideoPath(url.absoluteString) { absoluteVideoPath in
-        var minimumFileSizeForCompress:Double=16.0;
+        var minimumFileSizeForCompress:Double=0.0;
         let videoURL = URL(string: absoluteVideoPath!)
         let fileSize=self.getfileSize(forURL: videoURL!);
           if((options["minimumFileSizeForCompress"]) != nil)

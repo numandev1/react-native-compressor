@@ -4,8 +4,8 @@ import { Video, getRealPath } from 'react-native-compressor';
 import * as ImagePicker from 'react-native-image-picker';
 import { createThumbnail } from 'react-native-create-thumbnail';
 import * as Progress from 'react-native-progress';
-import CameraRoll from '@react-native-community/cameraroll';
-const prettyBytes = require('pretty-bytes');
+import CameraRoll from '@react-native-camera-roll/camera-roll';
+import prettyBytes from 'pretty-bytes';
 import { getFileInfo } from '../../Utils';
 
 export default function App() {

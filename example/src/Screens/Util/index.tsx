@@ -6,7 +6,7 @@ import {
   getRealPath,
   getVideoMetaData,
 } from 'react-native-compressor';
-import CameraRoll from '@react-native-community/cameraroll';
+import CameraRoll from '@react-native-camera-roll/camera-roll';
 import * as ImagePicker from 'react-native-image-picker';
 
 const { width, height } = Dimensions.get('screen');

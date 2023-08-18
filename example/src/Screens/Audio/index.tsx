@@ -4,7 +4,7 @@ import Button from '../../Components/Button';
 import Row from '../../Components/Row';
 import { Audio } from 'react-native-compressor';
 import DocumentPicker from 'react-native-document-picker';
-const prettyBytes = require('pretty-bytes');
+import prettyBytes from 'pretty-bytes';
 import { getFileInfo } from '../../Utils';
 
 const Index = () => {

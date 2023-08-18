@@ -10,8 +10,8 @@ import {
 import Button from '../../Components/Button';
 import Row from '../../Components/Row';
 import * as ImagePicker from 'react-native-image-picker';
-import CameraRoll from '@react-native-community/cameraroll';
-const prettyBytes = require('pretty-bytes');
+import CameraRoll from '@react-native-camera-roll/camera-roll';
+import prettyBytes from 'pretty-bytes';
 import { Image } from 'react-native-compressor';
 import { getFileInfo } from '../../Utils';
 const Index = () => {
@@ -36,7 +36,7 @@ const Index = () => {
             if (result.assets) {
               const source: any = result.assets[0];
               if (source) {
-                setOrignalSize(prettyBytes(source.fileSize));
+                setOrignalSize(prettyBytes(source.fileSize || 0));
 
                 setFileName(source.fileName);
                 setMimeType(source.type);
@@ -49,7 +49,7 @@ const Index = () => {
                 .then(async (compressedFileUri) => {
                   setCommpressedUri(compressedFileUri);
                   const detail: any = await getFileInfo(compressedFileUri);
-                  setCompressedSize(prettyBytes(parseInt(detail.size)));
+                  setCompressedSize(prettyBytes(parseInt(detail.size || 0)));
                 })
                 .catch((e) => {
                   console.log(e, 'error');

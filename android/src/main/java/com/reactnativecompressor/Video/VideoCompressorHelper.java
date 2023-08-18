@@ -100,7 +100,7 @@ public class VideoCompressorHelper {
   public float bitrate = 0;
   public String uuid = "";
   public float maxSize = 640.0f;
-  public float minimumFileSizeForCompress = 16.0f;
+  public float minimumFileSizeForCompress = 0.0f;
 
   public static VideoCompressorHelper fromMap(ReadableMap map) {
     final VideoCompressorHelper options = new VideoCompressorHelper();

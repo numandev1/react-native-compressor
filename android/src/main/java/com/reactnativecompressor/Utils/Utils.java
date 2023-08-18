@@ -105,7 +105,7 @@ public class Utils {
         fileUrl= RealPathUtil.getRealPath(reactContext,uri);
       }
       catch (Exception ex) {
-        Log.d(TAG, " Please see this issue: https://github.com/Shobbak/react-native-compressor/issues/25");
+        Log.d(TAG, " Please see this issue: https://github.com/numandev1/react-native-compressor/issues/25");
       }
     }
     return fileUrl;

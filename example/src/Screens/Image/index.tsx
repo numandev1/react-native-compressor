@@ -22,43 +22,59 @@ const Index = () => {
   const [mimeType, setMimeType] = useState<any>('');
   const [orignalSize, setOrignalSize] = useState(0);
   const [compressedSize, setCompressedSize] = useState(0);
-  const chooseAudioHandler = async () => {
-    try {
+
+  const compressHandler=(result:ImagePicker.ImagePickerResponse)=>{
+    if (result.didCancel) {
+      Alert.alert('Failed selecting Image');
+      return;
+  }
+    if (result.assets) {
+      const source: any = result.assets[0];
+      if (source) {
+        setOrignalSize(prettyBytes(source.fileSize || 0));
+
+        setFileName(source.fileName);
+        setMimeType(source.type);
+        setOrignalUri(source.uri);
+      }
+
+      Image.compress(source.uri, {
+        compressionMethod: 'auto',
+      })
+        .then(async (compressedFileUri) => {
+          setCommpressedUri(compressedFileUri);
+          const detail: any = await getFileInfo(compressedFileUri);
+          setCompressedSize(prettyBytes(parseInt(detail.size || 0)));
+        })
+        .catch((e) => {
+          console.log(e, 'error');
+        });
+    }
+  
+  }
+
+  const chooseCameraImageHandler = async () => {
+      ImagePicker.launchCamera({
+        mediaType: 'photo',
+    }).then((result: ImagePicker.ImagePickerResponse) => {
+      compressHandler(result)
+    }).catch(err=>{
+      console.log(err,"error")
+    });;
+    
+  }
+
+  const chooseGalleryImageHandler = async () => {
       ImagePicker.launchImageLibrary(
         {
           mediaType: 'photo',
         },
         (result: ImagePicker.ImagePickerResponse) => {
-          if (result.didCancel) {
-          } else if (result.errorCode) {
-            Alert.alert('Failed selecting video');
-          } else {
-            if (result.assets) {
-              const source: any = result.assets[0];
-              if (source) {
-                setOrignalSize(prettyBytes(source.fileSize || 0));
-
-                setFileName(source.fileName);
-                setMimeType(source.type);
-                setOrignalUri(source.uri);
-              }
-
-              Image.compress(source.uri, {
-                compressionMethod: 'auto',
-              })
-                .then(async (compressedFileUri) => {
-                  setCommpressedUri(compressedFileUri);
-                  const detail: any = await getFileInfo(compressedFileUri);
-                  setCompressedSize(prettyBytes(parseInt(detail.size || 0)));
-                })
-                .catch((e) => {
-                  console.log(e, 'error');
-                });
-            }
-          }
+          compressHandler(result)
         }
-      );
-    } catch (err) {}
+      ).catch(err=>{
+        console.log(err,"error")
+      });
   };
 
   const onCompressImagefromCameraoll = async () => {
@@ -107,7 +123,8 @@ const Index = () => {
         <Row label="Mime Type" value={mimeType} />
         <Row label="Orignal Size" value={orignalSize} />
         <Row label="Compressed Size" value={compressedSize} />
-        <Button onPress={chooseAudioHandler} title="Choose Image" />
+        <Button onPress={chooseGalleryImageHandler} title="Choose Image (Gallery)" />
+        <Button onPress={chooseCameraImageHandler} title="Choose Image (Camera)" />
         {Platform.OS === 'ios' && (
           <Button
             title={'compress image from camera roll (ph://)'}

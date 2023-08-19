@@ -55,7 +55,7 @@ public class ImageCompressorOptions {
     auto, manual
   }
 
-    public CompressionMethod compressionMethod = CompressionMethod.manual;
+    public CompressionMethod compressionMethod = CompressionMethod.auto;
     public int maxWidth = 1280;
     public int maxHeight = 1280;
     public float quality = 0.8f;

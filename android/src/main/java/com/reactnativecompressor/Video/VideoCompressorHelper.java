@@ -96,7 +96,7 @@ public class VideoCompressorHelper {
     auto, manual
   }
 
-  public VideoCompressorHelper.CompressionMethod compressionMethod = VideoCompressorHelper.CompressionMethod.manual;
+  public VideoCompressorHelper.CompressionMethod compressionMethod = VideoCompressorHelper.CompressionMethod.auto;
   public float bitrate = 0;
   public String uuid = "";
   public float maxSize = 640.0f;

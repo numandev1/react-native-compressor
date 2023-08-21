@@ -1,12 +1,12 @@
-import { NativeModules } from 'react-native';
+import { Compressor } from '../Main';
+
 import {
   AUDIO_BITRATE,
-  AudioType,
   DEFAULT_COMPRESS_AUDIO_OPTIONS,
-  defaultResultType,
   checkUrlAndOptions,
 } from '../utils';
-const NativeAudio = NativeModules.Compressor;
+import type { AudioType, defaultResultType } from '../utils';
+const NativeAudio = Compressor;
 
 const Audio: AudioType = {
   compress: async (url, options = DEFAULT_COMPRESS_AUDIO_OPTIONS) => {
@@ -31,6 +31,7 @@ const Audio: AudioType = {
           // Check and return the appropriate bitrate according to quality expected
           for (let i = 0; i < AUDIO_BITRATE.length; i++) {
             // Check a particular bitrate to return its nearest lower according to quality
+            //@ts-ignore
             if (mediaDetails.bitrate > AUDIO_BITRATE[i]) {
               if (i + 2 < AUDIO_BITRATE.length) {
                 if (options.quality === 'low') bitrate = AUDIO_BITRATE[i + 2];
@@ -46,6 +47,7 @@ const Audio: AudioType = {
 
             // Check if the matching bitrate is the last in the array
             if (
+              //@ts-ignore
               mediaDetails.bitrate <= AUDIO_BITRATE[AUDIO_BITRATE.length - 1]
             ) {
               bitrate = AUDIO_BITRATE[AUDIO_BITRATE.length - 1];

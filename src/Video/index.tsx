@@ -1,9 +1,6 @@
-import {
-  NativeModules,
-  NativeEventEmitter,
-  Platform,
-  NativeEventSubscription,
-} from 'react-native';
+import { NativeEventEmitter, Platform } from 'react-native';
+import type { NativeEventSubscription } from 'react-native';
+import { VideoCompressor } from '../Main';
 import { uuidv4 } from '../utils';
 
 export declare enum FileSystemUploadType {
@@ -68,11 +65,9 @@ export type VideoCompressorType = {
   deactivateBackgroundTask(): Promise<any>;
 };
 
-const VideoCompressEventEmitter = new NativeEventEmitter(
-  NativeModules.VideoCompressor
-);
+const VideoCompressEventEmitter = new NativeEventEmitter(VideoCompressor);
 
-const NativeVideoCompressor = NativeModules.VideoCompressor;
+const NativeVideoCompressor = VideoCompressor;
 
 export const backgroundUpload = async (
   url: string,

@@ -76,19 +76,13 @@ We should use **react-native-compressor** instead of **FFmpeg** because **react-
 
 ## Installation
 
-### React Native
-
-#### For React Native<0.65
-
-```sh
-yarn add react-native-compressor@rnlessthan65
-```
-
-#### For React Native 0.65 or greater
-
 ```sh
 yarn add react-native-compressor
 ```
+
+### [New Architecture (Turbo Module)](https://reactnative.dev/docs/new-architecture-intro) Supported
+you can give feedback on [Discord channel](https://discord.gg/dtYzk8sp)
+
 
 ### Managed Expo
 

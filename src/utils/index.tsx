@@ -1,6 +1,6 @@
 /* eslint-disable no-bitwise */
-import { NativeModules } from 'react-native';
-const { Compressor } = NativeModules;
+import { Compressor } from '../Main';
+
 export const AUDIO_BITRATE = [256, 192, 160, 128, 96, 64, 32];
 type qualityType = 'low' | 'medium' | 'high';
 const INCORRECT_INPUT_PATH = 'Incorrect input path. Please provide a valid one';
@@ -76,8 +76,8 @@ const isFileNameError = (filename: string) => {
 };
 
 const getFilename = (path: string | null) => {
-  const fullFilename = getFullFilename(path);
-  if (!isFileNameError(fullFilename)) {
+  const fullFilename: string | undefined = getFullFilename(path);
+  if (fullFilename && !isFileNameError(fullFilename)) {
     const array = fullFilename.split('.');
     return array.length > 1 ? array.slice(0, -1).join('') : array.join('');
   }
@@ -85,7 +85,9 @@ const getFilename = (path: string | null) => {
 };
 
 const isRemoteMedia = (path: string | null) => {
-  return typeof path === 'string' ? path.split(':/')[0].includes('http') : null;
+  return typeof path === 'string'
+    ? path?.split(':/')?.[0]?.includes('http')
+    : null;
 };
 
 export const getDetails = (
@@ -163,6 +165,10 @@ export const checkUrlAndOptions = async (
   } finally {
     return defaultResult;
   }
+};
+
+export const getFileSize = async (filePath: string): Promise<string> => {
+  return Compressor.getFileSize(filePath);
 };
 
 export const uuidv4 = () => {

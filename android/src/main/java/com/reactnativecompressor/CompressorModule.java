@@ -1,49 +1,56 @@
 package com.reactnativecompressor;
 
-import android.media.MediaMetadataRetriever;
-import android.net.Uri;
-import android.os.Build;
-import android.util.Log;
+import androidx.annotation.NonNull;
+
+import com.facebook.react.bridge.Promise;
+import com.facebook.react.bridge.ReactApplicationContext;
+import com.facebook.react.bridge.ReactMethod;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 
 import com.facebook.react.bridge.Arguments;
-import com.facebook.react.bridge.Promise;
-import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContext;
-import com.facebook.react.bridge.ReactContextBaseJavaModule;
-import com.facebook.react.bridge.ReactMethod;
 import com.facebook.react.bridge.ReadableMap;
 import com.facebook.react.bridge.WritableMap;
-import com.facebook.react.module.annotations.ReactModule;
 import com.facebook.react.modules.core.DeviceEventManagerModule;
 import com.reactnativecompressor.Image.ImageCompressor;
 import com.reactnativecompressor.Image.utils.ImageCompressorOptions;
 import com.reactnativecompressor.Utils.Utils;
 import com.reactnativecompressor.Video.VideoCompressorHelper;
+import com.reactnativecompressor.CompressorSpec;
 import static com.reactnativecompressor.Utils.Utils.generateCacheFilePath;
-import static com.reactnativecompressor.Utils.Utils.getRealPath;
+
+import android.content.ContentResolver;
+import android.content.res.AssetFileDescriptor;
+import android.database.Cursor;
+import android.media.MediaMetadataRetriever;
+import android.net.Uri;
+import android.os.Build;
+import android.provider.OpenableColumns;
+import android.util.Log;
 
 import com.reactnativecompressor.Audio.AudioCompressor;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 
-@ReactModule(name = CompressorModule.NAME)
-public class CompressorModule extends ReactContextBaseJavaModule {
-    public static final String NAME = "Compressor";
+public class CompressorModule extends CompressorSpec {
+  public static final String NAME = "Compressor";
   private final ReactApplicationContext reactContext;
-    public CompressorModule(ReactApplicationContext reactContext) {
-        super(reactContext);
-      this.reactContext = reactContext;
-    }
 
-    @Override
-    @NonNull
-    public String getName() {
-        return NAME;
-    }
+  CompressorModule(ReactApplicationContext context) {
+    super(context);
+    this.reactContext = context;
+  }
+
+  @Override
+  @NonNull
+  public String getName() {
+    return NAME;
+  }
+
 
   private void sendEvent(ReactContext reactContext,
                          String eventName,
@@ -53,7 +60,7 @@ public class CompressorModule extends ReactContextBaseJavaModule {
       .emit(eventName, params);
   }
 
-    //Image
+  //Image
   @ReactMethod
   public void image_compress(
     String imagePath,
@@ -78,8 +85,8 @@ public class CompressorModule extends ReactContextBaseJavaModule {
     }
   }
 
-  @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
   @ReactMethod
+  @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
   public void compress_audio(
     String fileUrl,
     ReadableMap optionMap,
@@ -104,15 +111,15 @@ public class CompressorModule extends ReactContextBaseJavaModule {
 
 
   //General
-    @ReactMethod
-   public void generateFilePath(String extension, Promise promise) {
-     try {
-       final String outputUri =generateCacheFilePath(extension,reactContext);
-       promise.resolve(outputUri);
-     } catch (Exception e) {
-       promise.reject(e);
-     }
-   }
+  @ReactMethod
+  public void generateFilePath(String extension, Promise promise) {
+    try {
+      final String outputUri =generateCacheFilePath(extension,reactContext);
+      promise.resolve(outputUri);
+    } catch (Exception e) {
+      promise.reject(e);
+    }
+  }
 
   @ReactMethod
   public void getRealPath(String path,String type, Promise promise) {
@@ -151,6 +158,54 @@ public class CompressorModule extends ReactContextBaseJavaModule {
       promise.resolve(params);
     } catch (Exception e) {
       promise.reject(e);
+    }
+  }
+  @ReactMethod
+  public void getFileSize(String filePath, Promise promise)
+  {
+    filePath=Utils.getRealPath(filePath,reactContext);
+    Uri uri= Uri.parse(filePath);
+    ContentResolver contentResolver = reactContext.getContentResolver();
+    long fileSize = getLength(uri, contentResolver);
+    if (fileSize >= 0) {
+      promise.resolve(String.valueOf(fileSize));
+    } else {
+      promise.resolve("");
+    }
+  }
+
+  public static long getLength(Uri uri, ContentResolver contentResolver) {
+    AssetFileDescriptor assetFileDescriptor = null;
+    try {
+      assetFileDescriptor = contentResolver.openAssetFileDescriptor(uri, "r");
+    } catch (FileNotFoundException e) {
+      // Do nothing
+    }
+
+    long length = (assetFileDescriptor != null) ? assetFileDescriptor.getLength() : -1L;
+    if (length != -1L) {
+      return length;
+    }
+
+    if (ContentResolver.SCHEME_CONTENT.equals(uri.getScheme())) {
+      Cursor cursor = contentResolver.query(uri, new String[]{OpenableColumns.SIZE}, null, null, null);
+      if (cursor != null) {
+        try {
+          int sizeIndex = cursor.getColumnIndex(OpenableColumns.SIZE);
+          if (sizeIndex != -1 && cursor.moveToFirst()) {
+            try {
+              return cursor.getLong(sizeIndex);
+            } catch (Throwable ignored) {
+              return -1L;
+            }
+          }
+        } finally {
+          cursor.close();
+        }
+      }
+      return -1L;
+    } else {
+      return -1L;
     }
   }
 }

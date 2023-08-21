@@ -14,23 +14,30 @@
     "ios",
     "cpp",
     "app.plugin.js",
-    "react-native-compressor.podspec",
+    "*.podspec",
     "!lib/typescript/example",
-    "!android/build",
     "!ios/build",
+    "!android/build",
+    "!android/gradle",
+    "!android/gradlew",
+    "!android/gradlew.bat",
+    "!android/local.properties",
     "!**/__tests__",
     "!**/__fixtures__",
-    "!**/__mocks__"
+    "!**/__mocks__",
+    "!**/.*"
   ],
   "scripts": {
     "test": "jest",
-    "typescript": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
     "lint": "eslint \"**/*.{js,ts,tsx}\"",
-    "prepare": "bob build",
+    "prepack": "bob build",
     "release": "release-it",
     "example": "yarn --cwd example",
-    "pods": "cd example && pod-install --quiet",
-    "bootstrap": "yarn example && yarn && yarn pods"
+    "build:android": "cd example/android && ./gradlew assembleDebug --no-daemon --console=plain -PreactNativeArchitectures=arm64-v8a",
+    "build:ios": "cd example/ios && xcodebuild -workspace CompressorExample.xcworkspace -scheme CompressorExample -configuration Debug -sdk iphonesimulator CC=clang CPLUSPLUS=clang++ LD=clang LDPLUSPLUS=clang++ GCC_OPTIMIZATION_LEVEL=0 GCC_PRECOMPILE_PREFIX_HEADER=YES ASSETCATALOG_COMPILER_OPTIMIZATION=time DEBUG_INFORMATION_FORMAT=dwarf COMPILER_INDEX_STORE_ENABLE=NO",
+    "bootstrap": "yarn example && yarn install && yarn example pods-newarch",
+    "clean": "del-cli android/build example/android/build example/android/app/build example/ios/build"
   },
   "keywords": [
     "react-native",
@@ -166,8 +173,17 @@
     ]
   },
   "codegenConfig": {
-    "name": "RNCompressorSpec",
-    "type": "modules",
-    "jsSrcsDir": "src"
+    "libraries": [
+      {
+        "name": "RNCompressorSpec",
+        "type": "modules",
+        "jsSrcsDir": "src"
+      },
+      {
+        "name": "RNVideoCompressorSpec",
+        "type": "modules",
+        "jsSrcsDir": "src"
+      }
+    ]
   }
 }

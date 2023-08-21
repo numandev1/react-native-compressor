@@ -1,4 +1,5 @@
-import { NativeModules } from 'react-native';
+import { Compressor } from '../Main';
+
 import {
   AUDIO_BITRATE,
   AudioType,
@@ -6,7 +7,7 @@ import {
   defaultResultType,
   checkUrlAndOptions,
 } from '../utils';
-const NativeAudio = NativeModules.Compressor;
+const NativeAudio = Compressor;
 
 const Audio: AudioType = {
   compress: async (url, options = DEFAULT_COMPRESS_AUDIO_OPTIONS) => {

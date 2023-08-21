@@ -44,6 +44,14 @@ type ScreenItemProps = {
   onPressItem: ({ key }: Item) => void;
   screens: Screens;
 };
+export const PressableOpacityStyle = (style: StyleProp<ViewStyle> = {}) => {
+  return ({ pressed }: { pressed: boolean }) => [
+    {
+      opacity: pressed ? 0.5 : 1,
+    },
+    style,
+  ];
+};
 export function ScreenItem({
   item,
   onPressItem,
@@ -51,7 +59,10 @@ export function ScreenItem({
 }: ScreenItemProps): React.ReactElement {
   const { key } = item;
   return (
-    <Pressable style={styles.button} onPress={() => onPressItem(item)}>
+    <Pressable
+      style={PressableOpacityStyle(styles.button)}
+      onPress={() => onPressItem(item)}
+    >
       <Text style={styles.buttonText}>{screens[key].title || key}</Text>
     </Pressable>
   );

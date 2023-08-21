@@ -15,6 +15,7 @@ import com.facebook.react.bridge.ReadableMap;
 import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.module.annotations.ReactModule;
 import com.facebook.react.modules.core.DeviceEventManagerModule;
+import com.reactnativecompressor.VideoCompressorSpec;
 import com.reactnativecompressor.Utils.RealPathUtil;
 
 import static com.reactnativecompressor.Utils.Utils.getRealPath;
@@ -23,14 +24,15 @@ import static com.reactnativecompressor.Video.VideoCompressorHelper.video_deacti
 import static com.reactnativecompressor.Video.VideoCompressorHelper.video_upload_helper;
 import static com.reactnativecompressor.Utils.Utils.cancelCompressionHelper;
 
-@ReactModule(name = VideoModule.NAME)
-public class  VideoModule extends ReactContextBaseJavaModule {
+
+public class VideoModule extends VideoCompressorSpec {
   public static final String NAME = "VideoCompressor";
   private static final String TAG = "react-native-compessor";
   private final ReactApplicationContext reactContext;
-  public VideoModule(ReactApplicationContext reactContext) {
-    super(reactContext);
-    this.reactContext = reactContext;
+
+  public VideoModule(ReactApplicationContext context) {
+    super(context);
+    this.reactContext = context;
   }
 
   @NonNull
@@ -117,7 +119,7 @@ public class  VideoModule extends ReactContextBaseJavaModule {
   }
 
   @ReactMethod
-  public void removeListeners(Integer count) {
+  public void removeListeners(double count) {
     // Keep: Required for RN built in Event Emitter Calls.
   }
 }

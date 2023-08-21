@@ -7,13 +7,15 @@
     "android": "react-native run-android",
     "ios": "react-native run-ios",
     "start": "react-native start",
-    "pods": "pod-install --quiet",
-    "postinstall": "patch-package"
+    "pods": "cd ios && NO_FLIPPER=1 pod install",
+    "postinstall": "patch-package",
+    "pods-newarch": "cd ios && NO_FLIPPER=1 RCT_NEW_ARCH_ENABLED=1 bundle exec pod install"
   },
   "dependencies": {
     "@react-native-camera-roll/camera-roll": "^5.7.2",
     "@react-native-community/masked-view": "^0.1.11",
     "@react-navigation/native": "^6.1.7",
+    "@react-navigation/native-stack": "^6.9.13",
     "@react-navigation/stack": "^6.3.17",
     "patch-package": "^8.0.0",
     "postinstall-postinstall": "^2.1.0",

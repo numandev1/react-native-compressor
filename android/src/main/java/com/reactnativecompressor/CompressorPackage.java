@@ -1,30 +1,58 @@
 package com.reactnativecompressor;
 
-import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
-import com.facebook.react.ReactPackage;
 import com.facebook.react.bridge.NativeModule;
 import com.facebook.react.bridge.ReactApplicationContext;
-import com.facebook.react.uimanager.ViewManager;
+import com.facebook.react.module.model.ReactModuleInfo;
+import com.facebook.react.module.model.ReactModuleInfoProvider;
+import com.facebook.react.TurboReactPackage;
+import java.util.HashMap;
+import java.util.Map;
 import com.reactnativecompressor.Video.VideoModule;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+public class CompressorPackage extends TurboReactPackage {
 
-public class CompressorPackage implements ReactPackage {
-    @NonNull
-    @Override
-    public List<NativeModule> createNativeModules(@NonNull ReactApplicationContext reactContext) {
-        List<NativeModule> modules = new ArrayList<>();
-        modules.add(new CompressorModule(reactContext));
-        modules.add(new VideoModule(reactContext));
-        return modules;
+  @Nullable
+  @Override
+  public NativeModule getModule(String name, ReactApplicationContext reactContext) {
+    if (name.equals(CompressorModule.NAME)) {
+      return new CompressorModule(reactContext);
+    } else if (name.equals(VideoModule.NAME)) {
+      return new VideoModule(reactContext);
+    } else {
+      return null;
     }
+  }
 
-    @NonNull
-    @Override
-    public List<ViewManager> createViewManagers(@NonNull ReactApplicationContext reactContext) {
-        return Collections.emptyList();
-    }
+  @Override
+  public ReactModuleInfoProvider getReactModuleInfoProvider() {
+    return () -> {
+      final Map<String, ReactModuleInfo> moduleInfos = new HashMap<>();
+      boolean isTurboModule = BuildConfig.IS_NEW_ARCHITECTURE_ENABLED;
+      moduleInfos.put(
+              CompressorModule.NAME,
+              new ReactModuleInfo(
+                      CompressorModule.NAME,
+                      CompressorModule.NAME,
+                      false, // canOverrideExistingModule
+                      false, // needsEagerInit
+                      true, // hasConstants
+                      false, // isCxxModule
+                      isTurboModule // isTurboModule
+      ));
+      moduleInfos.put(
+        VideoModule.NAME,
+        new ReactModuleInfo(
+          VideoModule.NAME,
+          VideoModule.NAME,
+          false, // canOverrideExistingModule
+          false, // needsEagerInit
+          true, // hasConstants
+          false, // isCxxModule
+          isTurboModule // isTurboModule
+        ));
+      return moduleInfos;
+    };
+  }
 }

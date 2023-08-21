@@ -5,6 +5,7 @@ import {
   generateFilePath,
   getRealPath,
   getVideoMetaData,
+  getFileSize,
 } from 'react-native-compressor';
 import CameraRoll from '@react-native-camera-roll/camera-roll';
 import * as ImagePicker from 'react-native-image-picker';
@@ -68,8 +69,14 @@ const Index = () => {
   const onGetMetaInfoOfVideo = () => {
     getImageUri().then(async (filePath) => {
       const metaData = await getVideoMetaData(filePath);
-      console.log(metaData, 'metaData');
       makeLog(metaData);
+    });
+  };
+
+  const onGetFileSize = () => {
+    getImageUri().then(async (filePath: any) => {
+      const size = await getFileSize(filePath);
+      makeLog({ fileSize: size });
     });
   };
   return (
@@ -86,6 +93,7 @@ const Index = () => {
           title="Get Real Path (Android) content://"
         />
         <Button onPress={onGetMetaInfoOfVideo} title="Get Meta Info Of Video" />
+        <Button onPress={onGetFileSize} title="Get File Size" />
       </View>
     </View>
   );

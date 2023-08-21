@@ -1,6 +1,6 @@
 /* eslint-disable no-bitwise */
-import { NativeModules } from 'react-native';
-const { Compressor } = NativeModules;
+import { Compressor } from '../Main';
+
 export const AUDIO_BITRATE = [256, 192, 160, 128, 96, 64, 32];
 type qualityType = 'low' | 'medium' | 'high';
 const INCORRECT_INPUT_PATH = 'Incorrect input path. Please provide a valid one';
@@ -163,6 +163,10 @@ export const checkUrlAndOptions = async (
   } finally {
     return defaultResult;
   }
+};
+
+export const getFileSize = async (filePath: string): Promise<string> => {
+  return Compressor.getFileSize(filePath);
 };
 
 export const uuidv4 = () => {

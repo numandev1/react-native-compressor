@@ -14,10 +14,12 @@
 
 </div>
 
-**REACT-NATIVE-COMPRESSOR** is a react-native package, which help us to Compress `Image`, `Video`, and `Audio` same like **Whatsapp** without knowing compression `algorithm`
+**REACT-NATIVE-COMPRESSOR** is a react-native package, which helps us to Compress `Image`, `Video`, and `Audio` before uploading, same like **Whatsapp** without knowing the compression `algorithm`
 
 <div align="center">
-<img height="60" src="/media/whatsapp_logo.png">
+<img height="90" src="/media/whatsapp_logo.png"/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+<img height="90" src="/media/compress_media.png"/>
 <h2 align="center">🗜️Compress Image, Video, and Audio same like Whatsapp</h2>
 </div>
 
@@ -159,8 +161,12 @@ react-native link react-native-compressor
 ```js
 import { Image } from 'react-native-compressor';
 
-const result = await Image.compress('file://path_of_file/image.jpg', {
-  compressionMethod: 'auto',
+const result = await Image.compress('file://path_of_file/image.jpg');
+// OR
+const result = await Image.compress('https://path_of_file/image.jpg',{
+  downloadProgress: (progress) => {
+    console.log('downloadProgress: ', progress);
+  }
 });
 ```
 
@@ -172,6 +178,7 @@ const result = await Image.compress('file://path_of_file/image.jpg', {
 import { Image } from 'react-native-compressor';
 
 const result = await Image.compress('file://path_of_file/image.jpg', {
+  compressionMethod: 'manual',
   maxWidth: 1000,
   quality: 0.8,
 });
@@ -186,15 +193,23 @@ import { Video } from 'react-native-compressor';
 
 const result = await Video.compress(
   'file://path_of_file/BigBuckBunny.mp4',
+  {},
+  (progress) => {
+      console.log('Compression Progress: ', progress);
+  }
+);
+
+//OR
+
+const result = await Video.compress(
+  'https://example.com/video.mp4',
   {
-    compressionMethod: 'auto',
+    downloadProgress: (progress) => {
+      console.log('downloadProgress: ', progress);
+    }
   },
   (progress) => {
-    if (backgroundMode) {
       console.log('Compression Progress: ', progress);
-    } else {
-      setCompressingProgress(progress);
-    }
   }
 );
 ```
@@ -208,13 +223,11 @@ import { Video } from 'react-native-compressor';
 
 const result = await Video.compress(
   'file://path_of_file/BigBuckBunny.mp4',
-  {},
+  {
+    compressionMethod: 'manual',
+  },
   (progress) => {
-    if (backgroundMode) {
       console.log('Compression Progress: ', progress);
-    } else {
-      setCompressingProgress(progress);
-    }
   }
 );
 ```
@@ -287,9 +300,12 @@ const uploadResult = await backgroundUpload(
 
 ### CompressorOptions
 
-- ###### `compressionMethod: compressionMethod` (default: "manual")
+- ###### `compressionMethod: compressionMethod` (default: "auto")
 
   if you want to compress images like **whatsapp** then make this prop `auto`. Can be either `manual` or `auto`, defines the Compression Method.
+
+- ##### `downloadProgress?: (progress: number) => void;`
+  it is callback, only trigger when we pass image url from server
 
 - ###### `maxWidth: number` (default: 1280)
 
@@ -326,6 +342,9 @@ const uploadResult = await backgroundUpload(
 - ###### `compressionMethod: compressionMethod` (default: "manual")
 
   if you want to compress videos like **whatsapp** then make this prop `auto`. Can be either `manual` or `auto`, defines the Compression Method.
+
+- ##### `downloadProgress?: (progress: number) => void;`
+  it is callback, only trigger when we pass image url from server
 
 - ###### `maxSize: number` (default: 640)
 

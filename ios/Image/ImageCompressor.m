@@ -7,8 +7,24 @@
 #import <React/RCTConvert.h>
 #import <Foundation/Foundation.h>
 #import <MobileCoreServices/MobileCoreServices.h>
+#import <React/RCTEventEmitter.h>
+#import "../Utils/Downloader.h"
+#import "react_native_compressor-Swift.h"
+#import "VideoCompressor.h"
+#import "MediaCache.h"
 
 @implementation ImageCompressor
+Compressor *sharedCompressorObject;
+id sharedVideoCompressorObject;
+
++ (void)initCompressorInstance:(Compressor*)instance {
+    sharedCompressorObject=instance;
+}
+
++ (void)initVideoCompressorInstance:(id)object {
+    sharedVideoCompressorObject=object;
+}
+
 + (CGSize) findTargetSize: (UIImage *) image maxWidth: (int) maxWidth maxHeight: (int) maxHeight {
     CGFloat width = image.size.width;
     CGFloat height = image.size.height;
@@ -293,86 +309,167 @@
         return returnablePath;
 }
 
-+(void)getAbsoluteImagePath:(NSString *)imagePath completionHandler:(void (^)(NSString *absoluteImagePath))completionHandler
-{
-  if (![imagePath containsString:@"ph://"]) {
-    completionHandler(imagePath);
-    return;
-  }
-  NSURL *imageURL = [NSURL URLWithString:[imagePath stringByReplacingOccurrencesOfString:@" " withString:@"%20"]];
-  CGSize size = CGSizeZero;
-  CGFloat scale = 1;
-  RCTResizeMode resizeMode = RCTResizeModeContain;
-  NSString *assetID = @"";
-  PHFetchResult *results;
-  if (!imageURL) {
-    NSString *errorText = @"Cannot load a photo library asset with no URL";
-    @throw([NSException exceptionWithName:errorText reason:errorText userInfo:nil]);
-  } else if ([imageURL.scheme caseInsensitiveCompare:@"assets-library"] == NSOrderedSame) {
-    assetID = [imageURL absoluteString];
-    results = [PHAsset fetchAssetsWithALAssetURLs:@[imageURL] options:nil];
-  } else {
-    assetID = [imageURL.absoluteString substringFromIndex:@"ph://".length];
-    results = [PHAsset fetchAssetsWithLocalIdentifiers:@[assetID] options:nil];
-  }
-  if (results.count == 0) {
-    NSString *errorText = [NSString stringWithFormat:@"Failed to fetch PHAsset with local identifier %@ with no error message.", assetID];
-   @throw([NSException exceptionWithName:errorText reason:errorText userInfo:nil]);
-  }
-  PHAsset *asset = [results firstObject]; // <-- WE GOT THE ASSET
-  PHImageRequestOptions *imageOptions = [PHImageRequestOptions new];
-  imageOptions.networkAccessAllowed = YES;
-  imageOptions.deliveryMode = PHImageRequestOptionsDeliveryModeHighQualityFormat;
 
-  BOOL useMaximumSize = CGSizeEqualToSize(size, CGSizeZero);
-  CGSize targetSize;
-  if (useMaximumSize) {
-    targetSize = PHImageManagerMaximumSize;
-    imageOptions.resizeMode = PHImageRequestOptionsResizeModeNone;
-  } else {
-    targetSize = CGSizeApplyAffineTransform(size, CGAffineTransformMakeScale(scale, scale));
-    imageOptions.resizeMode = PHImageRequestOptionsResizeModeFast;
-  }
++ (void)getFileSizeFromURL:(NSString *)urlString completion:(void (^)(NSNumber *fileSize, NSError *error))completion {
+    NSURL *url = [NSURL URLWithString:urlString];
+    NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:url];
+    [request setHTTPMethod:@"HEAD"];
 
-  PHImageContentMode contentMode = PHImageContentModeAspectFill;
-  if (resizeMode == RCTResizeModeContain) {
-    contentMode = PHImageContentModeAspectFit;
-  }
-  [[PHImageManager defaultManager] requestImageForAsset:asset
-                                             targetSize:targetSize
-                                            contentMode:contentMode
-                                                options:imageOptions
-                                          resultHandler:^(UIImage *result, NSDictionary<NSString *, id> *info) {
-    // WE GOT THE IMAGE
-    if (result) {
-      UIImage *image = result;
-      NSString *imageName = [assetID stringByReplacingOccurrencesOfString:@"/" withString:@"_"];
-      NSString *imagePath = [self saveImageIntoCache:image withName:imageName];
-    completionHandler(imagePath);
-    } else {
-        @throw([NSException exceptionWithName:@"image not found" reason:@"image not found" userInfo:nil]);
+    NSURLSession *session = [NSURLSession sharedSession];
+    NSURLSessionDataTask *task = [session dataTaskWithRequest:request completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
+        if (error) {
+            if (completion) {
+                completion(nil, error);
+            }
+            return;
+        }
+
+        if ([response isKindOfClass:[NSHTTPURLResponse class]]) {
+            NSHTTPURLResponse *httpResponse = (NSHTTPURLResponse *)response;
+            long long contentLength = [httpResponse expectedContentLength];
+            if (completion) {
+                completion([NSNumber numberWithLongLong:contentLength], nil);
+            }
+        } else {
+            if (completion) {
+                completion(nil, [NSError errorWithDomain:@"FileDownloadError" code:-1 userInfo:@{NSLocalizedDescriptionKey: @"Invalid response."}]);
+            }
+        }
+    }];
+
+    [task resume];
+}
+
+
++ (void)sendProgressUpdate:(NSNumber*)progress uuid:(NSString *)uuid type:(NSString *)type {
+    NSMutableDictionary *params = [[NSMutableDictionary alloc] init];
+    NSMutableDictionary *data = [[NSMutableDictionary alloc] init];
+    params[@"uuid"] = uuid;
+    data[@"progress"] = progress;
+    params[@"data"] = data;
+    
+    if(type==@"image")
+    {
+        [sharedCompressorObject sendEventWithName:@"downloadProgress" body:params];
     }
-  }];
+    else
+    {
+        [sharedVideoCompressorObject sendEventWithName:@"downloadProgress" body:params];
+    }
+    
+}
+
+
++ (void)downloadFileAndSaveToCache:(NSString *)fileUrl uuid:(NSString *)uuid type:(NSString *)type completion:(void (^)(NSString *downloadedPath))completion {
+    
+    Downloader *downloader = [[Downloader alloc] init];
+    [downloader downloadFile:fileUrl downloadCompleteCallback:^(NSString *filePath) {
+        [MediaCache addCompletedImagePath:filePath];
+        NSLog(@"download completed file path: %@",filePath);
+        completion(filePath);
+    } progressCallback:^(NSNumber * progress) {
+        [self sendProgressUpdate:progress uuid:uuid type:type];
+        
+    } errorCallback:^(NSError * error) {
+        NSLog(@"error downloadFile",error);
+    }];
+}
+
++(void)getAbsoluteImagePath:(NSString *)imagePath uuid:(NSString *)uuid completionHandler:(void (^)(NSString *absoluteImagePath))completionHandler
+{
+    if([imagePath hasPrefix:@"http://"]||[imagePath hasPrefix:@"https://"])
+    {
+        [ImageCompressor downloadFileAndSaveToCache:imagePath uuid:uuid type:@"image" completion:^(NSString *downloadedPath) {
+            completionHandler(downloadedPath); // Pass the downloaded path to the completionHandler
+        }];
+        return;
+
+    }
+    else if (![imagePath containsString:@"ph://"]) {
+        completionHandler(imagePath);
+        return;
+    }
+    NSURL *imageURL = [NSURL URLWithString:[imagePath stringByReplacingOccurrencesOfString:@" " withString:@"%20"]];
+    CGSize size = CGSizeZero;
+    CGFloat scale = 1;
+    RCTResizeMode resizeMode = RCTResizeModeContain;
+    NSString *assetID = @"";
+    PHFetchResult *results;
+    if (!imageURL) {
+        NSString *errorText = @"Cannot load a photo library asset with no URL";
+        @throw([NSException exceptionWithName:errorText reason:errorText userInfo:nil]);
+    } else if ([imageURL.scheme caseInsensitiveCompare:@"assets-library"] == NSOrderedSame) {
+        assetID = [imageURL absoluteString];
+        results = [PHAsset fetchAssetsWithALAssetURLs:@[imageURL] options:nil];
+    } else {
+        assetID = [imageURL.absoluteString substringFromIndex:@"ph://".length];
+        results = [PHAsset fetchAssetsWithLocalIdentifiers:@[assetID] options:nil];
+    }
+    if (results.count == 0) {
+        NSString *errorText = [NSString stringWithFormat:@"Failed to fetch PHAsset with local identifier %@ with no error message.", assetID];
+        @throw([NSException exceptionWithName:errorText reason:errorText userInfo:nil]);
+    }
+    PHAsset *asset = [results firstObject]; // <-- WE GOT THE ASSET
+    PHImageRequestOptions *imageOptions = [PHImageRequestOptions new];
+    imageOptions.networkAccessAllowed = YES;
+    imageOptions.deliveryMode = PHImageRequestOptionsDeliveryModeHighQualityFormat;
+    
+    BOOL useMaximumSize = CGSizeEqualToSize(size, CGSizeZero);
+    CGSize targetSize;
+    if (useMaximumSize) {
+        targetSize = PHImageManagerMaximumSize;
+        imageOptions.resizeMode = PHImageRequestOptionsResizeModeNone;
+    } else {
+        targetSize = CGSizeApplyAffineTransform(size, CGAffineTransformMakeScale(scale, scale));
+        imageOptions.resizeMode = PHImageRequestOptionsResizeModeFast;
+    }
+    
+    PHImageContentMode contentMode = PHImageContentModeAspectFill;
+    if (resizeMode == RCTResizeModeContain) {
+        contentMode = PHImageContentModeAspectFit;
+    }
+    [[PHImageManager defaultManager] requestImageForAsset:asset
+                                               targetSize:targetSize
+                                              contentMode:contentMode
+                                                  options:imageOptions
+                                            resultHandler:^(UIImage *result, NSDictionary<NSString *, id> *info) {
+        // WE GOT THE IMAGE
+        if (result) {
+            UIImage *image = result;
+            NSString *imageName = [assetID stringByReplacingOccurrencesOfString:@"/" withString:@"_"];
+            NSString *imagePath = [self saveImageIntoCache:image withName:imageName];
+            completionHandler(imagePath);
+        } else {
+            @throw([NSException exceptionWithName:@"image not found" reason:@"image not found" userInfo:nil]);
+        }
+    }];
 }
 
 +(NSString*) saveImageIntoCache:(UIImage *)image withName:(NSString *)name {
-  NSData *imageData = UIImageJPEGRepresentation(image, 1);
+    NSData *imageData = UIImageJPEGRepresentation(image, 1);
     NSString *path =[self generateCacheFilePath:@"jpg"];
-  [[NSFileManager defaultManager] createFileAtPath:path contents:imageData attributes:NULL];
-  return path;
+    [[NSFileManager defaultManager] createFileAtPath:path contents:imageData attributes:NULL];
+    return path;
 }
 
 /// for video
-    
-+(void)getAbsoluteVideoPath:(NSString *)videoPath completionHandler:(void (^)(NSString *absoluteImagePath))completionHandler
-{
 
-    if (![videoPath containsString:@"ph://"]) {
-      completionHandler(videoPath);
-      return;
++(void)getAbsoluteVideoPath:(NSString *)videoPath uuid:(NSString *)uuid completionHandler:(void (^)(NSString *absoluteImagePath))completionHandler
+{
+    if([videoPath hasPrefix:@"http://"]||[videoPath hasPrefix:@"https://"])
+    {
+        [ImageCompressor downloadFileAndSaveToCache:videoPath uuid:uuid type:@"video" completion:^(NSString *downloadedPath) {
+            completionHandler(downloadedPath); // Pass the downloaded path to the completionHandler
+        }];
+        return;
+
+    }
+    else if (![videoPath containsString:@"ph://"]) {
+        completionHandler(videoPath);
+        return;
     }
     NSString *assetId =[videoPath stringByReplacingOccurrencesOfString:@"ph://"
-                                                      withString:@""];
+                                                            withString:@""];
     AVFileType outputFileType = AVFileTypeMPEG4;
     NSString *pressetType = AVAssetExportPresetPassthrough;
     
@@ -390,7 +487,7 @@
     // Getting information from the asset
     NSString *mimeType = (NSString *)CFBridgingRelease(UTTypeCopyPreferredTagWithClass((__bridge CFStringRef _Nonnull)(outputFileType), kUTTagClassMIMEType));
     CFStringRef uti = UTTypeCreatePreferredIdentifierForTag(kUTTagClassMIMEType, (__bridge CFStringRef _Nonnull)(mimeType), NULL);
-     NSString *extension = (NSString *)CFBridgingRelease(UTTypeCopyPreferredTagWithClass(uti, kUTTagClassFilenameExtension));
+    NSString *extension = (NSString *)CFBridgingRelease(UTTypeCopyPreferredTagWithClass(uti, kUTTagClassFilenameExtension));
     
     // Creating output url and temp file name
     NSString *path =[self generateCacheFilePath:extension];

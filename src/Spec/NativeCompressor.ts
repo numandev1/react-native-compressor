@@ -8,6 +8,8 @@ export interface Spec extends TurboModule {
   getRealPath(path: string, type: string): Promise<string>;
   getVideoMetaData(filePath: string): Promise<string>;
   getFileSize(filePath: string): Promise<string>;
+  addListener(eventName: string): void;
+  removeListeners(count: number): void;
 }
 
 export default TurboModuleRegistry.getEnforcing<Spec>('Compressor');

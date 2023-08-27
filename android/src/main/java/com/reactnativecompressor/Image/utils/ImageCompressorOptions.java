@@ -33,6 +33,9 @@ public class ImageCompressorOptions {
               case "returnableOutputType":
                 options.returnableOutputType = ReturnableOutputType.valueOf(map.getString(key));
                 break;
+              case "uuid":
+                options.uuid = map.getString(key);
+                break;
             }
         }
 
@@ -61,5 +64,6 @@ public class ImageCompressorOptions {
     public float quality = 0.8f;
     public InputType input = InputType.uri;
     public OutputType output = OutputType.jpg;
+    public String uuid = "";
     public ReturnableOutputType returnableOutputType = ReturnableOutputType.uri;
 }

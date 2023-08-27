@@ -53,7 +53,9 @@
     "compress-videos",
     "react-native-compress",
     "react-native-compressor",
-    "compress-audio"
+    "compress-audio",
+    "whatsapp",
+    "compressor"
   ],
   "repository": "https://github.com/numandev1/react-native-compressor",
   "author": "numandev1 <muhammadnuman70@gmail.com> (https://github.com/numandev1)",

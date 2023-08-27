@@ -8,13 +8,9 @@ import androidx.annotation.Nullable;
 
 import com.facebook.react.bridge.Promise;
 import com.facebook.react.bridge.ReactApplicationContext;
-import com.facebook.react.bridge.ReactContext;
-import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
 import com.facebook.react.bridge.ReadableMap;
-import com.facebook.react.bridge.WritableMap;
-import com.facebook.react.module.annotations.ReactModule;
-import com.facebook.react.modules.core.DeviceEventManagerModule;
+import com.reactnativecompressor.Utils.MediaCache;
 import com.reactnativecompressor.VideoCompressorSpec;
 import com.reactnativecompressor.Utils.RealPathUtil;
 
@@ -41,14 +37,6 @@ public class VideoModule extends VideoCompressorSpec {
     return NAME;
   }
 
-  private void sendEvent(ReactContext reactContext,
-                         String eventName,
-                         @Nullable WritableMap params) {
-    reactContext
-      .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
-      .emit(eventName, params);
-  }
-
   //Video
   @ReactMethod
   public void compress(
@@ -56,7 +44,8 @@ public class VideoModule extends VideoCompressorSpec {
     ReadableMap optionMap,
     Promise promise) {
     final VideoCompressorHelper options = VideoCompressorHelper.fromMap(optionMap);
-    fileUrl=getRealPath(fileUrl,reactContext);
+
+    fileUrl=getRealPath(fileUrl,reactContext,options.uuid);
 
     if(options.compressionMethod==VideoCompressorHelper.CompressionMethod.auto)
     {
@@ -66,8 +55,6 @@ public class VideoModule extends VideoCompressorSpec {
     {
       VideoCompressorHelper.VideoCompressManual(fileUrl,options,promise,reactContext);
     }
-
-
   }
 
   @ReactMethod

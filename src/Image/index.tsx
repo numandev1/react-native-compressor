@@ -1,5 +1,8 @@
 import { Compressor } from '../Main';
+import { uuidv4 } from '../utils';
 const base64UrlRegex = /^data:image\/.*;(?:charset=.{3,5};)?base64,/;
+import type { NativeEventSubscription } from 'react-native';
+import { NativeEventEmitter } from 'react-native';
 
 export type InputType = 'base64' | 'uri';
 
@@ -38,7 +41,13 @@ export type CompressorOptions = {
    * The output that will return to user.
    */
   returnableOutputType?: ReturnableOutputType;
+  /***
+   * it is callback, only trigger when we pass image url from server
+   */
+  downloadProgress?: (progress: number) => void;
 };
+
+const ImageCompressEventEmitter = new NativeEventEmitter(Compressor);
 
 const NativeImage = Compressor;
 
@@ -47,14 +56,38 @@ type ImageType = {
 };
 
 const Image: ImageType = {
-  compress: (value, options) => {
+  compress: async (value, options = {}) => {
     if (!value) {
       throw new Error(
         'Compression value is empty, please provide a value for compression.'
       );
     }
-    const cleanData = value.replace(base64UrlRegex, '');
-    return NativeImage.image_compress(cleanData, options);
+
+    const uuid = uuidv4();
+    let subscription: NativeEventSubscription;
+    try {
+      if (options?.downloadProgress) {
+        //@ts-ignore
+        options.uuid = uuid;
+        subscription = ImageCompressEventEmitter.addListener(
+          'downloadProgress',
+          (event: any) => {
+            if (event.uuid === uuid) {
+              options.downloadProgress &&
+                options.downloadProgress(event.data.progress);
+            }
+          }
+        );
+      }
+
+      const cleanData = value.replace(base64UrlRegex, '');
+      return await NativeImage.image_compress(cleanData, options);
+    } finally {
+      // @ts-ignore
+      if (subscription) {
+        subscription.remove();
+      }
+    }
   },
 };
 

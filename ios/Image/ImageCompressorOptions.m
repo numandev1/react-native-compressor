@@ -28,7 +28,9 @@
             [options parseOutput: value];
         } else if ([key isEqual:@"returnableOutputType"]) {
             [options parseReturnableOutput: value];
-        }
+        }else if ([key isEqual:@"uuid"]) {
+           options.uuid=value;
+       }
     }
     
     return options;
@@ -56,6 +58,7 @@
         self.input = uri;
         self.output = jpg;
         self.returnableOutputType = uri;
+        self.uuid = uuid;
     }
     
     return self;
@@ -68,6 +71,7 @@
 @synthesize input;
 @synthesize output;
 @synthesize returnableOutputType;
+@synthesize uuid;
 
 - (void) parseInput:(NSString*)input {
     NSDictionary *inputTranslations = @{ @"base64": @(base64), @"uri": @(uri) };

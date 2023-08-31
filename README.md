@@ -5,7 +5,7 @@
 
 <div align="center">
 
-[![GitHub Repo stars](https://img.shields.io/static/v1?style=for-the-badge&message=Discord&color=5865F2&logo=Discord&logoColor=FFFFFF&label=)](https://discord.gg/dtYzk8sp)
+[![GitHub Repo stars](https://img.shields.io/static/v1?style=for-the-badge&message=Discord&color=5865F2&logo=Discord&logoColor=FFFFFF&label=)](https://discord.gg/Tnf33r8mTK)
 [![GitHub Repo stars](https://img.shields.io/github/stars/numandev1/react-native-compressor?style=for-the-badge&logo=github)](https://github.com/numandev1/react-native-compressor/stargazers)
 [![GitHub Repo stars](https://img.shields.io/npm/v/react-native-compressor?style=for-the-badge&message=npm&&color=CB3837&logo=npm&logoColor=FFFFFF&label=)](https://www.npmjs.com/package/react-native-compressor)
 ![npm](https://img.shields.io/static/v1?style=for-the-badge&message=TypeScript&color=3178C6&logo=TypeScript&logoColor=FFFFFF&label=)

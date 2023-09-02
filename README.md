@@ -10,6 +10,7 @@
 [![GitHub Repo stars](https://img.shields.io/npm/v/react-native-compressor?style=for-the-badge&message=npm&&color=CB3837&logo=npm&logoColor=FFFFFF&label=)](https://www.npmjs.com/package/react-native-compressor)
 ![npm](https://img.shields.io/static/v1?style=for-the-badge&message=TypeScript&color=3178C6&logo=TypeScript&logoColor=FFFFFF&label=)
 ![npm](https://img.shields.io/npm/dt/react-native-compressor?style=for-the-badge)
+[![GitHub Repo stars](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=for-the-badge)](http://makeapullrequest.com)
 
 </div>
 

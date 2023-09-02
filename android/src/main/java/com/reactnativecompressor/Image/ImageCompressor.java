@@ -201,22 +201,7 @@ public class ImageCompressor {
       bmp.recycle();
     }
 
-    ExifInterface exif;
-    try {
-      exif = new ExifInterface(imagePath);
-      int orientation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, 0);
-      Matrix matrix = new Matrix();
-      if (orientation == 6) {
-        matrix.postRotate(90);
-      } else if (orientation == 3) {
-        matrix.postRotate(180);
-      } else if (orientation == 8) {
-        matrix.postRotate(270);
-      }
-      scaledBitmap = Bitmap.createBitmap(scaledBitmap, 0, 0, scaledBitmap.getWidth(), scaledBitmap.getHeight(), matrix, true);
-    } catch (IOException e) {
-      e.printStackTrace();
-    }
+    scaledBitmap = correctImageOrientation(scaledBitmap, imagePath);
 
     final ByteArrayOutputStream imageDataByteArrayOutputStream = ImageCompressor.compress(scaledBitmap, compressorOptions.output, compressorOptions.quality);
     String returnableResult = ImageCompressor.encodeImage(imageDataByteArrayOutputStream,isBase64,compressorOptions.output.toString(),reactContext);
@@ -241,5 +226,32 @@ public class ImageCompressor {
     }
 
     return inSampleSize;
+  }
+
+  public static Bitmap correctImageOrientation(Bitmap bitmap, String imagePath) {
+    try {
+      ExifInterface exif = new ExifInterface(imagePath);
+      int orientation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL);
+      Matrix matrix = new Matrix();
+
+      switch (orientation) {
+        case ExifInterface.ORIENTATION_ROTATE_90:
+          matrix.postRotate(90);
+          break;
+        case ExifInterface.ORIENTATION_ROTATE_180:
+          matrix.postRotate(180);
+          break;
+        case ExifInterface.ORIENTATION_ROTATE_270:
+          matrix.postRotate(270);
+          break;
+        default:
+          return bitmap; // No rotation needed
+      }
+
+      return Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, true);
+    } catch (IOException e) {
+      e.printStackTrace();
+      return bitmap; // Return original bitmap if an error occurs
+    }
   }
 }

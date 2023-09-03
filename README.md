@@ -84,8 +84,8 @@ yarn add react-native-compressor
 ```
 
 ### [New Architecture (Turbo Module)](https://reactnative.dev/docs/new-architecture-intro) Supported
-you can give feedback on [Discord channel](https://discord.gg/dtYzk8sp)
 
+you can give feedback on [Discord channel](https://discord.gg/dtYzk8sp)
 
 ### Managed Expo
 
@@ -163,10 +163,10 @@ import { Image } from 'react-native-compressor';
 
 const result = await Image.compress('file://path_of_file/image.jpg');
 // OR
-const result = await Image.compress('https://path_of_file/image.jpg',{
+const result = await Image.compress('https://path_of_file/image.jpg', {
   downloadProgress: (progress) => {
     console.log('downloadProgress: ', progress);
-  }
+  },
 });
 ```
 
@@ -195,7 +195,7 @@ const result = await Video.compress(
   'file://path_of_file/BigBuckBunny.mp4',
   {},
   (progress) => {
-      console.log('Compression Progress: ', progress);
+    console.log('Compression Progress: ', progress);
   }
 );
 
@@ -206,10 +206,10 @@ const result = await Video.compress(
   {
     downloadProgress: (progress) => {
       console.log('downloadProgress: ', progress);
-    }
+    },
   },
   (progress) => {
-      console.log('Compression Progress: ', progress);
+    console.log('Compression Progress: ', progress);
   }
 );
 ```
@@ -227,7 +227,7 @@ const result = await Video.compress(
     compressionMethod: 'manual',
   },
   (progress) => {
-      console.log('Compression Progress: ', progress);
+    console.log('Compression Progress: ', progress);
   }
 );
 ```
@@ -305,6 +305,7 @@ const uploadResult = await backgroundUpload(
   if you want to compress images like **whatsapp** then make this prop `auto`. Can be either `manual` or `auto`, defines the Compression Method.
 
 - ##### `downloadProgress?: (progress: number) => void;`
+
   it is callback, only trigger when we pass image url from server
 
 - ###### `maxWidth: number` (default: 1280)
@@ -344,13 +345,14 @@ const uploadResult = await backgroundUpload(
   if you want to compress videos like **whatsapp** then make this prop `auto`. Can be either `manual` or `auto`, defines the Compression Method.
 
 - ##### `downloadProgress?: (progress: number) => void;`
+
   it is callback, only trigger when we pass image url from server
 
 - ###### `maxSize: number` (default: 640)
 
   The maximum size can be height in case of portrait video or can be width in case of landscape video.
 
-- ###### `bitrate: string`
+- ###### `bitrate: number`
 
   bitrate of video which reduce or increase video size. if compressionMethod will auto then this prop will not work
 

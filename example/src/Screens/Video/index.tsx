@@ -106,16 +106,55 @@ export default function App() {
       const dstUrl = await Video.compress(
         sourceVideo,
         {
-          compressionMethod: 'auto',
           minimumFileSizeForCompress: 0,
           getCancellationId: (cancellationId) =>
             (cancellationIdRef.current = cancellationId),
         },
         (progress) => {
+          console.log('Compression Progress: ', progress);
           if (backgroundMode) {
-            console.log('Compression Progress: ', progress);
           } else {
             setCompressingProgress(progress);
+          }
+        }
+      );
+      console.log({ dstUrl }, 'compression result');
+      setCompressedVideo(dstUrl);
+      setCompressingProgress(0);
+    } catch (error) {
+      console.log({ error }, 'compression error');
+      setCompressedVideo(sourceVideo);
+      setCompressingProgress(0);
+    }
+  };
+
+  const onPressRemoteVideo = async () => {
+    // const url =
+    // 'https://filesamples.com/samples/video/mp4/sample_960x400_ocean_with_audio.mp4';
+
+    const url =
+      'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/WhatCarCanYouGetForAGrand.mp4';
+
+    setSourceVideoThumbnail(
+      'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQvFTncZP4wzhJ9qH0dR1ZCCde_riH3aOoaVQZnOeVDnA&s'
+    );
+    try {
+      const dstUrl = await Video.compress(
+        url,
+        {
+          minimumFileSizeForCompress: 0,
+          getCancellationId: (cancellationId) =>
+            (cancellationIdRef.current = cancellationId),
+          downloadProgress: (progress) => {
+            console.log('downloadProgress: ', progress);
+            setCompressingProgress(progress);
+          },
+        },
+        (progress) => {
+          console.log('Compression Progress: ', progress);
+          setCompressingProgress(progress);
+          if (backgroundMode) {
+          } else {
           }
         }
       );
@@ -256,6 +295,10 @@ export default function App() {
         />
       </View>
       <View style={{ height: 200 }}>
+        <Button
+          title="Remote Video (http://) and Compress"
+          onPress={onPressRemoteVideo}
+        />
         <Button title="Cancel Compression" onPress={cancelCompression} />
         <Text>Put app in background and check console output</Text>
         <View

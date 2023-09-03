@@ -5,6 +5,7 @@
 #import "Image/ImageCompressorOptions.h"
 #import <React/RCTEventEmitter.h>
 #import <AVFoundation/AVFoundation.h>
+#import "MediaCache.h"
 
 #define AlAsset_Library_Scheme @"assets-library"
 @implementation Compressor
@@ -35,7 +36,17 @@ static NSArray *metadatas;
   return metadatas;
 }
 
+- (instancetype)init {
+    self = [super init];
+    [ImageCompressor initCompressorInstance:self];
+    return self;
+}
+
 RCT_EXPORT_MODULE()
+
++ (BOOL)requiresMainQueueSetup {
+  return NO;
+}
 
 
 //Image
@@ -86,6 +97,10 @@ RCT_EXPORT_METHOD(
     resolver: (RCTPromiseResolveBlock) resolve
     rejecter: (RCTPromiseRejectBlock) reject) {
     [self getVideoMetaData:filePath resolve:resolve reject:reject];
+}
+
+- (NSArray<NSString *>*)supportedEvents {
+    return @[@"downloadProgress"];
 }
 
 - (NSString *)getAudioQualityConstant:(NSString *)quality
@@ -233,13 +248,13 @@ RCT_EXPORT_METHOD(
     @try {
             if([type isEqualToString:@"video"])
             {
-                [ImageCompressor getAbsoluteVideoPath:path completionHandler:^(NSString* absoluteImagePath){
+                [ImageCompressor getAbsoluteVideoPath:path uuid:@"" completionHandler:^(NSString* absoluteImagePath){
                     resolve(absoluteImagePath);
                 }];
             }
             else
             {
-                [ImageCompressor getAbsoluteImagePath:path completionHandler:^(NSString* absoluteImagePath){
+                [ImageCompressor getAbsoluteImagePath:path uuid:@"test" completionHandler:^(NSString* absoluteImagePath){
                     resolve(absoluteImagePath);
                 }];
             }
@@ -251,7 +266,7 @@ RCT_EXPORT_METHOD(
 
 - (void)getVideoMetaData:(NSString *)filePath resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject {
     @try {
-            [ImageCompressor getAbsoluteVideoPath:filePath completionHandler:^(NSString *absoluteImagePath) {
+        [ImageCompressor getAbsoluteVideoPath:filePath uuid:@"" completionHandler:^(NSString *absoluteImagePath) {
                 if([absoluteImagePath containsString:@"file://"])
                 {
                     absoluteImagePath=[absoluteImagePath stringByReplacingOccurrencesOfString:@"file://"
@@ -305,7 +320,7 @@ RCT_EXPORT_METHOD(
 - (void)image_compress:(NSString *)imagePath optionMap:(NSDictionary *)optionMap resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject {
     @try {
             ImageCompressorOptions *options = [ImageCompressorOptions fromDictionary:optionMap];
-            [ImageCompressor getAbsoluteImagePath:imagePath completionHandler:^(NSString* absoluteImagePath){
+            [ImageCompressor getAbsoluteImagePath:imagePath uuid:options.uuid completionHandler:^(NSString* absoluteImagePath){
                 if(options.autoCompress)
                 {
                     NSString *result = [ImageCompressor autoCompressHandler:absoluteImagePath options:options];
@@ -316,6 +331,7 @@ RCT_EXPORT_METHOD(
                     NSString *result = [ImageCompressor manualCompressHandler:absoluteImagePath options:options];
                     resolve(result);
                 }
+                [MediaCache removeCompletedImagePath:absoluteImagePath];
             }];
             
         }
@@ -326,26 +342,42 @@ RCT_EXPORT_METHOD(
 
 - (void)getFileSize:(NSString *)filePath resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject {
     @try {
-               if([filePath containsString:@"file://"])
-               {
-                   filePath=[filePath stringByReplacingOccurrencesOfString:@"file://"
-                                                           withString:@""];
-               }
-               NSFileManager *fileManager = [NSFileManager defaultManager];
-               BOOL isDir;
-               if (![fileManager fileExistsAtPath:filePath isDirectory:&isDir] || isDir){
-                   NSError *err = [NSError errorWithDomain:@"file not found" code:-15 userInfo:nil];
-                   reject([NSString stringWithFormat: @"%lu", (long)err.code], err.localizedDescription, err);
-                   return;
-               }
-               NSDictionary *attrs = [fileManager attributesOfItemAtPath: filePath error: NULL];
-               UInt32 fileSize = [attrs fileSize];
-               NSString *fileSizeString = [@(fileSize) stringValue];
-               resolve(fileSizeString);
-           }
-           @catch (NSException *exception) {
-               reject(exception.name, exception.reason, nil);
-           }
+        if([filePath hasPrefix:@"http://"]||[filePath hasPrefix:@"https://"])
+        {
+            [ImageCompressor getFileSizeFromURL:filePath completion:^(NSNumber *fileSize, NSError *error) {
+                if (error) {
+                        NSLog(@"Error: %@", error.localizedDescription);
+                    } else {
+                        NSLog(@"File size: %@", fileSize);
+                        resolve(fileSize);
+                    }
+            }];
+
+        }
+        else
+        {
+            if([filePath containsString:@"file://"])
+            {
+                filePath=[filePath stringByReplacingOccurrencesOfString:@"file://"
+                                                             withString:@""];
+            }
+            NSFileManager *fileManager = [NSFileManager defaultManager];
+            BOOL isDir;
+            if (![fileManager fileExistsAtPath:filePath isDirectory:&isDir] || isDir){
+                NSError *err = [NSError errorWithDomain:@"file not found" code:-15 userInfo:nil];
+                reject([NSString stringWithFormat: @"%lu", (long)err.code], err.localizedDescription, err);
+                return;
+            }
+            NSDictionary *attrs = [fileManager attributesOfItemAtPath: filePath error: NULL];
+            UInt32 fileSize = [attrs fileSize];
+            NSString *fileSizeString = [@(fileSize) stringValue];
+            resolve(fileSizeString);
+       }
+       
+    }
+    @catch (NSException *exception) {
+        reject(exception.name, exception.reason, nil);
+    }
 }
 
 // Don't compile this code when we build for the old architecture.

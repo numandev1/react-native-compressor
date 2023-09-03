@@ -19,6 +19,7 @@ type videoCompresssionType = {
   compressionMethod?: compressionMethod;
   minimumFileSizeForCompress?: number;
   getCancellationId?: (cancellationId: string) => void;
+  downloadProgress?: (progress: number) => void;
 };
 
 export declare enum FileSystemSessionType {
@@ -118,6 +119,8 @@ const Video: VideoCompressorType = {
   ) => {
     const uuid = uuidv4();
     let subscription: NativeEventSubscription;
+    let subscription2: NativeEventSubscription;
+
     try {
       if (onProgress) {
         subscription = VideoCompressEventEmitter.addListener(
@@ -129,6 +132,20 @@ const Video: VideoCompressorType = {
           }
         );
       }
+
+      if (options?.downloadProgress) {
+        //@ts-ignore
+        subscription2 = VideoCompressEventEmitter.addListener(
+          'downloadProgress',
+          (event: any) => {
+            if (event.uuid === uuid) {
+              options.downloadProgress &&
+                options.downloadProgress(event.data.progress);
+            }
+          }
+        );
+      }
+
       const modifiedOptions: {
         uuid: string;
         bitrate?: number;
@@ -140,7 +157,7 @@ const Video: VideoCompressorType = {
       if (options?.compressionMethod) {
         modifiedOptions.compressionMethod = options?.compressionMethod;
       } else {
-        modifiedOptions.compressionMethod = 'manual';
+        modifiedOptions.compressionMethod = 'auto';
       }
       if (options?.maxSize) {
         modifiedOptions.maxSize = options?.maxSize;
@@ -154,6 +171,7 @@ const Video: VideoCompressorType = {
       if (options?.getCancellationId) {
         options?.getCancellationId(uuid);
       }
+
       const result = await NativeVideoCompressor.compress(
         fileUrl,
         modifiedOptions
@@ -163,6 +181,10 @@ const Video: VideoCompressorType = {
       // @ts-ignore
       if (subscription) {
         subscription.remove();
+      }
+      //@ts-ignore
+      if (subscription2) {
+        subscription2.remove();
       }
     }
   },

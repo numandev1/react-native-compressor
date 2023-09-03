@@ -37,11 +37,16 @@ class VideoCompressor: RCTEventEmitter, URLSessionTaskDelegate {
   var uploadRejectors: [String: RCTPromiseRejectBlock] = [:]
   var compressorExports: [String: NextLevelSessionExporter] = [:]
     let videoCompressionThreshold:Int=7
-    
+
+    override init() {
+        super.init()
+        ImageCompressor.initVideoCompressorInstance(self)
+    }
 
   override static func requiresMainQueueSetup() -> Bool {
     return false
   }
+
 
   @objc(activateBackgroundTask:withResolver:withRejecter:)
   func activateBackgroundTask(options: [String: Any], resolve:@escaping RCTPromiseResolveBlock, reject:@escaping RCTPromiseRejectBlock) -> Void {
@@ -173,7 +178,7 @@ func makeValidUri(filePath: String) -> String {
   }
 
   override func supportedEvents() -> [String]! {
-    return ["videoCompressProgress", "VideoCompressorProgress", "backgroundTaskExpired"]
+    return ["videoCompressProgress", "VideoCompressorProgress", "backgroundTaskExpired","downloadProgress"]
   }
 
   override func stopObserving() -> Void {
@@ -206,7 +211,9 @@ func makeValidUri(filePath: String) -> String {
   
   
   func compressVideo(url: URL, options: [String: Any], onProgress: @escaping (Float) -> Void,  onCompletion: @escaping (URL) -> Void, onFailure: @escaping (Error) -> Void){
-      ImageCompressor.getAbsoluteVideoPath(url.absoluteString) { absoluteVideoPath in
+      let uuid:String = options["uuid"] as! String
+      
+      ImageCompressor.getAbsoluteVideoPath(url.absoluteString, uuid: uuid) { absoluteVideoPath in
         var minimumFileSizeForCompress:Double=0.0;
         let videoURL = URL(string: absoluteVideoPath!)
         let fileSize=self.getfileSize(forURL: videoURL!);
@@ -221,6 +228,7 @@ func makeValidUri(filePath: String) -> String {
                 self.autoCompressionHelper(url: videoURL!, options:options) { progress in
                     onProgress(progress)
                 } onCompletion: { outputURL in
+                    MediaCache.removeCompletedImagePath(absoluteVideoPath);
                     onCompletion(outputURL)
                 } onFailure: { error in
                     onFailure(error)
@@ -231,6 +239,7 @@ func makeValidUri(filePath: String) -> String {
                 self.manualCompressionHelper(url: videoURL!, options:options) { progress in
                     onProgress(progress)
                 } onCompletion: { outputURL in
+                    MediaCache.removeCompletedImagePath(absoluteVideoPath);
                     onCompletion(outputURL)
                 } onFailure: { error in
                     onFailure(error)

@@ -23,5 +23,6 @@ typedef NS_ENUM(long, ReturnableOutputType) { rbase64,
 @property(nonatomic, assign) enum OutputType output;
 @property(nonatomic, assign) enum InputType input;
 @property(nonatomic, assign) enum ReturnableOutputType returnableOutputType;
+@property(nonatomic, assign) NSString* uuid;
 
 @end

@@ -7,7 +7,7 @@
     "android": "react-native run-android",
     "ios": "react-native run-ios",
     "start": "react-native start",
-    "pods": "cd ios && NO_FLIPPER=1 RCT_NEW_ARCH_ENABLED=1 bundle exec pod install",
+    "pods": "cd ios && NO_FLIPPER=1 bundle exec pod install",
     "postinstall": "patch-package",
     "pods-newarch": "cd ios && NO_FLIPPER=1 RCT_NEW_ARCH_ENABLED=1 bundle exec pod install"
   },

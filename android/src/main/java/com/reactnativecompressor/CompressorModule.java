@@ -6,17 +6,15 @@ import com.facebook.react.bridge.Promise;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactMethod;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 
 import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.ReactContext;
 import com.facebook.react.bridge.ReadableMap;
 import com.facebook.react.bridge.WritableMap;
-import com.facebook.react.modules.core.DeviceEventManagerModule;
 import com.reactnativecompressor.Image.ImageCompressor;
 import com.reactnativecompressor.Image.utils.ImageCompressorOptions;
+import com.reactnativecompressor.Utils.MediaCache;
 import com.reactnativecompressor.Utils.Utils;
 import com.reactnativecompressor.Video.VideoCompressorHelper;
 import com.reactnativecompressor.CompressorSpec;
@@ -40,7 +38,7 @@ public class CompressorModule extends CompressorSpec {
   public static final String NAME = "Compressor";
   private final ReactApplicationContext reactContext;
 
-  CompressorModule(ReactApplicationContext context) {
+  public CompressorModule(ReactApplicationContext context) {
     super(context);
     this.reactContext = context;
   }
@@ -51,15 +49,6 @@ public class CompressorModule extends CompressorSpec {
     return NAME;
   }
 
-
-  private void sendEvent(ReactContext reactContext,
-                         String eventName,
-                         @Nullable WritableMap params) {
-    reactContext
-      .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
-      .emit(eventName, params);
-  }
-
   //Image
   @ReactMethod
   public void image_compress(
@@ -67,8 +56,9 @@ public class CompressorModule extends CompressorSpec {
     ReadableMap optionMap,
     Promise promise) {
     try {
-      imagePath=Utils.getRealPath(imagePath,reactContext);
       final ImageCompressorOptions options = ImageCompressorOptions.fromMap(optionMap);
+      imagePath=Utils.getRealPath(imagePath,reactContext,options.uuid);
+
 
       if(options.compressionMethod==ImageCompressorOptions.CompressionMethod.auto)
       {
@@ -80,6 +70,7 @@ public class CompressorModule extends CompressorSpec {
         String returnableResult=ImageCompressor.manualCompressImage(imagePath,options,reactContext);
         promise.resolve(returnableResult);
       }
+      MediaCache.removeCompletedImagePath(imagePath);
     } catch (Exception ex) {
       promise.reject(ex);
     }
@@ -163,15 +154,32 @@ public class CompressorModule extends CompressorSpec {
   @ReactMethod
   public void getFileSize(String filePath, Promise promise)
   {
-    filePath=Utils.getRealPath(filePath,reactContext);
-    Uri uri= Uri.parse(filePath);
-    ContentResolver contentResolver = reactContext.getContentResolver();
-    long fileSize = getLength(uri, contentResolver);
-    if (fileSize >= 0) {
-      promise.resolve(String.valueOf(fileSize));
-    } else {
-      promise.resolve("");
+    if(filePath.startsWith("http://")||filePath.startsWith("https://"))
+    {
+      promise.resolve(Utils.getFileSizeFromURL(filePath));
     }
+    else
+    {
+      filePath=Utils.getRealPath(filePath,reactContext);
+      Uri uri= Uri.parse(filePath);
+      ContentResolver contentResolver = reactContext.getContentResolver();
+      long fileSize = getLength(uri, contentResolver);
+      if (fileSize >= 0) {
+        promise.resolve(String.valueOf(fileSize));
+      } else {
+        promise.resolve("");
+      }
+    }
+  }
+
+  @ReactMethod
+  public void addListener(String eventName) {
+
+  }
+
+  @ReactMethod
+  public void removeListeners(double count) {
+
   }
 
   public static long getLength(Uri uri, ContentResolver contentResolver) {
@@ -208,4 +216,5 @@ public class CompressorModule extends CompressorSpec {
       return -1L;
     }
   }
+
 }

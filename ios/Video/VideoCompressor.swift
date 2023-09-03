@@ -223,7 +223,7 @@ func makeValidUri(filePath: String) -> String {
         }
         if(fileSize>minimumFileSizeForCompress)
         {
-            if(options["compressionMethod"] as! String=="manual")
+            if(options["compressionMethod"] as! String=="auto")
             {
                 self.autoCompressionHelper(url: videoURL!, options:options) { progress in
                     onProgress(progress)

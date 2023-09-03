@@ -106,7 +106,6 @@ export default function App() {
       const dstUrl = await Video.compress(
         sourceVideo,
         {
-          minimumFileSizeForCompress: 0,
           getCancellationId: (cancellationId) =>
             (cancellationIdRef.current = cancellationId),
         },

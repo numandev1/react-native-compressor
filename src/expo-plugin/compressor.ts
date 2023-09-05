@@ -4,6 +4,6 @@ const pkg = require('../../../package.json');
 
 type Props = {};
 
-const withCompressor: ConfigPlugin<Props> = (config:any) => config;
+const withCompressor: ConfigPlugin<Props> = (config: any) => config;
 
 export default createRunOncePlugin(withCompressor, pkg.name, pkg.version);

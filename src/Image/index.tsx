@@ -45,6 +45,10 @@ export type CompressorOptions = {
    * it is callback, only trigger when we pass image url from server
    */
   downloadProgress?: (progress: number) => void;
+  /***
+   * Default:0, we uses when we use downloadProgress
+   */
+  progressDivider?: number;
 };
 
 const ImageCompressEventEmitter = new NativeEventEmitter(Compressor);
@@ -63,10 +67,10 @@ const Image: ImageType = {
       );
     }
 
-    const uuid = uuidv4();
     let subscription: NativeEventSubscription;
     try {
       if (options?.downloadProgress) {
+        const uuid = uuidv4();
         //@ts-ignore
         options.uuid = uuid;
         subscription = ImageCompressEventEmitter.addListener(

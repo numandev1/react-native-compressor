@@ -1,14 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, Button, Image, Alert, Platform } from 'react-native';
-import { Video, getRealPath } from 'react-native-compressor';
+import { Video, getRealPath, backgroundUpload } from 'react-native-compressor';
 import * as ImagePicker from 'react-native-image-picker';
 import { createThumbnail } from 'react-native-create-thumbnail';
-import * as Progress from 'react-native-progress';
 import CameraRoll from '@react-native-camera-roll/camera-roll';
 import prettyBytes from 'pretty-bytes';
 import { getFileInfo } from '../../Utils';
+import ProgressBar from '../../Components/ProgressBar';
+import type { ProgressBarRafType } from '../../Components/ProgressBar';
 
 export default function App() {
+  const progressRef = useRef<ProgressBarRafType>();
   const cancellationIdRef = useRef<string>('');
   const [sourceVideo, setSourceVideo] = useState<string>();
   const [sourceSize, setSourceSize] = useState<number>();
@@ -17,11 +19,6 @@ export default function App() {
   const [compressedSize, setCompressedSize] = useState<number>();
   const [compressedVideoThumbnail, setcompressedVideoThumbnail] =
     useState<string>();
-
-  const [compressingProgress, setCompressingProgress] = useState<number>(0);
-  const [sourceUploadProgress, setSourceUploadProgress] = useState<number>(0);
-  const [compressedUploadProgress, setCompressedUploadProgress] =
-    useState<number>(0);
 
   const [doingSomething, setDoingSomething] = useState<boolean>(false);
   const [backgroundMode, setBackgroundMode] = useState<boolean>(false);
@@ -106,24 +103,25 @@ export default function App() {
       const dstUrl = await Video.compress(
         sourceVideo,
         {
+          progressDivider: 10,
           getCancellationId: (cancellationId) =>
             (cancellationIdRef.current = cancellationId),
         },
         (progress) => {
           console.log('Compression Progress: ', progress);
+          progressRef.current?.setProgress(progress);
           if (backgroundMode) {
           } else {
-            setCompressingProgress(progress);
           }
         }
       );
       console.log({ dstUrl }, 'compression result');
       setCompressedVideo(dstUrl);
-      setCompressingProgress(0);
+      progressRef.current?.setProgress(0);
     } catch (error) {
       console.log({ error }, 'compression error');
       setCompressedVideo(sourceVideo);
-      setCompressingProgress(0);
+      progressRef.current?.setProgress(0);
     }
   };
 
@@ -141,17 +139,18 @@ export default function App() {
       const dstUrl = await Video.compress(
         url,
         {
+          progressDivider: 10,
           minimumFileSizeForCompress: 0,
           getCancellationId: (cancellationId) =>
             (cancellationIdRef.current = cancellationId),
           downloadProgress: (progress) => {
             console.log('downloadProgress: ', progress);
-            setCompressingProgress(progress);
+            progressRef.current?.setProgress(progress);
           },
         },
         (progress) => {
           console.log('Compression Progress: ', progress);
-          setCompressingProgress(progress);
+          progressRef.current?.setProgress(progress);
           if (backgroundMode) {
           } else {
           }
@@ -159,11 +158,11 @@ export default function App() {
       );
       console.log({ dstUrl }, 'compression result');
       setCompressedVideo(dstUrl);
-      setCompressingProgress(0);
+      progressRef.current?.setProgress(0);
     } catch (error) {
       console.log({ error }, 'compression error');
       setCompressedVideo(sourceVideo);
-      setCompressingProgress(0);
+      progressRef.current?.setProgress(0);
     }
   };
 
@@ -174,12 +173,12 @@ export default function App() {
   const uploadSource = async () => {
     if (!sourceVideo) return;
     try {
-      const result = await Video.backgroundUpload(
+      const result = await backgroundUpload(
         'http://w.hbu50.com:8080/hello.mp4',
         sourceVideo,
         { httpMethod: 'PUT' },
         (written, total) => {
-          setSourceUploadProgress(written / total);
+          progressRef.current?.setProgress(written / total);
           console.log(written, total);
         }
       );
@@ -187,20 +186,20 @@ export default function App() {
     } catch (error) {
       console.log(error);
     } finally {
-      setSourceUploadProgress(0);
+      progressRef.current?.setProgress(0);
     }
   };
 
   const uploadCompressed = async () => {
     if (!compressedVideo) return;
     try {
-      setCompressedUploadProgress(1);
-      const result = await Video.backgroundUpload(
+      progressRef.current?.setProgress(1);
+      const result = await backgroundUpload(
         'http://w.hbu50.com:8080/hello.mp4',
         compressedVideo,
         { httpMethod: 'PUT' },
         (written, total) => {
-          setCompressedUploadProgress(written / total);
+          progressRef.current?.setProgress(written / total);
           console.log(written, total);
         }
       );
@@ -208,7 +207,7 @@ export default function App() {
     } catch (error) {
       console.log(error);
     } finally {
-      setCompressedUploadProgress(0);
+      progressRef.current?.setProgress(0);
     }
   };
 
@@ -227,6 +226,7 @@ export default function App() {
   };
   return (
     <View style={{ flex: 1 }}>
+      <ProgressBar ref={progressRef} />
       <View
         style={{
           flex: 1,
@@ -245,9 +245,6 @@ export default function App() {
               />
               {sourceSize && <Text>Size: {sourceSize}</Text>}
               <Button title="Upload" onPress={uploadSource} />
-              {sourceUploadProgress > 0 && (
-                <Progress.Bar progress={sourceUploadProgress} width={200} />
-              )}
             </View>
           )}
         </View>
@@ -262,21 +259,10 @@ export default function App() {
               />
               {compressedSize && <Text>Size: {compressedSize}</Text>}
               <Button title="Upload" onPress={uploadCompressed} />
-              {compressedUploadProgress > 0 && (
-                <View>
-                  <Progress.Bar
-                    progress={compressedUploadProgress}
-                    width={200}
-                  />
-                </View>
-              )}
             </View>
           )}
         </View>
       </View>
-      {compressingProgress > 0 && (
-        <Progress.Bar progress={compressingProgress} width={400} />
-      )}
       <View
         style={{
           height: 50,

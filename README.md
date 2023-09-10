@@ -17,9 +17,9 @@
 **REACT-NATIVE-COMPRESSOR** is a react-native package, which helps us to Compress `Image`, `Video`, and `Audio` before uploading, same like **Whatsapp** without knowing the compression `algorithm`
 
 <div align="center">
-<img height="90" src="/media/whatsapp_logo.png"/>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-<img height="90" src="/media/compress_media.png"/>
+<pre>
+<img height="90" src="/media/whatsapp_logo.png"/>               <img height="90" src="/media/compress_media.png"/>
+</pre>
 <h2 align="center">🗜️Compress Image, Video, and Audio same like Whatsapp</h2>
 </div>
 
@@ -53,9 +53,7 @@ We should use **react-native-compressor** instead of **FFmpeg** because **react-
 <summary>Open Table of Contents</summary>
 
 - [Installation](#installation)
-  - [For React Native](#react-native)
-    - [For React Native<0.65](#for-react-native065)
-    - [For React Native 0.65 or greater](#for-react-native-065-or-greater)
+  - [For React Native](#Installation)
   - [Managed Expo](#managed-expo)
 - [Usage](#usage)
   - [Image](#image)
@@ -69,6 +67,7 @@ We should use **react-native-compressor** instead of **FFmpeg** because **react-
     - [Video Api Docs](#video-1)
   - [Audio](#audio)
   - [Background Upload](#background-upload)
+  - [Download File](#download)
 
 * [Other Utilities](#api)
   - [Background Upload](#background-upload-1)
@@ -164,6 +163,7 @@ import { Image } from 'react-native-compressor';
 const result = await Image.compress('file://path_of_file/image.jpg');
 // OR
 const result = await Image.compress('https://path_of_file/image.jpg', {
+  progressDivider: 10,
   downloadProgress: (progress) => {
     console.log('downloadProgress: ', progress);
   },
@@ -204,6 +204,7 @@ const result = await Video.compress(
 const result = await Video.compress(
   'https://example.com/video.mp4',
   {
+    progressDivider: 10,
     downloadProgress: (progress) => {
       console.log('downloadProgress: ', progress);
     },
@@ -288,6 +289,16 @@ const uploadResult = await backgroundUpload(
 );
 ```
 
+### Download File
+
+```js
+import { download } from 'react-native-compressor';
+
+const downloadFileUrl = await download(url, (progress) => {
+  console.log('downloadProgress: ', progress);
+});
+```
+
 # API
 
 ## Image
@@ -307,6 +318,10 @@ const uploadResult = await backgroundUpload(
 - ##### `downloadProgress?: (progress: number) => void;`
 
   it is callback, only trigger when we pass image url from server
+
+- ##### `progressDivider?: number` (default: 0)
+
+  we uses it when we use downloadProgress
 
 - ###### `maxWidth: number` (default: 1280)
 
@@ -348,6 +363,10 @@ const uploadResult = await backgroundUpload(
 
   it is callback, only trigger when we pass image url from server
 
+- ##### `progressDivider?: number` (default: 0)
+
+  we uses it when we use downloadProgress/onProgress
+
 - ###### `maxSize: number` (default: 640)
 
   The maximum size can be height in case of portrait video or can be width in case of landscape video.
@@ -376,7 +395,7 @@ const uploadResult = await backgroundUpload(
 
 ## Background Upload
 
-- ###### `backgroundUpload: (url: string, fileUrl: string, options: FileSystemUploadOptions, onProgress?: ((writtem: number, total: number) => void) | undefined) => Promise<any>
+- ###### backgroundUpload: (url: string, fileUrl: string, options: FileSystemUploadOptions, onProgress?: ((writtem: number, total: number) => void) | undefined) => Promise< any >
 
 - ###### ` FileSystemUploadOptions`
 
@@ -397,6 +416,10 @@ type FileSystemUploadOptions = (
   sessionType?: FileSystemSessionType,
 };
 ```
+
+### Download
+
+- ##### download: ( fileUrl: string, downloadProgress?: (progress: number) => void, progressDivider?: number ) => Promise< string >
 
 ### Get Metadata Of Video
 

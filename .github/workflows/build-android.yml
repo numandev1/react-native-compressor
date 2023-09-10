@@ -3,13 +3,14 @@ name: Build Android App
 on:
   push:
     branches:
-      - master
+      - main
     paths:
       - '.github/workflows/build-android.yml'
       - 'android/**'
       - 'example/android/**'
       - 'yarn.lock'
       - 'example/yarn.lock'
+      - 'src/Spec/**'
   pull_request:
     paths:
       - '.github/workflows/build-android.yml'
@@ -17,21 +18,19 @@ on:
       - 'example/android/**'
       - 'yarn.lock'
       - 'example/yarn.lock'
+      - 'src/Spec/**'
 
 jobs:
-  build:
+  build_example:
     name: Build Android Example App
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: example/android
     steps:
       - uses: actions/checkout@v2
 
-      - name: Setup JDK 1.8
+      - name: Setup JDK 11
         uses: actions/setup-java@v1
         with:
-          java-version: 1.8
+          java-version: 11
 
       - name: Get yarn cache directory path
         id: yarn-cache-dir-path
@@ -44,8 +43,10 @@ jobs:
           key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
           restore-keys: |
             ${{ runner.os }}-yarn-
+      - name: Install node_modules
+        run: yarn install --frozen-lockfile
       - name: Install node_modules for example/
-        run: yarn install --frozen-lockfile --cwd ..
+        run: yarn install --frozen-lockfile --cwd example
 
       - name: Restore Gradle cache
         uses: actions/cache@v2
@@ -56,5 +57,5 @@ jobs:
           key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
           restore-keys: |
             ${{ runner.os }}-gradle-
-      - name: Run Gradle Build
-        run: ./gradlew assembleDebug
+      - name: Run Gradle Build for example/android/
+        run: cd example/android && ./gradlew assembleDebug --build-cache && cd ../..

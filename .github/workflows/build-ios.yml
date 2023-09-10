@@ -9,12 +9,14 @@ on:
       - 'ios/**'
       - '*.podspec'
       - 'example/ios/**'
+      - 'src/Spec/**'
   pull_request:
     paths:
       - '.github/workflows/build-ios.yml'
       - 'ios/**'
       - '*.podspec'
       - 'example/ios/**'
+      - 'src/Spec/**'
 
 jobs:
   build:
@@ -40,10 +42,14 @@ jobs:
       - name: Install node_modules for example/
         run: yarn install --frozen-lockfile --cwd ..
 
+      - name: Restore buildcache
+        uses: mikehardy/buildcache-action@v1
+        continue-on-error: true
+
       - name: Setup Ruby (bundle)
         uses: ruby/setup-ruby@v1
         with:
-          ruby-version: 2.6
+          ruby-version: 2.7
           bundler-cache: true
           working-directory: example/ios
 
@@ -58,13 +64,17 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pods-
       - name: Install Pods
-        run: bundle exec pod check || bundle exec pod install
+        run: bundle exec pod check || NO_FLIPPER=1 RCT_NEW_ARCH_ENABLED=1 bundle exec pod install
+      - name: Install xcpretty
+        run: gem install xcpretty
       - name: Build App
-        run: "xcodebuild \
+        run: "set -o pipefail && xcodebuild \
+          CC=clang CPLUSPLUS=clang++ LD=clang LDPLUSPLUS=clang++ \
+          -derivedDataPath build -UseModernBuildSystem=YES \
           -workspace CompressorExample.xcworkspace \
           -scheme CompressorExample \
           -sdk iphonesimulator \
           -configuration Debug \
-          -destination \"generic/platform=iOS Simulator\" \
+          -destination 'platform=iOS Simulator,name=iPhone 11 Pro' \
           build \
-          CODE_SIGNING_ALLOWED=NO"
+          CODE_SIGNING_ALLOWED=NO | xcpretty"

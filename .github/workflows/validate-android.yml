@@ -20,13 +20,13 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./android
+        working-directory: ./example/android
     steps:
       - uses: actions/checkout@v2
-      - name: Setup JDK 1.8
+      - name: Setup JDK 11
         uses: actions/setup-java@v1
         with:
-          java-version: 1.8
+          java-version: 11
 
       - name: Get yarn cache directory path
         id: yarn-cache-dir-path
@@ -40,6 +40,8 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-yarn-
       - name: Install node_modules
+        run: yarn install --frozen-lockfile --cwd ../..
+      - name: Install node_modules for example/
         run: yarn install --frozen-lockfile --cwd ..
 
       - name: Restore Gradle cache
@@ -52,9 +54,9 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
       - name: Run Gradle Lint
-        run: ./gradlew lint
+        run: ./gradlew lint --build-cache
 
       - name: Parse Gradle Lint Report
-        uses: yutailang0119/action-android-lint@v1.0.2
+        uses: yutailang0119/action-android-lint@v3.1.0
         with:
-          xml_path: android/build/reports/lint-results.xml
+          report-path: example/android/build/reports/lint-results.xml

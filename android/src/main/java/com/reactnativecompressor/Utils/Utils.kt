@@ -1,0 +1,162 @@
+package com.reactnativecompressor.Utils
+
+import android.content.ContentResolver
+import android.content.res.AssetFileDescriptor
+import android.net.Uri
+import android.provider.OpenableColumns
+import android.util.Log
+import com.facebook.react.bridge.Promise
+import com.facebook.react.bridge.ReactApplicationContext
+import numan.dev.videocompressor.VideoCompressTask
+import numan.dev.videocompressor.VideoCompressor
+import java.io.FileNotFoundException
+import java.io.IOException
+import java.net.HttpURLConnection
+import java.net.URL
+import java.util.UUID
+
+object Utils {
+    private const val TAG = "react-native-compessor"
+    var compressorExports: MutableMap<String, VideoCompressTask> = HashMap()
+    @JvmStatic
+    fun generateCacheFilePath(extension: String, reactContext: ReactApplicationContext): String {
+        val outputDir = reactContext.cacheDir
+        return String.format("%s/%s.$extension", outputDir.path, UUID.randomUUID().toString())
+    }
+
+    @JvmStatic
+    fun compressVideo(srcPath: String, destinationPath: String, resultWidth: Int, resultHeight: Int, videoBitRate: Float, uuid: String,progressDivider:Int, promise: Promise, reactContext: ReactApplicationContext) {
+        val currentVideoCompression = intArrayOf(0)
+        try {
+            val export = VideoCompressor.convertVideo(srcPath, destinationPath, resultWidth, resultHeight, videoBitRate.toInt(), object : VideoCompressor.ProgressListener {
+                override fun onStart() {
+                    //convert start
+                }
+
+                override fun onFinish(result: Boolean) {
+                    val fileUrl = "file://$destinationPath"
+                    //convert finish,result(true is success,false is fail)
+                    promise.resolve(fileUrl)
+                    MediaCache.removeCompletedImagePath(fileUrl)
+                }
+
+                override fun onError(errorMessage: String) {
+                    if (errorMessage == "class java.lang.AssertionError") {
+                        promise.resolve("file://$srcPath")
+                    } else {
+                        promise.reject("Compression has canncelled")
+                    }
+                }
+
+                override fun onProgress(percent: Float) {
+                    val roundProgress = Math.round(percent)
+                    if (progressDivider==0||(roundProgress % progressDivider == 0 && roundProgress > currentVideoCompression[0])) {
+                      EventEmitterHandler.emitVideoCompressProgress((percent / 100).toDouble(),uuid)
+                        currentVideoCompression[0] = roundProgress
+                    }
+                }
+            })
+            compressorExports[uuid] = export
+        } catch (ex: Exception) {
+            promise.reject(ex)
+        } finally {
+            currentVideoCompression[0] = 0
+        }
+    }
+
+    fun cancelCompressionHelper(uuid: String) {
+        try {
+            val export = compressorExports[uuid]
+            export!!.cancel(true)
+        } catch (ex: Exception) {
+        }
+    }
+
+    @JvmStatic
+    fun getFileSizeFromURL(urlString: String?): Int {
+        val url: URL
+        var conn: HttpURLConnection? = null
+        return try {
+            url = URL(urlString)
+            conn = url.openConnection() as HttpURLConnection
+            conn.requestMethod = "HEAD"
+            conn!!.inputStream
+            conn.contentLength
+        } catch (e: IOException) {
+            throw RuntimeException(e)
+        } finally {
+            conn?.disconnect()
+        }
+    }
+
+    @JvmStatic
+    fun getRealPath(fileUrl: String?, reactContext: ReactApplicationContext, vararg args: Any?): String? {
+        var fileUrl = fileUrl
+        if (fileUrl!!.startsWith("content://")) {
+            try {
+                val uri = Uri.parse(fileUrl)
+                fileUrl = RealPathUtil.getRealPath(reactContext, uri)
+            } catch (ex: Exception) {
+                Log.d(TAG, " Please see this issue: https://github.com/numandev1/react-native-compressor/issues/25")
+            }
+        } else if (fileUrl.startsWith("http://") || fileUrl.startsWith("https://")) {
+            val uuid: String = if (args.size > 0) args[0].toString() else ""
+            val progressDivider: Int = if (args.size > 1) args[1] as Int else 0
+            fileUrl = Downloader.downloadMediaWithProgress(fileUrl, uuid,progressDivider, reactContext)
+            Log.d(TAG, "getRealPath: $fileUrl")
+        }
+        return fileUrl
+    }
+
+
+
+  fun getFileSize(filePath: String, promise: Promise, reactContext:ReactApplicationContext) {
+    var filePath: String? = filePath
+    if (filePath!!.startsWith("http://") || filePath.startsWith("https://")) {
+      promise.resolve(getFileSizeFromURL(filePath))
+    } else {
+      filePath = getRealPath(filePath, reactContext)
+      val uri = Uri.parse(filePath)
+      val contentResolver = reactContext.contentResolver
+      val fileSize = getLength(uri, contentResolver)
+      if (fileSize >= 0) {
+        promise.resolve(fileSize.toString())
+      } else {
+        promise.resolve("")
+      }
+    }
+  }
+
+  fun getLength(uri: Uri, contentResolver: ContentResolver): Long {
+    var assetFileDescriptor: AssetFileDescriptor? = null
+    try {
+      assetFileDescriptor = contentResolver.openAssetFileDescriptor(uri, "r")
+    } catch (e: FileNotFoundException) {
+      // Do nothing
+    }
+    val length = assetFileDescriptor?.length ?: -1L
+    if (length != -1L) {
+      return length
+    }
+    return if (ContentResolver.SCHEME_CONTENT == uri.scheme) {
+      val cursor = contentResolver.query(uri, arrayOf(OpenableColumns.SIZE), null, null, null)
+      if (cursor != null) {
+        try {
+          val sizeIndex = cursor.getColumnIndex(OpenableColumns.SIZE)
+          if (sizeIndex != -1 && cursor.moveToFirst()) {
+            return try {
+              cursor.getLong(sizeIndex)
+            } catch (ignored: Throwable) {
+              -1L
+            }
+          }
+        } finally {
+          cursor.close()
+        }
+      }
+      -1L
+    } else {
+      -1L
+    }
+  }
+}

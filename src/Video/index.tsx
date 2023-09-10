@@ -1,17 +1,8 @@
-import { NativeEventEmitter, Platform } from 'react-native';
+import { NativeEventEmitter } from 'react-native';
 import type { NativeEventSubscription } from 'react-native';
-import { VideoCompressor } from '../Main';
+import { Compressor } from '../Main';
 import { uuidv4 } from '../utils';
 
-export declare enum FileSystemUploadType {
-  BINARY_CONTENT = 0,
-  MULTIPART = 1,
-}
-
-export declare type FileSystemAcceptedUploadHttpMethod =
-  | 'POST'
-  | 'PUT'
-  | 'PATCH';
 export type compressionMethod = 'auto' | 'manual';
 type videoCompresssionType = {
   bitrate?: number;
@@ -20,33 +11,10 @@ type videoCompresssionType = {
   minimumFileSizeForCompress?: number;
   getCancellationId?: (cancellationId: string) => void;
   downloadProgress?: (progress: number) => void;
-};
-
-export declare enum FileSystemSessionType {
-  BACKGROUND = 0,
-  FOREGROUND = 1,
-}
-
-export declare type HTTPResponse = {
-  status: number;
-  headers: Record<string, string>;
-  body: string;
-};
-
-export declare type FileSystemUploadOptions = (
-  | {
-      uploadType?: FileSystemUploadType.BINARY_CONTENT;
-    }
-  | {
-      uploadType: FileSystemUploadType.MULTIPART;
-      fieldName?: string;
-      mimeType?: string;
-      parameters?: Record<string, string>;
-    }
-) & {
-  headers?: Record<string, string>;
-  httpMethod?: FileSystemAcceptedUploadHttpMethod;
-  sessionType?: FileSystemSessionType;
+  /***
+   * Default:0, we uses it when we use downloadProgress/onProgress
+   */
+  progressDivider?: number;
 };
 
 export type VideoCompressorType = {
@@ -56,56 +24,13 @@ export type VideoCompressorType = {
     onProgress?: (progress: number) => void
   ): Promise<string>;
   cancelCompression(cancellationId: string): void;
-  backgroundUpload(
-    url: string,
-    fileUrl: string,
-    options: FileSystemUploadOptions,
-    onProgress?: (writtem: number, total: number) => void
-  ): Promise<any>;
   activateBackgroundTask(onExpired?: (data: any) => void): Promise<any>;
   deactivateBackgroundTask(): Promise<any>;
 };
 
-const VideoCompressEventEmitter = new NativeEventEmitter(VideoCompressor);
+const VideoCompressEventEmitter = new NativeEventEmitter(Compressor);
 
-const NativeVideoCompressor = VideoCompressor;
-
-export const backgroundUpload = async (
-  url: string,
-  fileUrl: string,
-  options: FileSystemUploadOptions,
-  onProgress?: (writtem: number, total: number) => void
-): Promise<any> => {
-  const uuid = uuidv4();
-  let subscription: NativeEventSubscription;
-  try {
-    if (onProgress) {
-      subscription = VideoCompressEventEmitter.addListener(
-        'VideoCompressorProgress',
-        (event: any) => {
-          if (event.uuid === uuid) {
-            onProgress(event.data.written, event.data.total);
-          }
-        }
-      );
-    }
-    if (Platform.OS === 'android' && fileUrl.includes('file://')) {
-      fileUrl = fileUrl.replace('file://', '');
-    }
-    const result = await NativeVideoCompressor.upload(fileUrl, {
-      uuid,
-      method: options.httpMethod,
-      headers: options.headers,
-      url,
-    });
-    return result;
-  } finally {
-    // @ts-ignore
-    if (subscription) {
-      subscription.remove();
-    }
-  }
-};
+const NativeVideoCompressor = Compressor;
 
 export const cancelCompression = (cancellationId: string) => {
   return NativeVideoCompressor.cancelCompression(cancellationId);
@@ -152,7 +77,10 @@ const Video: VideoCompressorType = {
         compressionMethod?: compressionMethod;
         maxSize?: number;
         minimumFileSizeForCompress?: number;
+        progressDivider?: number;
       } = { uuid };
+      if (options?.progressDivider)
+        modifiedOptions.progressDivider = options?.progressDivider;
       if (options?.bitrate) modifiedOptions.bitrate = options?.bitrate;
       if (options?.compressionMethod) {
         modifiedOptions.compressionMethod = options?.compressionMethod;
@@ -188,7 +116,6 @@ const Video: VideoCompressorType = {
       }
     }
   },
-  backgroundUpload,
   cancelCompression,
   activateBackgroundTask(onExpired?) {
     if (onExpired) {

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { View, StyleSheet, Dimensions, Text } from 'react-native';
 import Button from '../../Components/Button';
 import {
@@ -6,12 +6,15 @@ import {
   getRealPath,
   getVideoMetaData,
   getFileSize,
+  download,
 } from 'react-native-compressor';
 import CameraRoll from '@react-native-camera-roll/camera-roll';
 import * as ImagePicker from 'react-native-image-picker';
-
+import ProgressBar from '../../Components/ProgressBar';
+import type { ProgressBarRafType } from '../../Components/ProgressBar';
 const { width, height } = Dimensions.get('screen');
 const Index = () => {
+  const progressRef = useRef<ProgressBarRafType>();
   const [log, setLog] = useState('');
   const makeLog = (obj: any) => {
     let logStr = '';
@@ -79,8 +82,26 @@ const Index = () => {
       makeLog({ fileSize: size });
     });
   };
+
+  const downloadFile = () => {
+    const url =
+      'https://svs.gsfc.nasa.gov/vis/a030000/a030800/a030877/frames/5760x3240_16x9_01p/BlackMarble_2016_1200m_africa_s_labeled.png';
+    download(url, (progress) => {
+      console.log('downloadProgress: ', progress);
+      progressRef.current?.setProgress(progress);
+    })
+      .then(async (downloadedFileUri) => {
+        console.log('test', downloadedFileUri);
+        makeLog({ downloadedFileUri: downloadedFileUri });
+      })
+      .catch((e) => {
+        console.log(e, 'error1');
+      });
+  };
+
   return (
     <View style={styles.container}>
+      <ProgressBar ref={progressRef} />
       <Text style={styles.textInput}>{log}</Text>
       <View style={styles.container}>
         <Button
@@ -94,6 +115,7 @@ const Index = () => {
         />
         <Button onPress={onGetMetaInfoOfVideo} title="Get Meta Info Of Video" />
         <Button onPress={onGetFileSize} title="Get File Size" />
+        <Button onPress={downloadFile} title="Download File" />
       </View>
     </View>
   );

@@ -3,5 +3,4 @@
 //
 #import <React/RCTBridgeModule.h>
 #import <React/RCTEventEmitter.h>
-#import "ImageCompressor.h"
-#import "MediaCache.h"
+#import <Foundation/Foundation.h>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   StyleSheet,
@@ -9,15 +9,16 @@ import {
 } from 'react-native';
 import Button from '../../Components/Button';
 import Row from '../../Components/Row';
+import ProgressBar from '../../Components/ProgressBar';
+import type { ProgressBarRafType } from '../../Components/ProgressBar';
 import * as ImagePicker from 'react-native-image-picker';
 import CameraRoll from '@react-native-camera-roll/camera-roll';
 import prettyBytes from 'pretty-bytes';
-import * as Progress from 'react-native-progress';
 import { Image, getFileSize } from 'react-native-compressor';
 import { getFileInfo } from '../../Utils';
 const Index = () => {
+  const progressRef = useRef<ProgressBarRafType>();
   const dimension = useWindowDimensions();
-  const [compressingProgress, setCompressingProgress] = useState<number>(0);
   const [orignalUri, setOrignalUri] = useState<string>();
   const [commpressedUri, setCommpressedUri] = useState<string>();
   const [fileName, setFileName] = useState<any>('');
@@ -25,22 +26,23 @@ const Index = () => {
   const [orignalSize, setOrignalSize] = useState<string>('');
   const [compressedSize, setCompressedSize] = useState(0);
 
-  const compressHandler=(result:ImagePicker.ImagePickerResponse)=>{
+  const compressHandler = (result: ImagePicker.ImagePickerResponse) => {
     if (result.didCancel) {
       Alert.alert('Failed selecting Image');
       return;
-  }
+    }
     if (result.assets) {
       const source: any = result.assets[0];
       if (source) {
         setOrignalSize(prettyBytes(source.fileSize || 0));
 
-                setFileName(source.fileName);
-                setMimeType(source.type);
-                setOrignalUri(source.uri);
-              }
-              Image.compress(source.uri)
+        setFileName(source.fileName);
+        setMimeType(source.type);
+        setOrignalUri(source.uri);
+      }
+      Image.compress(source.uri)
         .then(async (compressedFileUri) => {
+          console.log(compressedFileUri, 'compressedFileUri');
           setCommpressedUri(compressedFileUri);
           const detail: any = await getFileInfo(compressedFileUri);
           setCompressedSize(prettyBytes(parseInt(detail.size || 0)));
@@ -49,31 +51,31 @@ const Index = () => {
           console.log(e, 'error');
         });
     }
-
-  }
+  };
 
   const chooseCameraImageHandler = async () => {
-      ImagePicker.launchCamera({
-        mediaType: 'photo',
-    }).then((result: ImagePicker.ImagePickerResponse) => {
-      compressHandler(result)
-    }).catch(err=>{
-      console.log(err,"error")
-    });;
-
-  }
+    ImagePicker.launchCamera({
+      mediaType: 'photo',
+    })
+      .then((result: ImagePicker.ImagePickerResponse) => {
+        compressHandler(result);
+      })
+      .catch((err) => {
+        console.log(err, 'error');
+      });
+  };
 
   const chooseGalleryImageHandler = async () => {
-      ImagePicker.launchImageLibrary(
-        {
-          mediaType: 'photo',
-        },
-        (result: ImagePicker.ImagePickerResponse) => {
-          compressHandler(result)
-        }
-      ).catch(err=>{
-        console.log(err,"error")
-      });
+    ImagePicker.launchImageLibrary(
+      {
+        mediaType: 'photo',
+      },
+      (result: ImagePicker.ImagePickerResponse) => {
+        compressHandler(result);
+      }
+    ).catch((err) => {
+      console.log(err, 'error');
+    });
   };
 
   const onPressRemoteImage = async () => {
@@ -86,9 +88,10 @@ const Index = () => {
     setOrignalSize(prettyBytes(parseInt(size)));
     setMimeType('image/jpeg');
     Image.compress(url, {
+      progressDivider: 10,
       downloadProgress: (progress) => {
         console.log('downloadProgress: ', progress);
-        setCompressingProgress(progress);
+        progressRef.current?.setProgress(progress);
       },
     })
       .then(async (compressedFileUri) => {
@@ -123,9 +126,7 @@ const Index = () => {
 
   return (
     <View style={styles.container}>
-      {compressingProgress > 0 && (
-        <Progress.Bar progress={compressingProgress} width={400} />
-      )}
+      <ProgressBar ref={progressRef} />
       <View style={styles.imageContainer}>
         {orignalUri && (
           <RNImage
@@ -151,8 +152,14 @@ const Index = () => {
         <Row label="Mime Type" value={mimeType} />
         <Row label="Orignal Size" value={orignalSize} />
         <Row label="Compressed Size" value={compressedSize} />
-        <Button onPress={chooseGalleryImageHandler} title="Choose Image (Gallery)" />
-        <Button onPress={chooseCameraImageHandler} title="Choose Image (Camera)" />
+        <Button
+          onPress={chooseGalleryImageHandler}
+          title="Choose Image (Gallery)"
+        />
+        <Button
+          onPress={chooseCameraImageHandler}
+          title="Choose Image (Camera)"
+        />
         <Button onPress={onPressRemoteImage} title="Remote Image (http://)" />
         {Platform.OS === 'ios' && (
           <Button

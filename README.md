@@ -84,7 +84,7 @@ yarn add react-native-compressor
 
 ### [New Architecture (Turbo Module)](https://reactnative.dev/docs/new-architecture-intro) Supported
 
-you can give feedback on [Discord channel](https://discord.gg/dtYzk8sp)
+you can give feedback on [Discord channel](https://discord.gg/6Wx8Em8KAN)
 
 ### Managed Expo
 

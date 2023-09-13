@@ -10,7 +10,9 @@ import {
   getVideoMetaData,
   getFileSize,
   backgroundUpload,
+  createVideoThumbnail,
   download,
+  clearCache,
 } from './utils';
 
 export {
@@ -25,6 +27,8 @@ export {
   generateFilePath,
   getRealPath,
   getVideoMetaData,
+  createVideoThumbnail,
+  clearCache,
   getFileSize,
 };
 export type { VideoCompressorType };
@@ -39,5 +43,7 @@ export default {
   getVideoMetaData,
   getFileSize,
   backgroundUpload,
+  createVideoThumbnail,
+  clearCache,
   download,
 };

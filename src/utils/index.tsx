@@ -49,6 +49,19 @@ export const getVideoMetaData: any = (path: string) => {
   return Compressor.getVideoMetaData(path);
 };
 
+export const createVideoThumbnail: any = (
+  url: string,
+  options: {
+    headers?: object;
+  } = {}
+) => {
+  return Compressor.createVideoThumbnail(url, options);
+};
+
+export const clearCache: any = (cacheDir?: string) => {
+  return Compressor.clearCache(cacheDir);
+};
+
 const isValidUrl = (url: string) =>
   /^(?:\w+:)?\/\/([^\s\.]+\.\S{2}|localhost[\:?\d]*)\S*$/.test(url);
 

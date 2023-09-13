@@ -92,5 +92,16 @@ class Compressor: RCTEventEmitter {
             resolve(downloadedPath)
         }
     }
+    
+    @objc(createVideoThumbnail:withOptions:withResolver:withRejecter:)
+    func createVideoThumbnail(fileUrl: String, options: NSDictionary, resolve:@escaping RCTPromiseResolveBlock, reject:@escaping RCTPromiseRejectBlock) -> Void {
+        let videoThumbnail=CreateVideoThumbnail()
+        videoThumbnail.create(fileUrl,options: options, resolve: resolve, rejecter: reject)
+    }
+    
+    @objc(clearCache:withResolver:withRejecter:)
+    func clearCache(cacheDir: String, resolve:@escaping RCTPromiseResolveBlock, reject:@escaping RCTPromiseRejectBlock) -> Void {
+        CreateVideoThumbnail.cleanCacheDir(cacheDir: cacheDir,resolve: resolve,rejecter: reject)
+    }
       
 }

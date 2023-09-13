@@ -8,6 +8,7 @@ import com.facebook.react.bridge.ReactMethod
 import com.facebook.react.bridge.ReadableMap
 import com.reactnativecompressor.Audio.AudioMain
 import com.reactnativecompressor.Image.ImageMain
+import com.reactnativecompressor.Utils.CreateVideoThumbnail
 import com.reactnativecompressor.Utils.Downloader
 import com.reactnativecompressor.Utils.EventEmitterHandler
 import com.reactnativecompressor.Utils.Uploader
@@ -20,6 +21,7 @@ class CompressorModule(private val reactContext: ReactApplicationContext) : Comp
   private val imageMain: ImageMain = ImageMain(reactContext)
   private val videoMain: VideoMain = VideoMain(reactContext)
   private val audioMain: AudioMain = AudioMain(reactContext)
+  private val videoThumbnail: CreateVideoThumbnail = CreateVideoThumbnail(reactContext)
 
   override fun initialize() {
     super.initialize()
@@ -145,6 +147,16 @@ class CompressorModule(private val reactContext: ReactApplicationContext) : Comp
     {
       promise.reject("Unable to download")
     }
+  }
+
+  @ReactMethod
+  override fun createVideoThumbnail(fileUrl:String, options:ReadableMap, promise:Promise) {
+    videoThumbnail.create(fileUrl,options,promise)
+  }
+
+  @ReactMethod
+  override fun clearCache(cacheDir:String?, promise:Promise) {
+    CreateVideoThumbnail.clearCache(cacheDir, promise, reactContext)
   }
 
     @ReactMethod

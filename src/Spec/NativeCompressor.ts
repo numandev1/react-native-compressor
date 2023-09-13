@@ -22,6 +22,17 @@ export interface Spec extends TurboModule {
   getFileSize(filePath: string): Promise<string>;
   addListener(eventName: string): void;
   removeListeners(count: number): void;
+  createVideoThumbnail(
+    fileUrl: string,
+    options: Object
+  ): Promise<{
+    path: string;
+    size: number;
+    mime: string;
+    width: number;
+    height: number;
+  }>;
+  clearCache(cacheDir: string | null): Promise<string>;
 }
 
 export default TurboModuleRegistry.getEnforcing<Spec>('Compressor');

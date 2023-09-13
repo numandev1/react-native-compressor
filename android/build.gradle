@@ -1,7 +1,7 @@
 buildscript {
    // Buildscript is evaluated before everything else so we can't use getExtOrDefault
   def kotlin_version = rootProject.ext.has("kotlinVersion") ? rootProject.ext.get("kotlinVersion") : project.properties["Compressor_kotlinVersion"]
-  
+
   repositories {
     google()
     mavenCentral()
@@ -110,6 +110,7 @@ dependencies {
   //noinspection GradleDynamicVersion
   implementation "com.facebook.react:react-native:+"
   implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
+  implementation 'commons-io:commons-io:2.8.0'
   implementation 'io.github.lizhangqu:coreprogress:1.0.2'
   implementation 'com.github.numandev1:VideoCompressor:1a262bba37'
 }

@@ -1,8 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, Button, Image, Alert, Platform } from 'react-native';
-import { Video, getRealPath, backgroundUpload } from 'react-native-compressor';
+import {
+  Video,
+  getRealPath,
+  backgroundUpload,
+  createVideoThumbnail,
+  clearCache,
+} from 'react-native-compressor';
 import * as ImagePicker from 'react-native-image-picker';
-import { createThumbnail } from 'react-native-create-thumbnail';
 import CameraRoll from '@react-native-camera-roll/camera-roll';
 import prettyBytes from 'pretty-bytes';
 import { getFileInfo } from '../../Utils';
@@ -25,9 +30,7 @@ export default function App() {
 
   useEffect(() => {
     if (!sourceVideo) return;
-    createThumbnail({
-      url: sourceVideo,
-    })
+    createVideoThumbnail(sourceVideo, {})
       .then((response) => setSourceVideoThumbnail(response.path))
       .catch((error) => console.log({ error }));
     (async () => {
@@ -39,9 +42,7 @@ export default function App() {
   useEffect(() => {
     if (!compressedVideo) return;
     setcompressedVideoThumbnail(sourceVideoThumbnail);
-    createThumbnail({
-      url: compressedVideo,
-    })
+    createVideoThumbnail(compressedVideo)
       .then((response) => setcompressedVideoThumbnail(response.path))
       .catch((error) => {
         console.log({ errorThumnail: error });
@@ -218,12 +219,20 @@ export default function App() {
     });
     const phUrl = photos.page_info.end_cursor;
     setSourceVideo(phUrl);
-    console.log('nomi', phUrl);
     if (phUrl?.includes('ph://')) {
       const realPath = await getRealPath(phUrl, 'video');
       console.log('old path==>', phUrl, 'realPath ==>', realPath);
     }
   };
+
+  const clearThumbnailCache = () => {
+    clearCache()
+      .then(() => {
+        console.log('done');
+      })
+      .catch((error: any) => console.log(error));
+  };
+
   return (
     <View style={{ flex: 1 }}>
       <ProgressBar ref={progressRef} />
@@ -285,6 +294,7 @@ export default function App() {
           onPress={onPressRemoteVideo}
         />
         <Button title="Cancel Compression" onPress={cancelCompression} />
+        <Button title="clear thumbnail cache" onPress={clearThumbnailCache} />
         <Text>Put app in background and check console output</Text>
         <View
           style={{

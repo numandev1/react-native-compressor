@@ -52,6 +52,15 @@ RCT_EXTERN_METHOD(deactivateBackgroundTask: (NSDictionary *)options
                  withResolver:(RCTPromiseResolveBlock)resolve
                  withRejecter:(RCTPromiseRejectBlock)reject)
 
+RCT_EXTERN_METHOD(createVideoThumbnail:(NSString *)fileUrl
+                 withOptions:(NSDictionary *)options
+                 withResolver:(RCTPromiseResolveBlock)resolve
+                 withRejecter:(RCTPromiseRejectBlock)reject)
+
+RCT_EXTERN_METHOD(clearCache:(NSString *)cacheDir
+                 withResolver:(RCTPromiseResolveBlock)resolve
+                 withRejecter:(RCTPromiseRejectBlock)reject)
+
 RCT_EXTERN_METHOD(cancelCompression:(NSString *)uuid)
 
 // Don't compile this code when we build for the old architecture.

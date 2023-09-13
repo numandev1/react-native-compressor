@@ -27,6 +27,8 @@ abstract class CompressorSpec(context: ReactApplicationContext?) : ReactContextB
     abstract fun download(fileUrl: String, options: ReadableMap, promise: Promise)
     abstract fun activateBackgroundTask(options: ReadableMap, promise: Promise)
     abstract fun deactivateBackgroundTask(options: ReadableMap, promise: Promise)
+    abstract fun createVideoThumbnail(fileUrl: String?, options: ReadableMap?, promise: Promise)
+    abstract fun clearCache(cacheDir: String?, promise: com.facebook.react.bridge.Promise?)
     abstract fun addListener(eventName: String)
     abstract fun removeListeners(count: Double)
 }

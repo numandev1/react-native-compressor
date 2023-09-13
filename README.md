@@ -299,6 +299,16 @@ const downloadFileUrl = await download(url, (progress) => {
 });
 ```
 
+### Video Thumbnail
+
+```js
+import { createVideoThumbnail, clearCache } from 'react-native-compressor';
+
+const thumbnail = await createVideoThumbnail(videoUri);
+
+await clearCache(); // this will clear cache of thumbnails cache directory
+```
+
 # API
 
 ## Image
@@ -420,6 +430,16 @@ type FileSystemUploadOptions = (
 ### Download
 
 - ##### download: ( fileUrl: string, downloadProgress?: (progress: number) => void, progressDivider?: number ) => Promise< string >
+
+### Create Video Thumbnail and clear cache
+
+- #### createVideoThumbnail( fileUrl: string, options: {header:Object} ): Promise<{ path: string;size: number; mime: string; width: number; height: number; }>
+
+  it will save the thumbnail of the video into the cache directory and return the thumbnail URI which you can display
+
+- #### clearCache(cacheDir?: string): Promise< string >
+
+  it will clear the cache that was created from createVideoThumbnail, in future this clear cache will be totally customized
 
 ### Get Metadata Of Video
 

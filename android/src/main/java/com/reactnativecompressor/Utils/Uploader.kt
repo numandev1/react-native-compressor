@@ -32,17 +32,17 @@ object Uploader {
       if (url != null) {
         builder.url(url)
       }
-        val headerIterator = options!!.headers!!.keySetIterator()
-        while (headerIterator.hasNextKey()) {
-            val key = headerIterator.nextKey()
-            val value = options.headers!!.getString(key)
-            Log.d(TAG, "$key  value: $value")
-            builder.addHeader(key, value.toString())
-            if (key.lowercase(Locale.getDefault()) === "content-type:") {
-                contentType = value
-            }
+        val headerIterator = options?.headers?.keySetIterator()
+        while (headerIterator?.hasNextKey() == true) {
+          val key = headerIterator.nextKey()
+          val value = options.headers?.getString(key)
+          Log.d(TAG, "$key  value: $value")
+          builder.addHeader(key, value.toString())
+          if (key.lowercase(Locale.getDefault()) == "content-type:") {
+            contentType = value
+          }
         }
-        val mediaType: MediaType = contentType?.toMediaTypeOrNull()!!;
+        val mediaType: MediaType? = contentType?.toMediaTypeOrNull();
         val body = RequestBody.create(mediaType, uploadableFile)
         val requestBody = ProgressHelper.withProgress(body, object : ProgressUIListener() {
             //if you don't need this method, don't override this methd. It isn't an abstract method, just an empty method.
@@ -52,7 +52,7 @@ object Uploader {
             }
 
             override fun onUIProgressChanged(numBytes: Long, totalBytes: Long, percent: Float, speed: Float) {
-                EventEmitterHandler.sendUploadProgressEvent(numBytes,totalBytes,options.uuid)
+                EventEmitterHandler.sendUploadProgressEvent(numBytes,totalBytes,options?.uuid)
                 Log.d(TAG, "=============start===============")
                 Log.d(TAG, "numBytes:$numBytes")
                 Log.d(TAG, "totalBytes:$totalBytes")

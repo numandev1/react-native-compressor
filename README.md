@@ -68,6 +68,7 @@ We should use **react-native-compressor** instead of **FFmpeg** because **react-
   - [Audio](#audio)
   - [Background Upload](#background-upload)
   - [Download File](#download)
+  - [Create Video Thumbnail and Clear Cache](#create-video-thumbnail-and-clear-cache)
 
 * [Other Utilities](#api)
   - [Background Upload](#background-upload-1)
@@ -431,7 +432,7 @@ type FileSystemUploadOptions = (
 
 - ##### download: ( fileUrl: string, downloadProgress?: (progress: number) => void, progressDivider?: number ) => Promise< string >
 
-### Create Video Thumbnail and clear cache
+### Create Video Thumbnail and Clear Cache
 
 - #### createVideoThumbnail( fileUrl: string, options: {header:Object} ): Promise<{ path: string;size: number; mime: string; width: number; height: number; }>
 

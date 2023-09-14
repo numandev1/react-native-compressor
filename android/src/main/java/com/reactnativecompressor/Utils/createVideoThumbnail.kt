@@ -26,7 +26,7 @@ import java.net.URLDecoder
 import java.util.UUID
 
 
-class CreateVideoThumbnail(private val reactContext: ReactApplicationContext) {
+class CreateVideoThumbnailClass(private val reactContext: ReactApplicationContext) {
     @ReactMethod
     fun create(fileUrl:String,options: ReadableMap, promise: Promise) {
         ProcessDataTask(reactContext,fileUrl, promise, options).execute()

@@ -30,6 +30,22 @@ export type AudioType = {
   compress(value: string, options?: audioCompresssionType): Promise<string>;
 };
 
+type createVideoThumbnailType = (
+  fileUrl: string,
+  options?: {
+    headers?: { [key: string]: string };
+  }
+) => Promise<{
+  path: string;
+  size: number;
+  mime: string;
+  width: number;
+  height: number;
+}>;
+
+type clearCacheType = (cacheDir?: string) => Promise<string>;
+type getVideoMetaDataType = (filePath: string) => Promise<string>;
+
 export const generateFilePath: any = (extension: string) => {
   return new Promise((resolve, reject) => {
     Compressor.generateFilePath(extension)
@@ -45,20 +61,18 @@ export const getRealPath: any = (
   return Compressor.getRealPath(path, type);
 };
 
-export const getVideoMetaData: any = (path: string) => {
+export const getVideoMetaData: getVideoMetaDataType = (path: string) => {
   return Compressor.getVideoMetaData(path);
 };
 
-export const createVideoThumbnail: any = (
-  url: string,
-  options: {
-    headers?: object;
-  } = {}
+export const createVideoThumbnail: createVideoThumbnailType = (
+  fileUrl,
+  options = {}
 ) => {
-  return Compressor.createVideoThumbnail(url, options);
+  return Compressor.createVideoThumbnail(fileUrl, options);
 };
 
-export const clearCache: any = (cacheDir?: string) => {
+export const clearCache: clearCacheType = (cacheDir?: string) => {
   return Compressor.clearCache(cacheDir);
 };
 

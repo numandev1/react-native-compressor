@@ -7,8 +7,8 @@ import android.provider.OpenableColumns
 import android.util.Log
 import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
-import numan.dev.videocompressor.VideoCompressTask
-import numan.dev.videocompressor.VideoCompressor
+import com.reactnativecompressor.Video.VideoCompressor.CompressionListener
+import com.reactnativecompressor.Video.VideoCompressor.VideoCompressorClass
 import java.io.FileNotFoundException
 import java.io.IOException
 import java.net.HttpURLConnection
@@ -17,7 +17,7 @@ import java.util.UUID
 
 object Utils {
     private const val TAG = "react-native-compessor"
-    var compressorExports: MutableMap<String, VideoCompressTask> = HashMap()
+    var compressorExports: MutableMap<String, VideoCompressorClass?> = HashMap()
     @JvmStatic
     fun generateCacheFilePath(extension: String, reactContext: ReactApplicationContext): String {
         val outputDir = reactContext.cacheDir
@@ -26,48 +26,54 @@ object Utils {
 
     @JvmStatic
     fun compressVideo(srcPath: String, destinationPath: String, resultWidth: Int, resultHeight: Int, videoBitRate: Float, uuid: String,progressDivider:Int, promise: Promise, reactContext: ReactApplicationContext) {
-        val currentVideoCompression = intArrayOf(0)
-        try {
-            val export = VideoCompressor.convertVideo(srcPath, destinationPath, resultWidth, resultHeight, videoBitRate.toInt(), object : VideoCompressor.ProgressListener {
-                override fun onStart() {
-                    //convert start
+      val currentVideoCompression = intArrayOf(0)
+      val videoCompressorClass: VideoCompressorClass? = VideoCompressorClass(reactContext);
+      compressorExports[uuid] = videoCompressorClass
+      videoCompressorClass?.start(srcPath, destinationPath, resultWidth, resultHeight, videoBitRate.toInt(),
+          listener = object : CompressionListener {
+            override fun onProgress(index: Int, percent: Float) {
+              if (percent <= 100)
+              {
+                val roundProgress = Math.round(percent)
+                if (progressDivider==0||(roundProgress % progressDivider == 0 && roundProgress > currentVideoCompression[0])) {
+                  EventEmitterHandler.emitVideoCompressProgress((percent / 100).toDouble(),uuid)
+                  currentVideoCompression[0] = roundProgress
                 }
+              }
+            }
 
-                override fun onFinish(result: Boolean) {
-                    val fileUrl = "file://$destinationPath"
-                    //convert finish,result(true is success,false is fail)
-                    promise.resolve(fileUrl)
-                    MediaCache.removeCompletedImagePath(fileUrl)
-                }
+            override fun onStart(index: Int) {
 
-                override fun onError(errorMessage: String) {
-                    if (errorMessage == "class java.lang.AssertionError") {
-                        promise.resolve("file://$srcPath")
-                    } else {
-                        promise.reject("Compression has canncelled")
-                    }
-                }
+            }
 
-                override fun onProgress(percent: Float) {
-                    val roundProgress = Math.round(percent)
-                    if (progressDivider==0||(roundProgress % progressDivider == 0 && roundProgress > currentVideoCompression[0])) {
-                      EventEmitterHandler.emitVideoCompressProgress((percent / 100).toDouble(),uuid)
-                        currentVideoCompression[0] = roundProgress
-                    }
-                }
-            })
-            compressorExports[uuid] = export
-        } catch (ex: Exception) {
-            promise.reject(ex)
-        } finally {
-            currentVideoCompression[0] = 0
-        }
+            override fun onSuccess(index: Int, size: Long, path: String?) {
+              val fileUrl = "file://$destinationPath"
+              //convert finish,result(true is success,false is fail)
+              promise.resolve(fileUrl)
+              MediaCache.removeCompletedImagePath(fileUrl)
+              currentVideoCompression[0] = 0
+              compressorExports[uuid]=null
+            }
+
+            override fun onFailure(index: Int, failureMessage: String) {
+              Log.wtf("failureMessage", failureMessage)
+              currentVideoCompression[0] = 0
+            }
+
+            override fun onCancelled(index: Int) {
+              Log.wtf("TAG", "compression has been cancelled")
+              // make UI changes, cleanup, etc
+              currentVideoCompression[0] = 0
+            }
+          },
+        )
     }
 
     fun cancelCompressionHelper(uuid: String) {
         try {
             val export = compressorExports[uuid]
-            export!!.cancel(true)
+            export?.cancel()
+          compressorExports[uuid]=null
         } catch (ex: Exception) {
         }
     }

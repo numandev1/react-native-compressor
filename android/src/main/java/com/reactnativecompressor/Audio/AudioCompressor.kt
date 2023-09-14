@@ -11,7 +11,7 @@ import android.media.MediaMuxer
 import android.os.Build
 import android.util.Log
 import androidx.annotation.RequiresApi
-import numan.dev.videocompressor.codecinputsurface.CodecInputSurface
+import com.reactnativecompressor.Video.VideoCompressor.video.OutputSurface
 import java.io.File
 import java.io.IOException
 import java.nio.ByteBuffer
@@ -24,7 +24,7 @@ class AudioCompressor {
     private var mEncoder: MediaCodec? = null
     private var mDecoder: MediaCodec? = null
     private var mTrackIndex = 0
-    private var mInputSurface: CodecInputSurface? = null
+    private var mInputSurface: OutputSurface? = null
 
     // bit rate, in bits per second
     private var mBitRate = -1

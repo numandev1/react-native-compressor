@@ -110,9 +110,12 @@ dependencies {
   //noinspection GradleDynamicVersion
   implementation "com.facebook.react:react-native:+"
   implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
-  implementation 'commons-io:commons-io:2.8.0'
+
+  implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4"
+  implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.4"
+  implementation "com.googlecode.mp4parser:isoparser:1.0.6"
+
   implementation 'io.github.lizhangqu:coreprogress:1.0.2'
-  implementation 'com.github.numandev1:VideoCompressor:1a262bba37'
 }
 
 if (isNewArchitectureEnabled()) {

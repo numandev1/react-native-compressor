@@ -1,6 +1,6 @@
 {
   "name": "react-native-compressor",
-  "version": "1.8.2",
+  "version": "1.8.3",
   "description": "This library compress image, video and audio",
   "main": "lib/commonjs/index",
   "module": "lib/module/index",

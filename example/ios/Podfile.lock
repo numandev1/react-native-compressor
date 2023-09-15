@@ -881,7 +881,7 @@ PODS:
     - React-Codegen
     - React-RCTFabric
     - ReactCommon/turbomodule/core
-  - react-native-compressor (1.8.0):
+  - react-native-compressor (1.8.2):
     - hermes-engine
     - NextLevelSessionExporter
     - RCT-Folly (= 2021.07.22.00)
@@ -1126,7 +1126,7 @@ PODS:
     - React-RCTText
     - ReactCommon/turbomodule/core
     - Yoga
-  - RNScreens (3.24.0):
+  - RNScreens (3.25.0):
     - RCT-Folly
     - RCTRequired
     - RCTTypeSafety
@@ -1134,8 +1134,8 @@ PODS:
     - React-Codegen
     - React-RCTFabric
     - ReactCommon/turbomodule/core
-    - RNScreens/common (= 3.24.0)
-  - RNScreens/common (3.24.0):
+    - RNScreens/common (= 3.25.0)
+  - RNScreens/common (3.25.0):
     - RCT-Folly
     - RCTRequired
     - RCTTypeSafety
@@ -1143,7 +1143,7 @@ PODS:
     - React-Codegen
     - React-RCTFabric
     - ReactCommon/turbomodule/core
-  - RNSVG (13.11.0):
+  - RNSVG (13.13.0):
     - hermes-engine
     - RCT-Folly (= 2021.07.22.00)
     - RCTRequired
@@ -1158,9 +1158,9 @@ PODS:
     - React-utils
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
-    - RNSVG/common (= 13.11.0)
+    - RNSVG/common (= 13.13.0)
     - Yoga
-  - RNSVG/common (13.11.0):
+  - RNSVG/common (13.13.0):
     - hermes-engine
     - RCT-Folly (= 2021.07.22.00)
     - RCTRequired
@@ -1381,7 +1381,7 @@ SPEC CHECKSUMS:
   React-jsinspector: aaed4cf551c4a1c98092436518c2d267b13a673f
   React-logger: da1ebe05ae06eb6db4b162202faeafac4b435e77
   react-native-cameraroll: 5d9523136a929b58f092fd7f0a9a13367a4b46e3
-  react-native-compressor: 7afa42104baf644c6b3eaad024508306b71379a9
+  react-native-compressor: 5ade6acb23c816132fe941fe08b8632eb369e354
   react-native-document-picker: c9ac93d7b511413f4a0ed61c92ff6c7b1bcf4f94
   react-native-get-random-values: dee677497c6a740b71e5612e8dbd83e7539ed5bb
   react-native-image-picker: 9b4b1d0096500050cbdabf8f4fd00b771065d983
@@ -1407,8 +1407,8 @@ SPEC CHECKSUMS:
   RNCMaskedView: 0e1bc4bfa8365eba5fbbb71e07fbdc0555249489
   RNFS: 4ac0f0ea233904cb798630b3c077808c06931688
   RNReanimated: 5008fe999d57038a1c5c1163044854d453f41b98
-  RNScreens: e114ddbc9b91fbde662870c4256196ab0833314b
-  RNSVG: e3b83203f24f5d275aa71ed85390222a6eb51a48
+  RNScreens: cba72a26a6c967765a8388fe85f78e7771012ca1
+  RNSVG: e136c0e3c70ff4fb98687fc5a887039c436c65e6
   SocketRocket: f32cd54efbe0f095c4d7594881e52619cfe80b17
   Yoga: 3efc43e0d48686ce2e8c60f99d4e6bd349aff981
 

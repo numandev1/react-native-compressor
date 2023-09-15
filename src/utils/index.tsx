@@ -45,6 +45,10 @@ type createVideoThumbnailType = (
 
 type clearCacheType = (cacheDir?: string) => Promise<string>;
 type getVideoMetaDataType = (filePath: string) => Promise<string>;
+type getRealPathType = (
+  path: string,
+  type: 'video' | 'imaage'
+) => Promise<string>;
 
 export const generateFilePath: any = (extension: string) => {
   return new Promise((resolve, reject) => {
@@ -54,10 +58,7 @@ export const generateFilePath: any = (extension: string) => {
   });
 };
 
-export const getRealPath: any = (
-  path: string,
-  type: 'video' | 'imaage' = 'video'
-) => {
+export const getRealPath: getRealPathType = (path, type = 'video') => {
   return Compressor.getRealPath(path, type);
 };
 

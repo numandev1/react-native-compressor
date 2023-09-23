@@ -26,8 +26,8 @@ class ImageCompressorOptions: NSObject {
         
         for (key, value) in dictionary {
             switch key {
-            case "autoCompress":
-                options.autoCompress = (value as? Bool) ?? false
+            case "compressionMethod":
+                options.autoCompress = (value as? String ?? "") != "manual"
             case "maxWidth":
                 options.maxWidth = (value as? Int) ?? 1280
             case "maxHeight":

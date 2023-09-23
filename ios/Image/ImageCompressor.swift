@@ -259,14 +259,19 @@ class ImageCompressor {
             if let img = UIGraphicsGetImageFromCurrentImageContext() {
                 let imageData = img.jpegData(compressionQuality: compressionQuality)
                 UIGraphicsEndImageContext()
-                let filePath = Utils.generateCacheFilePath(outputExtension)
-                do {
-                    try imageData?.write(to: URL(fileURLWithPath: filePath), options: .atomic)
-                    let returnablePath = ImageCompressor.makeValidUri(filePath)
-                    return returnablePath
-                } catch {
-                    exception = NSException(name: NSExceptionName(rawValue: "file_error"), reason: "Error writing file", userInfo: nil)
-                    exception?.raise()
+                let isBase64 = options.returnableOutputType == .rbase64
+                if isBase64 {
+                    return imageData!.base64EncodedString(options: [])
+                } else {
+                    let filePath = Utils.generateCacheFilePath(outputExtension)
+                    do {
+                        try imageData?.write(to: URL(fileURLWithPath: filePath), options: .atomic)
+                        let returnablePath = ImageCompressor.makeValidUri(filePath)
+                        return returnablePath
+                    } catch {
+                        exception = NSException(name: NSExceptionName(rawValue: "file_error"), reason: "Error writing file", userInfo: nil)
+                        exception?.raise()
+                    }
                 }
             }
         } else {

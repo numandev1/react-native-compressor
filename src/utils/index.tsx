@@ -1,7 +1,7 @@
 /* eslint-disable no-bitwise */
 import { Compressor } from '../Main';
 
-export const AUDIO_BITRATE = [256, 192, 160, 128, 96, 64, 32];
+// export const AUDIO_BITRATE = [256, 192, 160, 128, 96, 64, 32];
 type qualityType = 'low' | 'medium' | 'high';
 const INCORRECT_INPUT_PATH = 'Incorrect input path. Please provide a valid one';
 const INCORRECT_OUTPUT_PATH =
@@ -9,21 +9,18 @@ const INCORRECT_OUTPUT_PATH =
 const ERROR_OCCUR_WHILE_GENERATING_OUTPUT_FILE =
   'An error occur while generating output file';
 type audioCompresssionType = {
-  bitrate?: number;
+  // bitrate?: number;
   quality: qualityType;
-  outputFilePath?: string | undefined | null;
 };
 
 export type defaultResultType = {
-  outputFilePath: string | undefined | null;
   isCorrect: boolean;
   message: string;
 };
 
 export const DEFAULT_COMPRESS_AUDIO_OPTIONS: audioCompresssionType = {
-  bitrate: 96,
+  // bitrate: 96,
   quality: 'medium',
-  outputFilePath: '',
 };
 
 export type AudioType = {
@@ -47,7 +44,7 @@ type clearCacheType = (cacheDir?: string) => Promise<string>;
 type getVideoMetaDataType = (filePath: string) => Promise<string>;
 type getRealPathType = (
   path: string,
-  type: 'video' | 'imaage'
+  type: 'video' | 'image'
 ) => Promise<string>;
 
 export const generateFilePath: any = (extension: string) => {
@@ -150,49 +147,6 @@ export const getDetails = (
       reject(e);
     }
   });
-};
-
-export const checkUrlAndOptions = async (
-  url: string,
-  options: audioCompresssionType
-): Promise<defaultResultType> => {
-  if (!url) {
-    throw new Error(
-      'Compression url is empty, please provide a url for compression.'
-    );
-  }
-  const defaultResult: defaultResultType = {
-    outputFilePath: '',
-    isCorrect: true,
-    message: '',
-  };
-
-  // Check if output file is correct
-  let outputFilePath: string | undefined | null;
-  try {
-    // use default output file
-    // or use new file from cache folder
-    if (options.outputFilePath) {
-      outputFilePath = options.outputFilePath;
-      defaultResult.outputFilePath = outputFilePath;
-    } else {
-      outputFilePath = await generateFilePath('mp3');
-      defaultResult.outputFilePath = outputFilePath;
-    }
-    if (outputFilePath === undefined || outputFilePath === null) {
-      defaultResult.isCorrect = false;
-      defaultResult.message = options.outputFilePath
-        ? INCORRECT_OUTPUT_PATH
-        : ERROR_OCCUR_WHILE_GENERATING_OUTPUT_FILE;
-    }
-  } catch (e) {
-    defaultResult.isCorrect = false;
-    defaultResult.message = options.outputFilePath
-      ? INCORRECT_OUTPUT_PATH
-      : ERROR_OCCUR_WHILE_GENERATING_OUTPUT_FILE;
-  } finally {
-    return defaultResult;
-  }
 };
 
 export const getFileSize = async (filePath: string): Promise<string> => {

@@ -401,7 +401,7 @@ await clearCache(); // this will clear cache of thumbnails cache directory
 - ###### `quality: qualityType` (default: medium)
   we can also control bitrate through quality. qualityType can be `low` | `medium` | `high`
 
-**Note: Audio compression will be add soon**
+**Note: manual bitrate, samplerate etc will add soon**
 
 ## Background Upload
 

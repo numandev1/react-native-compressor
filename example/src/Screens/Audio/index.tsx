@@ -17,11 +17,13 @@ const Index = () => {
       const res: any = await DocumentPicker.pick({
         type: [DocumentPicker.types.audio],
       });
-      setOrignalSize(prettyBytes(res.size));
-      setFileName(res.name);
-      setMimeType(res.type);
-      Audio.compress(res.uri, { quality: 'high' })
+      setOrignalSize(prettyBytes(res[0]?.size));
+      setFileName(res[0].name);
+      setMimeType(res[0].type);
+      console.log('source file: ', res[0].uri);
+      Audio.compress(res[0].uri, { quality: 'medium' })
         .then(async (outputFilePath: string) => {
+          console.log(outputFilePath, 'outputFilePath compressed audio');
           const detail: any = await getFileInfo(outputFilePath);
           setCompressedSize(prettyBytes(parseInt(detail.size)));
         })

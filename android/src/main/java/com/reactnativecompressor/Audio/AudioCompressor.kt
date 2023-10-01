@@ -10,6 +10,7 @@ import com.reactnativecompressor.Utils.MediaCache
 import com.reactnativecompressor.Utils.Utils
 import com.reactnativecompressor.Utils.Utils.addLog
 import javazoom.jl.converter.Converter
+import javazoom.jl.decoder.JavaLayerException
 import java.io.BufferedOutputStream
 import java.io.File
 import java.io.FileNotFoundException
@@ -30,16 +31,38 @@ class AudioCompressor {
       context: ReactApplicationContext,
       promise: Promise,
     ) {
+      var _fileUrl=fileUrl
       try {
         val filePath = fileUrl.replace("file://", "")
         var wavPath=filePath;
         var isNonWav:Boolean=false
-        if (!fileUrl.endsWith(".waw", ignoreCase = true))
+        if (fileUrl.endsWith(".mp4", ignoreCase = true))
         {
-          addLog("mp3 file found")
+          addLog("mp4 file found")
+          val mp3Path= Utils.generateCacheFilePath("mp3", context)
+          AudioExtractor().genVideoUsingMuxer(fileUrl, mp3Path, -1, -1, true, false)
+          _fileUrl="file:/"+mp3Path
           wavPath= Utils.generateCacheFilePath("wav", context)
+          try {
+            val converter = Converter()
+            converter.convert(mp3Path, wavPath)
+          } catch (e: JavaLayerException) {
+            addLog("JavaLayerException error"+e.localizedMessage)
+            e.printStackTrace();
+          }
+          isNonWav=true
+        }
+        else if (!fileUrl.endsWith(".wav", ignoreCase = true))
+        {
+          addLog("non wav file found")
+          wavPath= Utils.generateCacheFilePath("wav", context)
+          try {
           val converter = Converter()
           converter.convert(filePath, wavPath)
+        } catch (e: JavaLayerException) {
+          addLog("JavaLayerException error"+e.localizedMessage)
+          e.printStackTrace();
+        }
           isNonWav=true
         }
 
@@ -56,11 +79,11 @@ class AudioCompressor {
             promise.resolve(returnableFilePath)
           } else {
             addLog("error: "+mp3Path)
-            promise.resolve(fileUrl)
+            promise.resolve(_fileUrl)
           }
         }
       } catch (e: Exception) {
-        promise.resolve(fileUrl)
+        promise.resolve(_fileUrl)
       }
     }
 
@@ -80,6 +103,7 @@ class AudioCompressor {
       context: ReactApplicationContext,
       completeCallback: (String, Boolean) -> Unit
     ) {
+      var isCompletedCallbackTriggered:Boolean=false
       try {
         var mp3Path = Utils.generateCacheFilePath("mp3", context)
         val input = File(fileUrl)
@@ -180,7 +204,6 @@ class AudioCompressor {
       addLog("flushing final mp3buffer")
       val outputMp3buf = androidLame.flush(mp3Buf)
       addLog("flushed $outputMp3buf bytes")
-
       if (outputMp3buf > 0) {
         try {
           addLog("writing final mp3buffer to outputstream")
@@ -188,6 +211,7 @@ class AudioCompressor {
           addLog("closing output stream")
           outputStream!!.close()
           completeCallback(output.absolutePath, true)
+          isCompletedCallbackTriggered=true
         } catch (e: IOException) {
           completeCallback(e.localizedMessage, false)
           e.printStackTrace()
@@ -196,6 +220,10 @@ class AudioCompressor {
 
       } catch (e: IOException) {
         completeCallback(e.localizedMessage, false)
+      }
+      if(!isCompletedCallbackTriggered)
+      {
+        completeCallback("something went wrong", false)
       }
     }
 

@@ -267,7 +267,7 @@ Video.cancelCompression(cancellationVideoId);
 import { Audio } from 'react-native-compressor';
 
 const result = await Audio.compress(
-  'file://path_of_file/file_example_MP3_2MG.mp3',
+  'file://path_of_file/file_example_MP3_2MG.wav', // recommended wav file but can be use mp3 file
   { quality: 'medium' }
 );
 ```
@@ -395,6 +395,7 @@ await clearCache(); // this will clear cache of thumbnails cache directory
 ## Audio
 
 - ###### `compress(url: string, options?: audioCompresssionType): Promise<string>`
+  Android: recommended to use `wav` file as we convert mp3 to wav then apply bitrate
 
 ### audioCompresssionType
 

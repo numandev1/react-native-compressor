@@ -116,7 +116,6 @@ dependencies {
   implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.4"
   implementation "com.googlecode.mp4parser:isoparser:1.0.6"
 
-  implementation 'io.github.lizhangqu:coreprogress:1.0.2'
   implementation 'com.github.banketree:AndroidLame-kotlin:v0.0.1'
   implementation 'javazoom:jlayer:1.0.1'
 }

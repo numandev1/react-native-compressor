@@ -14,7 +14,7 @@ class AudioMain(private val reactContext: ReactApplicationContext) {
       val options = AudioHelper.fromMap(optionMap)
       val quality = options.quality
       val realPath = Utils.getRealPath(fileUrl, reactContext)
-      Utils.addLog(fileUrl + "testPath" + realPath)
+      Utils.addLog(fileUrl + "\n realPath= " + realPath)
       AudioCompressor.CompressAudio(realPath!!, quality!!,reactContext,promise)
     } catch (ex: Exception) {
       promise.reject(ex)

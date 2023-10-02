@@ -85,10 +85,21 @@ object ImageCompressor {
     }
 
     fun compress(image: Bitmap?, output: ImageCompressorOptions.OutputType, quality: Float): ByteArrayOutputStream {
-        val stream = ByteArrayOutputStream()
-        val format = if (output === ImageCompressorOptions.OutputType.jpg) CompressFormat.JPEG else CompressFormat.PNG
-        image!!.compress(format, Math.round(100 * quality), stream)
-        return stream
+      var stream = ByteArrayOutputStream()
+      if (output === ImageCompressorOptions.OutputType.jpg)
+      {
+        image!!.compress(CompressFormat.JPEG, Math.round(100 * quality), stream)
+      }
+      else
+      {
+        val pngStream = ByteArrayOutputStream()
+        image!!.compress(CompressFormat.JPEG, Math.round(100 * quality), stream)
+        val byteArray: ByteArray = stream.toByteArray()
+        stream=ByteArrayOutputStream()
+        val bitmap = BitmapFactory.decodeByteArray(byteArray, 0, byteArray.size)
+        bitmap.compress(CompressFormat.PNG, 100, stream)
+      }
+      return stream
     }
 
     fun manualCompressImage(imagePath: String?, options: ImageCompressorOptions, reactContext: ReactApplicationContext?): String? {

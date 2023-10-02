@@ -343,7 +343,7 @@ await clearCache(); // this will clear cache of thumbnails cache directory
 
 - ###### `quality: number` (default: 0.8)
 
-  The quality modifier for the `JPEG` file format, can be specified when output is `PNG` but will be ignored.
+  The quality modifier for the `JPEG` and `PNG` file format, if your input file is `JPEG` and output file is `PNG` then compressed size can be increase
 
 - ###### `input: InputType` (default: uri)
 

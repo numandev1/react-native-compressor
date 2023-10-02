@@ -111,6 +111,9 @@ class ImageCompressor {
             data = image.jpegData(compressionQuality: CGFloat(quality))!
         case .png:
             data = image.pngData()!
+            data = image.jpegData(compressionQuality: CGFloat(quality))!
+            let compressedImage = UIImage(data: data)
+            data = compressedImage!.pngData()!
         }
 
         if isBase64 {
@@ -232,11 +235,11 @@ class ImageCompressor {
 
             var actualHeight = image.size.height
             var actualWidth = image.size.width
-            let maxHeight: CGFloat = 1280.0
-            let maxWidth: CGFloat = 1280.0
+            let maxHeight: CGFloat = CGFloat(options.maxHeight)
+            let maxWidth: CGFloat = CGFloat(options.maxWidth)
             var imgRatio = actualWidth / actualHeight
             let maxRatio = maxWidth / maxHeight
-            let compressionQuality: CGFloat = 0.8
+            let compressionQuality: CGFloat = CGFloat(options.quality)
 
             if actualHeight > maxHeight || actualWidth > maxWidth {
                 if imgRatio < maxRatio {
@@ -257,15 +260,24 @@ class ImageCompressor {
             UIGraphicsBeginImageContext(rect.size)
             image.draw(in: rect)
             if let img = UIGraphicsGetImageFromCurrentImageContext() {
-                let imageData = img.jpegData(compressionQuality: compressionQuality)
+                var imageData: Data
+                switch OutputType(rawValue: options.output.rawValue)! {
+                case .jpg:
+                    imageData = img.jpegData(compressionQuality: compressionQuality)!
+                case .png:
+                    imageData = img.jpegData(compressionQuality: compressionQuality)!
+                    let compressedImage = UIImage(data: imageData)
+                    imageData = compressedImage!.pngData()!
+                }
+
                 UIGraphicsEndImageContext()
                 let isBase64 = options.returnableOutputType == .rbase64
                 if isBase64 {
-                    return imageData!.base64EncodedString(options: [])
+                    return imageData.base64EncodedString(options: [])
                 } else {
                     let filePath = Utils.generateCacheFilePath(outputExtension)
                     do {
-                        try imageData?.write(to: URL(fileURLWithPath: filePath), options: .atomic)
+                        try imageData.write(to: URL(fileURLWithPath: filePath), options: .atomic)
                         let returnablePath = ImageCompressor.makeValidUri(filePath)
                         return returnablePath
                     } catch {

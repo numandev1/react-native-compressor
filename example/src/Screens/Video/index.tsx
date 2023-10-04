@@ -4,16 +4,23 @@ import {
   Video,
   getRealPath,
   backgroundUpload,
+  UploadType,
+  UploaderHttpMethod,
   createVideoThumbnail,
   clearCache,
 } from 'react-native-compressor';
+
 import * as ImagePicker from 'react-native-image-picker';
 import CameraRoll from '@react-native-camera-roll/camera-roll';
 import prettyBytes from 'pretty-bytes';
 import { getFileInfo } from '../../Utils';
 import ProgressBar from '../../Components/ProgressBar';
 import type { ProgressBarRafType } from '../../Components/ProgressBar';
-
+// const DOMAIN = 'http://localhost:8080';
+const DOMAIN = 'http://192.168.1.3:8080';
+const uploadPutRequest = `${DOMAIN}/upload/putRequestFile.mov`;
+const uploadPostRequest = `${DOMAIN}/upload`;
+// const uploadPostRequestFail = `${DOMAIN}/uploadFail`;
 export default function App() {
   const progressRef = useRef<ProgressBarRafType>();
   const cancellationIdRef = useRef<string>('');
@@ -171,42 +178,67 @@ export default function App() {
     Video.cancelCompression(cancellationIdRef.current);
   };
 
-  const uploadSource = async () => {
-    if (!sourceVideo) return;
+  const uploadByPostRequest = async (
+    type: 'actual' | 'compressed' = 'actual'
+  ) => {
+    console.log('uploadByPostRequest');
+    const localFileUrl = type === 'actual' ? sourceVideo : compressedVideo;
+    if (!localFileUrl) return;
     try {
+      console.log('upload start', localFileUrl);
+      const headers = {
+        Authorization: `Bearer ABCABC`,
+      };
       const result = await backgroundUpload(
-        'http://w.hbu50.com:8080/hello.mp4',
-        sourceVideo,
-        { httpMethod: 'PUT' },
+        uploadPostRequest,
+        localFileUrl,
+        {
+          uploadType: UploadType.MULTIPART,
+          httpMethod: UploaderHttpMethod.POST,
+          // fieldName: 'file',
+          // mimeType: 'video/quicktime',
+          parameters: { message: 'this is test message' },
+          headers,
+        },
         (written, total) => {
           progressRef.current?.setProgress(written / total);
           console.log(written, total);
         }
       );
-      console.log(result);
+
+      console.log(result, 'result');
     } catch (error) {
-      console.log(error);
+      console.log('error=>', error);
     } finally {
       progressRef.current?.setProgress(0);
     }
   };
 
-  const uploadCompressed = async () => {
-    if (!compressedVideo) return;
+  const uploadByPutRequest = async (type: 'actual' | 'compressed') => {
+    const localFileUrl = type === 'actual' ? sourceVideo : compressedVideo;
+    if (!localFileUrl) return;
     try {
-      progressRef.current?.setProgress(1);
+      console.log('upload start', sourceVideo);
+      const headers = {
+        Authorization: `Bearer ABCABC`,
+      };
       const result = await backgroundUpload(
-        'http://w.hbu50.com:8080/hello.mp4',
-        compressedVideo,
-        { httpMethod: 'PUT' },
+        uploadPutRequest,
+        localFileUrl,
+        {
+          uploadType: UploadType.BINARY_CONTENT,
+          httpMethod: UploaderHttpMethod.PUT,
+          headers,
+        },
         (written, total) => {
           progressRef.current?.setProgress(written / total);
           console.log(written, total);
         }
       );
-      console.log(result);
+
+      console.log(result, 'result');
     } catch (error) {
-      console.log(error);
+      console.log('error=>', error);
     } finally {
       progressRef.current?.setProgress(0);
     }
@@ -253,7 +285,14 @@ export default function App() {
                 resizeMode="contain"
               />
               {sourceSize && <Text>Size: {sourceSize}</Text>}
-              <Button title="Upload" onPress={uploadSource} />
+              <Button
+                title="Upload(Post)"
+                onPress={() => uploadByPostRequest('actual')}
+              />
+              <Button
+                title="Upload(Put)"
+                onPress={() => uploadByPutRequest('actual')}
+              />
             </View>
           )}
         </View>
@@ -267,7 +306,14 @@ export default function App() {
                 resizeMode="contain"
               />
               {compressedSize && <Text>Size: {compressedSize}</Text>}
-              <Button title="Upload" onPress={uploadCompressed} />
+              <Button
+                title="Upload(Post)"
+                onPress={() => uploadByPostRequest('compressed')}
+              />
+              <Button
+                title="Upload(Put)"
+                onPress={() => uploadByPutRequest('compressed')}
+              />
             </View>
           )}
         </View>

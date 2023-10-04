@@ -15,12 +15,14 @@ import com.reactnativecompressor.Utils.Uploader
 import com.reactnativecompressor.Utils.Utils
 import com.reactnativecompressor.Utils.Utils.generateCacheFilePath
 import com.reactnativecompressor.Utils.Utils.getRealPath
+import com.reactnativecompressor.Utils.convertReadableMapToUploaderOptions
 import com.reactnativecompressor.Video.VideoMain
 
 class CompressorModule(private val reactContext: ReactApplicationContext) : CompressorSpec(reactContext) {
   private val imageMain: ImageMain = ImageMain(reactContext)
   private val videoMain: VideoMain = VideoMain(reactContext)
   private val audioMain: AudioMain = AudioMain(reactContext)
+  private val uploader: Uploader = Uploader(reactContext)
   private val videoThumbnail: CreateVideoThumbnailClass = CreateVideoThumbnailClass(reactContext)
 
   override fun initialize() {
@@ -120,7 +122,7 @@ class CompressorModule(private val reactContext: ReactApplicationContext) : Comp
     fileUrl: String,
     options: ReadableMap,
     promise: Promise) {
-    Uploader.upload(fileUrl, options, reactContext, promise)
+    uploader.upload(fileUrl, options, reactContext, promise)
   }
 
   @ReactMethod

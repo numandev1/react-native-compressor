@@ -13,6 +13,8 @@ import {
   createVideoThumbnail,
   download,
   clearCache,
+  UploadType,
+  UploaderHttpMethod,
 } from './utils';
 
 export {
@@ -30,6 +32,8 @@ export {
   createVideoThumbnail,
   clearCache,
   getFileSize,
+  UploadType,
+  UploaderHttpMethod,
 };
 export type { VideoCompressorType };
 export default {
@@ -46,4 +50,6 @@ export default {
   createVideoThumbnail,
   clearCache,
   download,
+  UploadType,
+  UploaderHttpMethod,
 };

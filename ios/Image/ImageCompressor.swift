@@ -100,20 +100,25 @@ class ImageCompressor {
         }
         return UIImage()
     }
-
     
-    static func manualCompress(_ image: UIImage, output: Int, quality: Float, outputExtension: String, isBase64: Bool) -> String {
+    static func writeImage(_ image: UIImage, output: Int, quality: Float, outputExtension: String, isBase64: Bool,disablePngTransparency:Bool)-> String{
         var data: Data
         var exception: NSException?
-
         switch OutputType(rawValue: output)! {
         case .jpg:
             data = image.jpegData(compressionQuality: CGFloat(quality))!
         case .png:
-            data = image.pngData()!
-            data = image.jpegData(compressionQuality: CGFloat(quality))!
-            let compressedImage = UIImage(data: data)
-            data = compressedImage!.pngData()!
+            if(disablePngTransparency)
+            {
+                data = image.jpegData(compressionQuality: CGFloat(quality))!
+                let compressedImage = UIImage(data: data)
+                data = compressedImage!.pngData()!
+            }
+            else
+            {
+                data=image.pngData()!
+            }
+           
         }
 
         if isBase64 {
@@ -129,8 +134,12 @@ class ImageCompressor {
                 exception?.raise()
             }
         }
-
         return ""
+    }
+
+    
+    static func manualCompress(_ image: UIImage, output: Int, quality: Float, outputExtension: String, isBase64: Bool,disablePngTransparency:Bool) -> String {
+        return writeImage(image, output: output, quality: quality, outputExtension: outputExtension, isBase64: isBase64, disablePngTransparency: disablePngTransparency)
     }
 
     
@@ -215,7 +224,7 @@ class ImageCompressor {
             let outputExtension = ImageCompressorOptions.getOutputInString(options.output)
             let resizedImage = ImageCompressor.manualResize(_image, maxWidth: options.maxWidth, maxHeight: options.maxHeight)
             let isBase64 = options.returnableOutputType == .rbase64
-            return ImageCompressor.manualCompress(resizedImage, output: options.output.rawValue, quality: options.quality, outputExtension: outputExtension, isBase64: isBase64)
+            return ImageCompressor.manualCompress(resizedImage, output: options.output.rawValue, quality: options.quality, outputExtension: outputExtension, isBase64: isBase64,disablePngTransparency: options.disablePngTransparency)
         } else {
             exception = NSException(name: NSExceptionName(rawValue: "unsupported_value"), reason: "Unsupported value type.", userInfo: nil)
             exception?.raise()
@@ -228,11 +237,11 @@ class ImageCompressor {
     static func autoCompressHandler(_ imagePath: String, options: ImageCompressorOptions) -> String {
         var exception: NSException?
         var image = ImageCompressor.loadImage(imagePath)
-
+        
         if var image = image {
             image = ImageCompressor.scaleAndRotateImage(image)
             let outputExtension = ImageCompressorOptions.getOutputInString(options.output)
-
+            
             var actualHeight = image.size.height
             var actualWidth = image.size.width
             let maxHeight: CGFloat = CGFloat(options.maxHeight)
@@ -240,7 +249,7 @@ class ImageCompressor {
             var imgRatio = actualWidth / actualHeight
             let maxRatio = maxWidth / maxHeight
             let compressionQuality: CGFloat = CGFloat(options.quality)
-
+            
             if actualHeight > maxHeight || actualWidth > maxWidth {
                 if imgRatio < maxRatio {
                     imgRatio = maxHeight / actualHeight
@@ -255,42 +264,16 @@ class ImageCompressor {
                     actualWidth = maxWidth
                 }
             }
-
+            
             let rect = CGRect(x: 0.0, y: 0.0, width: actualWidth, height: actualHeight)
             UIGraphicsBeginImageContext(rect.size)
             image.draw(in: rect)
+            let isBase64 = options.returnableOutputType == .rbase64
+            
             if let img = UIGraphicsGetImageFromCurrentImageContext() {
-                var imageData: Data
-                switch OutputType(rawValue: options.output.rawValue)! {
-                case .jpg:
-                    imageData = img.jpegData(compressionQuality: compressionQuality)!
-                case .png:
-                    imageData = img.jpegData(compressionQuality: compressionQuality)!
-                    let compressedImage = UIImage(data: imageData)
-                    imageData = compressedImage!.pngData()!
-                }
-
-                UIGraphicsEndImageContext()
-                let isBase64 = options.returnableOutputType == .rbase64
-                if isBase64 {
-                    return imageData.base64EncodedString(options: [])
-                } else {
-                    let filePath = Utils.generateCacheFilePath(outputExtension)
-                    do {
-                        try imageData.write(to: URL(fileURLWithPath: filePath), options: .atomic)
-                        let returnablePath = ImageCompressor.makeValidUri(filePath)
-                        return returnablePath
-                    } catch {
-                        exception = NSException(name: NSExceptionName(rawValue: "file_error"), reason: "Error writing file", userInfo: nil)
-                        exception?.raise()
-                    }
-                }
+                return writeImage(img, output: options.output.rawValue, quality: Float(compressionQuality), outputExtension: outputExtension, isBase64: isBase64, disablePngTransparency: options.disablePngTransparency)
             }
-        } else {
-            exception = NSException(name: NSExceptionName(rawValue: "unsupported_value"), reason: "Unsupported value type.", userInfo: nil)
-            exception?.raise()
         }
-
         return ""
     }
     

@@ -15,6 +15,7 @@ import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
 import java.util.UUID
+import java.util.regex.Pattern
 
 object Utils {
     private const val TAG = "react-native-compessor"
@@ -131,6 +132,19 @@ object Utils {
       } else {
         promise.resolve("")
       }
+    }
+  }
+
+  fun slashifyFilePath(path: String?): String? {
+    return if (path == null) {
+      null
+    } else if (path.startsWith("file:///")) {
+      path
+    }  else if (path.startsWith("/")) {
+      path.replaceFirst("^/+".toRegex(), "file:///")
+    }else {
+      // Ensure leading schema with a triple slash
+      Pattern.compile("^file:/*").matcher(path).replaceAll("file:///")
     }
   }
 

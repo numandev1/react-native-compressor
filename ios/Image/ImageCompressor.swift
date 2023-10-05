@@ -101,7 +101,22 @@ class ImageCompressor {
         return UIImage()
     }
     
-    static func writeImage(_ image: UIImage, output: Int, quality: Float, outputExtension: String, isBase64: Bool,disablePngTransparency:Bool)-> String{
+    static func isCompressedSizeLessThanActualFile(sourceFileUrl: String,compressedFileUrl: String)-> Bool {
+        let sourceVideoURL = URL(string: sourceFileUrl)
+        let sourcefileSize:Double=Utils.getfileSizeInBytes(forURL:sourceVideoURL!)
+        
+        let compressedVideoURL = URL(string: compressedFileUrl)
+        let compressedfileSize:Double=Utils.getfileSizeInBytes(forURL:compressedVideoURL!)
+        
+        if(compressedfileSize<=sourcefileSize)
+        {
+        return true
+        }
+        return false
+    }
+
+    
+    static func writeImage(_ image: UIImage, output: Int, quality: Float, outputExtension: String, isBase64: Bool,disablePngTransparency:Bool,isEnableAutoCompress:Bool,actualImagePath:String)-> String{
         var data: Data
         var exception: NSException?
         switch OutputType(rawValue: output)! {
@@ -128,7 +143,21 @@ class ImageCompressor {
             do {
                 try data.write(to: URL(fileURLWithPath: filePath), options: .atomic)
                 let returnablePath = makeValidUri(filePath)
+                if(isEnableAutoCompress==true)
+                {
+                    if(self.isCompressedSizeLessThanActualFile(sourceFileUrl: actualImagePath,compressedFileUrl: returnablePath))
+                    {
+                        return returnablePath
+                    }
+                    else
+                    {
+                        MediaCache.deleteFile(atPath:returnablePath)
+                        return actualImagePath
+                    }
+                }
+                
                 return returnablePath
+                
             } catch {
                 exception = NSException(name: NSExceptionName(rawValue: "file_error"), reason: "Error writing file", userInfo: nil)
                 exception?.raise()
@@ -138,8 +167,8 @@ class ImageCompressor {
     }
 
     
-    static func manualCompress(_ image: UIImage, output: Int, quality: Float, outputExtension: String, isBase64: Bool,disablePngTransparency:Bool) -> String {
-        return writeImage(image, output: output, quality: quality, outputExtension: outputExtension, isBase64: isBase64, disablePngTransparency: disablePngTransparency)
+    static func manualCompress(_ image: UIImage, output: Int, quality: Float, outputExtension: String, isBase64: Bool,disablePngTransparency:Bool,actualImagePath:String) -> String {
+        return writeImage(image, output: output, quality: quality, outputExtension: outputExtension, isBase64: isBase64, disablePngTransparency: disablePngTransparency,isEnableAutoCompress: false,actualImagePath: actualImagePath)
     }
 
     
@@ -224,7 +253,7 @@ class ImageCompressor {
             let outputExtension = ImageCompressorOptions.getOutputInString(options.output)
             let resizedImage = ImageCompressor.manualResize(_image, maxWidth: options.maxWidth, maxHeight: options.maxHeight)
             let isBase64 = options.returnableOutputType == .rbase64
-            return ImageCompressor.manualCompress(resizedImage, output: options.output.rawValue, quality: options.quality, outputExtension: outputExtension, isBase64: isBase64,disablePngTransparency: options.disablePngTransparency)
+            return ImageCompressor.manualCompress(resizedImage, output: options.output.rawValue, quality: options.quality, outputExtension: outputExtension, isBase64: isBase64,disablePngTransparency: options.disablePngTransparency,actualImagePath: imagePath)
         } else {
             exception = NSException(name: NSExceptionName(rawValue: "unsupported_value"), reason: "Unsupported value type.", userInfo: nil)
             exception?.raise()
@@ -271,7 +300,7 @@ class ImageCompressor {
             let isBase64 = options.returnableOutputType == .rbase64
             
             if let img = UIGraphicsGetImageFromCurrentImageContext() {
-                return writeImage(img, output: options.output.rawValue, quality: Float(compressionQuality), outputExtension: outputExtension, isBase64: isBase64, disablePngTransparency: options.disablePngTransparency)
+                return writeImage(img, output: options.output.rawValue, quality: Float(compressionQuality), outputExtension: outputExtension, isBase64: isBase64, disablePngTransparency: options.disablePngTransparency,isEnableAutoCompress: true,actualImagePath: imagePath)
             }
         }
         return ""

@@ -10,7 +10,9 @@ import android.media.ExifInterface
 import android.net.Uri
 import android.util.Base64
 import com.facebook.react.bridge.ReactApplicationContext
+import com.reactnativecompressor.Utils.MediaCache
 import com.reactnativecompressor.Utils.Utils.generateCacheFilePath
+import com.reactnativecompressor.Utils.Utils.slashifyFilePath
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
@@ -113,9 +115,31 @@ object ImageCompressor {
         return encodeImage(imageDataByteArrayOutputStream, isBase64, options.output.toString(), reactContext)
     }
 
+  fun isCompressedSizeLessThanActualFile(sourceFileUrl: String,compressedFileUrl: String?): Boolean {
+    try {
+      val sourceUri = Uri.parse(sourceFileUrl)
+      val sourcePath = sourceUri.path
+      val sourcefile = File(sourcePath)
+      val sizeInBytesForSourceFile = sourcefile.length().toFloat()
+
+      val compressedUri = Uri.parse(compressedFileUrl)
+      val compressedPath = compressedUri.path
+      val compressedfile = File(compressedPath)
+      val sizeInBytesForcompressedFile = compressedfile.length().toFloat()
+
+      if(sizeInBytesForcompressedFile<=sizeInBytesForSourceFile)
+      {
+        return true
+      }
+      return false
+    } catch (exception: OutOfMemoryError) {
+      exception.printStackTrace()
+      return true
+    }
+  }
+
     fun autoCompressImage(imagePath: String?, compressorOptions: ImageCompressorOptions, reactContext: ReactApplicationContext?): String? {
         var imagePath = imagePath
-        val outputExtension = compressorOptions.output.toString()
         val autoCompressMaxHeight = compressorOptions.maxHeight.toFloat()
         val autoCompressMaxWidth = compressorOptions.maxWidth.toFloat()
         val isBase64 = compressorOptions.returnableOutputType === ImageCompressorOptions.ReturnableOutputType.base64
@@ -173,7 +197,13 @@ object ImageCompressor {
         }
         scaledBitmap = correctImageOrientation(scaledBitmap, imagePath)
         val imageDataByteArrayOutputStream = compress(scaledBitmap, compressorOptions.output, compressorOptions.quality,compressorOptions.disablePngTransparency)
-        return encodeImage(imageDataByteArrayOutputStream, isBase64, compressorOptions.output.toString(), reactContext)
+        val compressedImagePath=encodeImage(imageDataByteArrayOutputStream, isBase64, compressorOptions.output.toString(), reactContext)
+        if(isCompressedSizeLessThanActualFile(imagePath!!,compressedImagePath))
+        {
+        return  compressedImagePath
+        }
+       MediaCache.deleteFile(compressedImagePath!!)
+       return slashifyFilePath(imagePath)
     }
 
     fun calculateInSampleSize(options: BitmapFactory.Options, reqWidth: Int, reqHeight: Int): Int {

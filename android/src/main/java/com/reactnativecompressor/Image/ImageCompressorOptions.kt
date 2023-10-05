@@ -32,6 +32,7 @@ class ImageCompressorOptions {
     var output = OutputType.jpg
     var uuid: String? = ""
     var returnableOutputType = ReturnableOutputType.uri
+    var disablePngTransparency:Boolean = false
 
     companion object {
         fun fromMap(map: ReadableMap): ImageCompressorOptions {
@@ -49,6 +50,7 @@ class ImageCompressorOptions {
                     "output" -> options.output = OutputType.valueOf(map.getString(key)!!)
                     "returnableOutputType" -> options.returnableOutputType = ReturnableOutputType.valueOf(map.getString(key)!!)
                     "uuid" -> options.uuid = map.getString(key)
+                    "disablePngTransparency" -> options.disablePngTransparency = map.getBoolean(key)
                 }
             }
             return options

@@ -362,7 +362,12 @@ await clearCache(); // this will clear cache of thumbnails cache directory
 
 - ###### `output: OutputType` (default: jpg)
 
-  Can be either `jpg` or `png`, defines the output image format.
+  The quality modifier for the `JPEG` file format, can be specified when output is `PNG` but will be ignored. if you wanna apply quality modifier then you can enable `disablePngTransparency:true`,
+  **Note:** if you png image have no transparent background then enable `disablePngTransparency:true` modifier is recommended
+
+- ###### `disablePngTransparency: boolean` (default: false)
+
+  when user add `output:'png'` then by default compressed image will have transparent background, and quality will be ignored, if you wanna apply quality then you have to disablePngTransparency like `disablePngTransparency:true`, it will convert transparent background to white
 
 - ###### `returnableOutputType: ReturnableOutputType` (default: uri)
   Can be either `uri` or `base64`, defines the Returnable output image format.

@@ -71,20 +71,20 @@ object ImageCompressor {
     }
 
     fun resize(image: Bitmap, maxWidth: Int, maxHeight: Int): Bitmap {
-        val size = findActualSize(image, maxWidth, maxHeight)
-        val scaledImage = Bitmap.createBitmap(size.width, size.height, image.config)
-        val scaleMatrix = Matrix()
-        val canvas = Canvas(scaledImage)
-        val paint = Paint(Paint.FILTER_BITMAP_FLAG)
-        scaleMatrix.setScale(size.scale, size.scale, 0f, 0f)
-        paint.isDither = true
-        paint.isAntiAlias = true
-        paint.isFilterBitmap = true
-        canvas.drawBitmap(image, scaleMatrix, paint)
-        return scaledImage
+      val size = findActualSize(image, maxWidth, maxHeight)
+      val scaledImage = Bitmap.createBitmap(size.width, size.height, Bitmap.Config.ARGB_8888)
+      val scaleMatrix = Matrix()
+      val canvas = Canvas(scaledImage)
+      val paint = Paint(Paint.FILTER_BITMAP_FLAG)
+      scaleMatrix.setScale(size.scale, size.scale, 0f, 0f)
+      paint.isDither = true
+      paint.isAntiAlias = true
+      paint.isFilterBitmap = true
+      canvas.drawBitmap(image, scaleMatrix, paint)
+      return scaledImage
     }
 
-    fun compress(image: Bitmap?, output: ImageCompressorOptions.OutputType, quality: Float): ByteArrayOutputStream {
+    fun compress(image: Bitmap?, output: ImageCompressorOptions.OutputType, quality: Float,disablePngTransparency:Boolean): ByteArrayOutputStream {
       var stream = ByteArrayOutputStream()
       if (output === ImageCompressorOptions.OutputType.jpg)
       {
@@ -92,12 +92,15 @@ object ImageCompressor {
       }
       else
       {
-        val pngStream = ByteArrayOutputStream()
-        image!!.compress(CompressFormat.JPEG, Math.round(100 * quality), stream)
-        val byteArray: ByteArray = stream.toByteArray()
-        stream=ByteArrayOutputStream()
-        val bitmap = BitmapFactory.decodeByteArray(byteArray, 0, byteArray.size)
-        bitmap.compress(CompressFormat.PNG, 100, stream)
+        var bitmap = image
+        if(disablePngTransparency)
+        {
+          image!!.compress(CompressFormat.JPEG, Math.round(100 * quality), stream)
+          val byteArray: ByteArray = stream.toByteArray()
+          stream=ByteArrayOutputStream()
+          bitmap = BitmapFactory.decodeByteArray(byteArray, 0, byteArray.size)
+        }
+        bitmap!!.compress(CompressFormat.PNG, 100, stream)
       }
       return stream
     }
@@ -105,7 +108,7 @@ object ImageCompressor {
     fun manualCompressImage(imagePath: String?, options: ImageCompressorOptions, reactContext: ReactApplicationContext?): String? {
         val image = if (options.input === ImageCompressorOptions.InputType.base64) decodeImage(imagePath) else loadImage(imagePath)
         val resizedImage = resize(image, options.maxWidth, options.maxHeight)
-        val imageDataByteArrayOutputStream = compress(resizedImage, options.output, options.quality)
+        val imageDataByteArrayOutputStream = compress(resizedImage, options.output, options.quality,options.disablePngTransparency)
         val isBase64 = options.returnableOutputType === ImageCompressorOptions.ReturnableOutputType.base64
         return encodeImage(imageDataByteArrayOutputStream, isBase64, options.output.toString(), reactContext)
     }
@@ -152,7 +155,7 @@ object ImageCompressor {
             exception.printStackTrace()
         }
         try {
-            scaledBitmap = Bitmap.createBitmap(actualWidth, actualHeight, Bitmap.Config.RGB_565)
+            scaledBitmap = Bitmap.createBitmap(actualWidth, actualHeight, Bitmap.Config.ARGB_8888)
         } catch (exception: OutOfMemoryError) {
             exception.printStackTrace()
         }
@@ -169,7 +172,7 @@ object ImageCompressor {
             bmp.recycle()
         }
         scaledBitmap = correctImageOrientation(scaledBitmap, imagePath)
-        val imageDataByteArrayOutputStream = compress(scaledBitmap, compressorOptions.output, compressorOptions.quality)
+        val imageDataByteArrayOutputStream = compress(scaledBitmap, compressorOptions.output, compressorOptions.quality,compressorOptions.disablePngTransparency)
         return encodeImage(imageDataByteArrayOutputStream, isBase64, compressorOptions.output.toString(), reactContext)
     }
 

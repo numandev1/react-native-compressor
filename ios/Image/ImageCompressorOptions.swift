@@ -44,6 +44,8 @@ class ImageCompressorOptions: NSObject {
                 options.parseReturnableOutput(value as? String)
             case "uuid":
                 options.uuid = value as? String
+            case "disablePngTransparency":
+                options.disablePngTransparency = value as? Bool ?? false
             default:
                 break
             }
@@ -65,6 +67,7 @@ class ImageCompressorOptions: NSObject {
     var output: OutputType = .jpg
     var returnableOutputType: ReturnableOutputType = .ruri
     var uuid: String?
+    var disablePngTransparency: Bool = false
     
     override init() {
         super.init()

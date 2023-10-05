@@ -38,6 +38,10 @@ export type CompressorOptions = {
    */
   output?: OutputType;
   /***
+   * when user add `output:'png'` then by default compressed image will have transparent background, and quality will be ignored, if you wanna apply quality then you have to disablePngTransparency like `disablePngTransparency:true`, it will convert transparent background to white
+   */
+  disablePngTransparency?: boolean;
+  /***
    * The output that will return to user.
    */
   returnableOutputType?: ReturnableOutputType;

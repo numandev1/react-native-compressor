@@ -9,6 +9,7 @@ import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReadableMap
+import com.reactnativecompressor.Utils.Utils.slashifyFilePath
 import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.Headers
@@ -23,7 +24,6 @@ import java.io.File
 import java.io.IOException
 import java.net.URLConnection
 import java.util.concurrent.TimeUnit
-import java.util.regex.Pattern
 
 class Uploader(private val reactContext: ReactApplicationContext) {
     val TAG = "asyncTaskUploader"
@@ -85,17 +85,6 @@ class Uploader(private val reactContext: ReactApplicationContext) {
       }
       return client
     }
-
-  private fun slashifyFilePath(path: String?): String? {
-    return if (path == null) {
-      null
-    } else if (path.startsWith("file:///")) {
-      path
-    } else {
-      // Ensure leading schema with a triple slash
-      Pattern.compile("^file:/*").matcher(path).replaceAll("file:///")
-    }
-  }
 
   @Throws(IOException::class)
   private fun createUploadRequest(url: String, fileUriString: String, options: UploaderOptions, decorator: RequestBodyDecorator): Request {

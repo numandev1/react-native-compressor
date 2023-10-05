@@ -58,4 +58,19 @@ object MediaCache {
         }
         completedImagePaths.clear()
     }
+
+  fun deleteFile(filePath: String) {
+    val _filePath = filePath.replace("file://", "")
+    val file = File(_filePath)
+
+    if (file.exists()) {
+      if (file.delete()) {
+        println("File deleted successfully.")
+      } else {
+        println("File couldn't be deleted.")
+      }
+    } else {
+      println("File not found.")
+    }
+  }
 }

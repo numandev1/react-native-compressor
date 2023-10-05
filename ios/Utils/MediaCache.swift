@@ -45,4 +45,24 @@ class MediaCache {
             completedImagePaths.removeAll()
         }
     }
+    
+    class func deleteFile(atPath filePath: String) {
+        let fileManager = FileManager.default
+        var _filePath = filePath
+        if _filePath.hasPrefix("file://") {
+            _filePath = _filePath.replacingOccurrences(of: "file://", with: "")
+       }
+        
+        if fileManager.fileExists(atPath: _filePath) {
+            do {
+                try fileManager.removeItem(atPath: _filePath)
+                print("File deleted successfully: \(_filePath)")
+            } catch {
+                print("Error deleting file: \(error.localizedDescription)")
+            }
+        } else {
+            print("File not found at path: \(_filePath)")
+        }
+    }
+
 }

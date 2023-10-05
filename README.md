@@ -287,6 +287,17 @@ const uploadResult = await backgroundUpload(
     console.log(written, total);
   }
 );
+
+//OR
+
+const uploadResult = await backgroundUpload(
+  url,
+  fileUrl,
+  { uploadType: UploadType.MULTIPART, httpMethod: 'POST', headers },
+  (written, total) => {
+    console.log(written, total);
+  }
+);
 ```
 
 ### Download File
@@ -406,27 +417,49 @@ await clearCache(); // this will clear cache of thumbnails cache directory
 
 ## Background Upload
 
-- ###### backgroundUpload: (url: string, fileUrl: string, options: FileSystemUploadOptions, onProgress?: ((writtem: number, total: number) => void) | undefined) => Promise< any >
+- ###### backgroundUpload: (url: string, fileUrl: string, options: UploaderOptions, onProgress?: ((writtem: number, total: number) => void) | undefined) => Promise< any >
 
-- ###### ` FileSystemUploadOptions`
+- ###### ` UploaderOptions`
 
 ```js
-type FileSystemUploadOptions = (
+export enum UploadType {
+  BINARY_CONTENT = 0,
+  MULTIPART = 1,
+}
+
+export enum UploaderHttpMethod {
+  POST = 'POST',
+  PUT = 'PUT',
+  PATCH = 'PATCH',
+}
+
+export declare type HTTPResponse = {
+  status: number;
+  headers: Record<string, string>;
+  body: string;
+};
+
+export declare type HttpMethod = 'POST' | 'PUT' | 'PATCH';
+
+export declare type UploaderOptions = (
   | {
-      uploadType?: FileSystemUploadType.BINARY_CONTENT,
+      uploadType?: UploadType.BINARY_CONTENT;
+      mimeType?: string;
     }
   | {
-      uploadType: FileSystemUploadType.MULTIPART, // will add soon
-      fieldName?: string, // will add soon
-      mimeType?: string,
-      parameters?: Record<string, string>,
+      uploadType: UploadType.MULTIPART;
+      fieldName?: string;
+      mimeType?: string;
+      parameters?: Record<string, string>;
     }
 ) & {
-  headers?: Record<string, string>,
-  httpMethod?: FileSystemAcceptedUploadHttpMethod,
-  sessionType?: FileSystemSessionType,
+  headers?: Record<string, string>;
+  httpMethod?: UploaderHttpMethod;
 };
 ```
+
+**Note:** some of the uploader code is borrowed from [Expo](https://github.com/expo/expo)
+I tested file uploader on this backend [Nodejs-File-Uploader](https://github.com/numandev1/nodejs-file-uploader)
 
 ### Download
 

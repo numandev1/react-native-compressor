@@ -3,14 +3,15 @@ import type { NativeEventSubscription } from 'react-native';
 import { Compressor } from '../Main';
 const CompressEventEmitter = new NativeEventEmitter(Compressor);
 import { uuidv4 } from '.';
-export declare enum FileSystemUploadType {
+export enum UploadType {
   BINARY_CONTENT = 0,
   MULTIPART = 1,
 }
 
-export declare enum FileSystemSessionType {
-  BACKGROUND = 0,
-  FOREGROUND = 1,
+export enum UploaderHttpMethod {
+  POST = 'POST',
+  PUT = 'PUT',
+  PATCH = 'PATCH',
 }
 
 export declare type HTTPResponse = {
@@ -19,31 +20,28 @@ export declare type HTTPResponse = {
   body: string;
 };
 
-export declare type FileSystemAcceptedUploadHttpMethod =
-  | 'POST'
-  | 'PUT'
-  | 'PATCH';
+export declare type HttpMethod = 'POST' | 'PUT' | 'PATCH';
 
-export declare type FileSystemUploadOptions = (
+export declare type UploaderOptions = (
   | {
-      uploadType?: FileSystemUploadType.BINARY_CONTENT;
+      uploadType?: UploadType.BINARY_CONTENT;
+      mimeType?: string;
     }
   | {
-      uploadType: FileSystemUploadType.MULTIPART;
+      uploadType: UploadType.MULTIPART;
       fieldName?: string;
       mimeType?: string;
       parameters?: Record<string, string>;
     }
 ) & {
   headers?: Record<string, string>;
-  httpMethod?: FileSystemAcceptedUploadHttpMethod;
-  sessionType?: FileSystemSessionType;
+  httpMethod?: UploaderHttpMethod | HttpMethod;
 };
 
 export const backgroundUpload = async (
   url: string,
   fileUrl: string,
-  options: FileSystemUploadOptions,
+  options: UploaderOptions,
   onProgress?: (writtem: number, total: number) => void
 ): Promise<any> => {
   const uuid = uuidv4();
@@ -66,6 +64,8 @@ export const backgroundUpload = async (
       uuid,
       method: options.httpMethod,
       headers: options.headers,
+      uploadType: options.uploadType,
+      ...options,
       url,
     });
     return result;

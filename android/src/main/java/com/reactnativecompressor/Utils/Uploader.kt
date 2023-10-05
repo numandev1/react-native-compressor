@@ -1,117 +1,189 @@
 package com.reactnativecompressor.Utils
 
+import android.annotation.SuppressLint
+import android.content.ContentResolver
+import android.net.Uri
 import android.util.Log
+import android.webkit.MimeTypeMap
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReadableMap
-import io.github.lizhangqu.coreprogress.ProgressHelper
-import io.github.lizhangqu.coreprogress.ProgressUIListener
 import okhttp3.Call
 import okhttp3.Callback
-import okhttp3.MediaType
+import okhttp3.Headers
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
-import okhttp3.Request.Builder
+import okhttp3.Request
 import okhttp3.RequestBody
+import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.Response
 import java.io.File
 import java.io.IOException
-import java.util.Locale
+import java.net.URLConnection
+import java.util.concurrent.TimeUnit
+import java.util.regex.Pattern
 
-object Uploader {
-    private const val TAG = "asyncTaskUploader"
+class Uploader(private val reactContext: ReactApplicationContext) {
+    val TAG = "asyncTaskUploader"
+    var client: OkHttpClient? = null
+    val MIN_EVENT_DT_MS: Long = 100
 
-    fun upload(fileUrl: String, _options: ReadableMap?, reactContext: ReactApplicationContext, promise: Promise) {
-        val options = _options?.let { UploaderHelper.fromMap(it) }
-        val uploadableFile = File(fileUrl)
-        val url = options?.url
-        var contentType: String? = "video"
-        val okHttpClient = OkHttpClient()
-        val builder = Builder()
-      if (url != null) {
-        builder.url(url)
-      }
-        val headerIterator = options?.headers?.keySetIterator()
-        while (headerIterator?.hasNextKey() == true) {
-          val key = headerIterator.nextKey()
-          val value = options.headers?.getString(key)
-          Log.d(TAG, "$key  value: $value")
-          builder.addHeader(key, value.toString())
-          if (key.lowercase(Locale.getDefault()) == "content-type:") {
-            contentType = value
+    fun upload(fileUriString: String, _options: ReadableMap, reactContext: ReactApplicationContext, promise: Promise) {
+      val options:UploaderOptions=convertReadableMapToUploaderOptions(_options)
+      val url = options.url
+      val uuid = options.uuid
+      val progressListener: CountingRequestListener = object : CountingRequestListener {
+        private var mLastUpdate: Long = -1
+        override fun onProgress(bytesWritten: Long, contentLength: Long) {
+          val currentTime = System.currentTimeMillis()
+
+          // Throttle events. Sending too many events will block the JS event loop.
+          // Make sure to send the last event when we're at 100%.
+          if (currentTime > mLastUpdate + MIN_EVENT_DT_MS || bytesWritten == contentLength) {
+            mLastUpdate = currentTime
+            EventEmitterHandler.sendUploadProgressEvent(bytesWritten,contentLength,uuid)
           }
         }
-        val mediaType: MediaType? = contentType?.toMediaTypeOrNull();
-        val body = RequestBody.create(mediaType, uploadableFile)
-        val requestBody = ProgressHelper.withProgress(body, object : ProgressUIListener() {
-            //if you don't need this method, don't override this methd. It isn't an abstract method, just an empty method.
-            override fun onUIProgressStart(totalBytes: Long) {
-                super.onUIProgressStart(totalBytes)
-                Log.d(TAG, "onUIProgressStart:$totalBytes")
-            }
-
-            override fun onUIProgressChanged(numBytes: Long, totalBytes: Long, percent: Float, speed: Float) {
-                EventEmitterHandler.sendUploadProgressEvent(numBytes,totalBytes,options?.uuid)
-                Log.d(TAG, "=============start===============")
-                Log.d(TAG, "numBytes:$numBytes")
-                Log.d(TAG, "totalBytes:$totalBytes")
-                Log.d(TAG, "percent:$percent")
-                Log.d(TAG, "speed:$speed")
-                Log.d(TAG, "============= end ===============")
-            }
-
-            //if you don't need this method, don't override this methd. It isn't an abstract method, just an empty method.
-            override fun onUIProgressFinish() {
-                super.onUIProgressFinish()
-                Log.d(TAG, "onUIProgressFinish:")
-            }
-        })
-        builder.put(requestBody)
-        val call = okHttpClient.newCall(builder.build())
-        call.enqueue(object : Callback {
-            override fun onFailure(call: Call, e: IOException) {
-                Log.d(TAG, "=============onFailure===============")
-                promise.reject("")
-                e.printStackTrace()
-            }
-
-            @Throws(IOException::class)
-            override fun onResponse(call: Call, response: Response) {
-                Log.d(TAG, "=============onResponse===============")
-                Log.d(TAG, "request headers:" + response.request.headers)
-                Log.d(TAG, "response code:" + response.code)
-                Log.d(TAG, "response headers:" + response.headers)
-                Log.d(TAG, "response body:" + response.body!!.string())
-                val param = Arguments.createMap()
-                param.putInt("status", response.code)
-                promise.resolve(param)
-            }
-        })
-    }
-}
-
-
-class UploaderHelper {
-  var uuid: String? = null
-  var method: String? = null
-  var headers: ReadableMap? = null
-  var url: String? = null
-
-  companion object {
-    fun fromMap(map: ReadableMap): UploaderHelper {
-      val options = UploaderHelper()
-      val iterator = map.keySetIterator()
-      while (iterator.hasNextKey()) {
-        val key = iterator.nextKey()
-        when (key) {
-          "uuid" -> options.uuid = map.getString(key)
-          "method" -> options.method = map.getString(key)
-          "headers" -> options.headers = map.getMap(key)
-          "url" -> options.url = map.getString(key)
-        }
       }
-      return options
+      val request = createUploadRequest(
+        url, fileUriString, options
+      ) { requestBody -> CountingRequestBody(requestBody, progressListener) }
+
+      okHttpClient?.let {
+        it.newCall(request).enqueue(object : Callback {
+          override fun onFailure(call: Call, e: IOException) {
+            Log.e(TAG, e.message.toString())
+            promise.reject(TAG, e.message, e)
+          }
+
+          override fun onResponse(call: Call, response: Response) {
+            val param = Arguments.createMap()
+            param.putInt("status", response.code)
+            param.putString("body", response.body?.string())
+            param.putMap("headers", translateHeaders(response.headers))
+            response.close()
+            promise.resolve(param)
+          }
+        })
+      } ?: run {
+        promise.reject(UploaderOkHttpNullException())
+      }
+
     }
+
+  @get:Synchronized
+  private val okHttpClient: OkHttpClient?
+    get() {
+      if (client == null) {
+        val builder = OkHttpClient.Builder()
+          .connectTimeout(60, TimeUnit.SECONDS)
+          .readTimeout(60, TimeUnit.SECONDS)
+          .writeTimeout(60, TimeUnit.SECONDS)
+        client = builder.build()
+      }
+      return client
+    }
+
+  private fun slashifyFilePath(path: String?): String? {
+    return if (path == null) {
+      null
+    } else if (path.startsWith("file:///")) {
+      path
+    } else {
+      // Ensure leading schema with a triple slash
+      Pattern.compile("^file:/*").matcher(path).replaceAll("file:///")
+    }
+  }
+
+  @Throws(IOException::class)
+  private fun createUploadRequest(url: String, fileUriString: String, options: UploaderOptions, decorator: RequestBodyDecorator): Request {
+    val fileUri = Uri.parse(slashifyFilePath(fileUriString))
+    fileUri.checkIfFileExists()
+
+    val requestBuilder = Request.Builder().url(url)
+    options.headers?.let {
+      it.forEach { (key, value) -> requestBuilder.addHeader(key, value) }
+    }
+
+    val body = createRequestBody(options, decorator, fileUri.toFile())
+    return options.httpMethod.let { requestBuilder.method(it.value, body).build() }
+  }
+
+  @SuppressLint("NewApi")
+  private fun createRequestBody(options: UploaderOptions, decorator: RequestBodyDecorator, file: File): RequestBody {
+    return when (options.uploadType) {
+      UploadType.BINARY_CONTENT -> {
+        val mimeType: String? = if (options.mimeType?.isNotEmpty() == true) {
+          options.mimeType
+        } else {
+          getContentType(reactContext, file) ?: "application/octet-stream"
+        }
+        val contentType = mimeType?.toMediaTypeOrNull()
+        decorator.decorate(file.asRequestBody(contentType))
+      }
+
+      UploadType.MULTIPART -> {
+        val bodyBuilder = MultipartBody.Builder().setType(MultipartBody.FORM)
+        options.parameters?.let {
+          (it as Map<String, Any>)
+            .forEach { (key, value) -> bodyBuilder.addFormDataPart(key, value.toString()) }
+        }
+        val mimeType: String = options.mimeType ?: URLConnection.guessContentTypeFromName(file.name)
+
+        val fieldName = options.fieldName ?: file.name
+        bodyBuilder.addFormDataPart(fieldName, file.name, decorator.decorate(file.asRequestBody(mimeType.toMediaTypeOrNull())))
+        bodyBuilder.build()
+      }
+    }
+  }
+
+  fun getContentType(context: ReactApplicationContext, file: File): String? {
+    val contentResolver: ContentResolver = context.contentResolver
+    val fileUri = Uri.fromFile(file)
+
+    // Try to get the MIME type from the ContentResolver
+    val mimeType = contentResolver.getType(fileUri)
+
+    // If the ContentResolver couldn't determine the MIME type, try to infer it from the file extension
+    if (mimeType == null) {
+      val fileExtension = MimeTypeMap.getFileExtensionFromUrl(fileUri.toString())
+      if (fileExtension != null) {
+        return MimeTypeMap.getSingleton().getMimeTypeFromExtension(fileExtension.toLowerCase())
+      }
+    }
+
+    return mimeType
+  }
+
+  @Throws(IOException::class)
+  private fun Uri.checkIfFileExists() {
+    val file = this.toFile()
+    if (!file.exists()) {
+      throw IOException("Directory for '${file.path}' doesn't exist.")
+    }
+  }
+
+  // extension functions of Uri class
+  private fun Uri.toFile() = if (this.path != null) {
+    File(this.path!!)
+  } else {
+    throw IOException("Invalid Uri: $this")
+  }
+
+  private fun translateHeaders(headers: Headers): ReadableMap {
+    val responseHeaders = Arguments.createMap()
+    for (i in 0 until headers.size) {
+      val headerName = headers.name(i)
+      // multiple values for the same header
+      if (responseHeaders.hasKey(headerName)) {
+        val existingValue = responseHeaders.getString(headerName)
+        responseHeaders.putString(headerName, "$existingValue, ${headers.value(i)}")
+      } else {
+        responseHeaders.putString(headerName, headers.value(i))
+      }
+    }
+    return responseHeaders
   }
 }

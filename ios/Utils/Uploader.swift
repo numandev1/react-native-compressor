@@ -132,7 +132,7 @@ class Uploader : NSObject, URLSessionTaskDelegate{
     }
     
     func headersForMultipartParams(_ params: [String: String]?, boundary: String) -> String {
-      guard let params else {
+      guard let params = params else {
         return ""
       }
       return params.map { (key: String, value: String) in

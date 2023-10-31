@@ -38,12 +38,12 @@ function ThemeStack() {
         options={{ title: 'Compressor Examples' }}
         component={MainScreen}
       />
-      {Object.keys(SCREENS).map((name) => (
+      {Object.entries(SCREENS).map(([name, component]) => (
         <ThemeNavStack.Screen
           key={name}
           name={name}
-          getComponent={() => SCREENS[name].screen}
-          options={{ title: SCREENS[name].title || name }}
+          getComponent={() => component.screen}
+          options={{ title: component.title || name }}
         />
       ))}
     </ThemeNavStack.Navigator>

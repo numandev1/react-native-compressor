@@ -39,6 +39,8 @@ RCT_EXTERN_METHOD(upload:(NSString *)fileUrl
                  withResolver:(RCTPromiseResolveBlock)resolve
                  withRejecter:(RCTPromiseRejectBlock)reject)
 
+RCT_EXTERN_METHOD(cancelUpload)
+
 RCT_EXTERN_METHOD(download:(NSString *)fileUrl
                  withOptions:(NSDictionary *)options
                  withResolver:(RCTPromiseResolveBlock)resolve

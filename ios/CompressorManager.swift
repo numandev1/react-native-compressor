@@ -86,6 +86,10 @@ class Compressor: RCTEventEmitter {
         uploader.upload(filePath: filePath, options: options, resolve: resolve, reject: reject)
     }
     
+    func cancelUpload() -> Void {
+        uploader.cancelUpload()
+    }
+    
     @objc(download:withOptions:withResolver:withRejecter:)
     func download(filePath: String, options: [String: Any], resolve:@escaping RCTPromiseResolveBlock, reject:@escaping RCTPromiseRejectBlock) -> Void {
         Downloader.downloadFileAndSaveToCache(filePath, uuid: options["uuid"] as! String,progressDivider: options["progressDivider"] as? Int ?? 0) { downloadedPath in

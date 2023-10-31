@@ -29,6 +29,7 @@ struct UploadError: Error {
 class Uploader : NSObject, URLSessionTaskDelegate{
     var uploadResolvers: [String: RCTPromiseResolveBlock] = [:]
     var uploadRejectors: [String: RCTPromiseRejectBlock] = [:]
+    var currentTask: URLSessionDataTask?
     
     func upload(filePath: String, options: [String: Any], resolve:@escaping RCTPromiseResolveBlock, reject:@escaping RCTPromiseRejectBlock) -> Void {
         let fileUrl = Utils.makeValidUri(filePath: filePath)
@@ -98,8 +99,13 @@ class Uploader : NSObject, URLSessionTaskDelegate{
             reject("ERR_FILESYSTEM_INVALID_UPLOAD_TYPE", errorMessage, nil)
         }
         
+        currentTask = task
         task.resume()
      
+    }
+    
+    func cancelUpload() {
+        currentTask?.cancel()
     }
 
     func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {

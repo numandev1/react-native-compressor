@@ -26,33 +26,42 @@ import java.net.URLConnection
 import java.util.concurrent.TimeUnit
 
 class Uploader(private val reactContext: ReactApplicationContext) {
-    val TAG = "asyncTaskUploader"
-    var client: OkHttpClient? = null
-    val MIN_EVENT_DT_MS: Long = 100
+  val TAG = "asyncTaskUploader"
+  var client: OkHttpClient? = null
+  val MIN_EVENT_DT_MS: Long = 100
+  private var currentCall: Call? = null
 
-    fun upload(fileUriString: String, _options: ReadableMap, reactContext: ReactApplicationContext, promise: Promise) {
-      val options:UploaderOptions=convertReadableMapToUploaderOptions(_options)
-      val url = options.url
-      val uuid = options.uuid
-      val progressListener: CountingRequestListener = object : CountingRequestListener {
-        private var mLastUpdate: Long = -1
-        override fun onProgress(bytesWritten: Long, contentLength: Long) {
-          val currentTime = System.currentTimeMillis()
+  fun upload(
+    fileUriString: String,
+    _options: ReadableMap,
+    reactContext: ReactApplicationContext,
+    promise: Promise
+  ) {
+    val options: UploaderOptions = convertReadableMapToUploaderOptions(_options)
+    val url = options.url
+    val uuid = options.uuid
+    val progressListener: CountingRequestListener = object : CountingRequestListener {
+      private var mLastUpdate: Long = -1
+      override fun onProgress(bytesWritten: Long, contentLength: Long) {
+        val currentTime = System.currentTimeMillis()
 
-          // Throttle events. Sending too many events will block the JS event loop.
-          // Make sure to send the last event when we're at 100%.
-          if (currentTime > mLastUpdate + MIN_EVENT_DT_MS || bytesWritten == contentLength) {
-            mLastUpdate = currentTime
-            EventEmitterHandler.sendUploadProgressEvent(bytesWritten,contentLength,uuid)
-          }
+        // Throttle events. Sending too many events will block the JS event loop.
+        // Make sure to send the last event when we're at 100%.
+        if (currentTime > mLastUpdate + MIN_EVENT_DT_MS || bytesWritten == contentLength) {
+          mLastUpdate = currentTime
+          EventEmitterHandler.sendUploadProgressEvent(bytesWritten, contentLength, uuid)
         }
       }
-      val request = createUploadRequest(
-        url, fileUriString, options
-      ) { requestBody -> CountingRequestBody(requestBody, progressListener) }
+    }
+    val request = createUploadRequest(
+      url, fileUriString, options
+    ) { requestBody -> CountingRequestBody(requestBody, progressListener) }
 
-      okHttpClient?.let {
-        it.newCall(request).enqueue(object : Callback {
+    okHttpClient?.let {
+      val call = it.newCall(request)
+      currentCall = call
+      call.enqueue(
+        object : Callback {
           override fun onFailure(call: Call, e: IOException) {
             Log.e(TAG, e.message.toString())
             promise.reject(TAG, e.message, e)
@@ -67,11 +76,11 @@ class Uploader(private val reactContext: ReactApplicationContext) {
             promise.resolve(param)
           }
         })
-      } ?: run {
-        promise.reject(UploaderOkHttpNullException())
-      }
-
+    } ?: run {
+      promise.reject(UploaderOkHttpNullException())
     }
+
+  }
 
   @get:Synchronized
   private val okHttpClient: OkHttpClient?
@@ -87,7 +96,12 @@ class Uploader(private val reactContext: ReactApplicationContext) {
     }
 
   @Throws(IOException::class)
-  private fun createUploadRequest(url: String, fileUriString: String, options: UploaderOptions, decorator: RequestBodyDecorator): Request {
+  private fun createUploadRequest(
+    url: String,
+    fileUriString: String,
+    options: UploaderOptions,
+    decorator: RequestBodyDecorator
+  ): Request {
     val fileUri = Uri.parse(slashifyFilePath(fileUriString))
     fileUri.checkIfFileExists()
 
@@ -101,7 +115,11 @@ class Uploader(private val reactContext: ReactApplicationContext) {
   }
 
   @SuppressLint("NewApi")
-  private fun createRequestBody(options: UploaderOptions, decorator: RequestBodyDecorator, file: File): RequestBody {
+  private fun createRequestBody(
+    options: UploaderOptions,
+    decorator: RequestBodyDecorator,
+    file: File
+  ): RequestBody {
     return when (options.uploadType) {
       UploadType.BINARY_CONTENT -> {
         val mimeType: String? = if (options.mimeType?.isNotEmpty() == true) {
@@ -122,7 +140,11 @@ class Uploader(private val reactContext: ReactApplicationContext) {
         val mimeType: String = options.mimeType ?: URLConnection.guessContentTypeFromName(file.name)
 
         val fieldName = options.fieldName ?: file.name
-        bodyBuilder.addFormDataPart(fieldName, file.name, decorator.decorate(file.asRequestBody(mimeType.toMediaTypeOrNull())))
+        bodyBuilder.addFormDataPart(
+          fieldName,
+          file.name,
+          decorator.decorate(file.asRequestBody(mimeType.toMediaTypeOrNull()))
+        )
         bodyBuilder.build()
       }
     }
@@ -174,5 +196,9 @@ class Uploader(private val reactContext: ReactApplicationContext) {
       }
     }
     return responseHeaders
+  }
+
+  fun cancelUpload() {
+    currentCall?.cancel()
   }
 }

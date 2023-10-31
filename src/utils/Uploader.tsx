@@ -42,7 +42,8 @@ export const backgroundUpload = async (
   url: string,
   fileUrl: string,
   options: UploaderOptions,
-  onProgress?: (writtem: number, total: number) => void
+  onProgress?: (writtem: number, total: number) => void,
+  abortSignal?: AbortSignal
 ): Promise<any> => {
   const uuid = uuidv4();
   let subscription: NativeEventSubscription;
@@ -60,6 +61,11 @@ export const backgroundUpload = async (
     if (Platform.OS === 'android' && fileUrl.includes('file://')) {
       fileUrl = fileUrl.replace('file://', '');
     }
+
+    abortSignal?.addEventListener('abort', () => {
+      Compressor.cancelUpload();
+    });
+
     const result = await Compressor.upload(fileUrl, {
       uuid,
       method: options.httpMethod,

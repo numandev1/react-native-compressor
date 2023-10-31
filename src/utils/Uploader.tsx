@@ -38,6 +38,8 @@ export declare type UploaderOptions = (
   httpMethod?: UploaderHttpMethod | HttpMethod;
 };
 
+const cancelUpload = () => Compressor.cancelUpload();
+
 export const backgroundUpload = async (
   url: string,
   fileUrl: string,
@@ -62,9 +64,7 @@ export const backgroundUpload = async (
       fileUrl = fileUrl.replace('file://', '');
     }
 
-    abortSignal?.addEventListener('abort', () => {
-      Compressor.cancelUpload();
-    });
+    abortSignal?.addEventListener('abort', cancelUpload);
 
     const result = await Compressor.upload(fileUrl, {
       uuid,
@@ -80,5 +80,6 @@ export const backgroundUpload = async (
     if (subscription) {
       subscription.remove();
     }
+    abortSignal?.removeEventListener('abort', cancelUpload);
   }
 };

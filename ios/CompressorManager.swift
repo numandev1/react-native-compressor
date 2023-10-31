@@ -86,6 +86,7 @@ class Compressor: RCTEventEmitter {
         uploader.upload(filePath: filePath, options: options, resolve: resolve, reject: reject)
     }
     
+    @objc(cancelUpload)
     func cancelUpload() -> Void {
         uploader.cancelUpload()
     }

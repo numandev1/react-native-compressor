@@ -371,7 +371,7 @@ class VideoCompressor {
             }
             return
         } else if !videoPath.contains("ph://") {
-            completionHandler(videoPath)
+            completionHandler(Utils.slashifyFilePath(path: videoPath)!)
             return
         }
         let assetId = videoPath.replacingOccurrences(of: "ph://", with: "")

@@ -127,4 +127,20 @@ class Utils {
         return fileSize
     }
     
+    static func slashifyFilePath(path: String?) -> String? {
+        if let path = path {
+            if path.hasPrefix("file:///") {
+                return path
+            } else if path.hasPrefix("/") {
+                return path.replacingOccurrences(of: "^/+", with: "file:///", options: .regularExpression, range: nil)
+            } else {
+                // Ensure leading schema with a triple slash
+               let regex = try! NSRegularExpression(pattern: "^file:/*")
+               let modifiedPath = regex.stringByReplacingMatches(in: path, options: [], range: NSRange(location: 0, length: path.utf16.count), withTemplate: "file:///")
+               return modifiedPath.hasPrefix("file:///") ? modifiedPath : "file:///" + modifiedPath
+            }
+        }
+        return path
+    }
+    
 }

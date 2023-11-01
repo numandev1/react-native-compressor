@@ -113,7 +113,7 @@ object Utils {
             fileUrl = Downloader.downloadMediaWithProgress(fileUrl, uuid,progressDivider, reactContext)
             Log.d(TAG, "getRealPath: $fileUrl")
         }
-        return fileUrl
+        return slashifyFilePath(fileUrl)
     }
 
 

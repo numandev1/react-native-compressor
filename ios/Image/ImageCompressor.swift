@@ -315,7 +315,7 @@ class ImageCompressor {
                 }
                 return
             } else if !imagePath.contains("ph://") {
-                completionHandler(imagePath)
+                completionHandler(Utils.slashifyFilePath(path: imagePath)!)
                 return
             }
             

@@ -16,6 +16,7 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.util.UUID
 import java.util.regex.Pattern
+import kotlin.Throwable
 
 object Utils {
     private const val TAG = "react-native-compessor"
@@ -59,11 +60,13 @@ object Utils {
 
             override fun onFailure(index: Int, failureMessage: String) {
               Log.wtf("failureMessage", failureMessage)
+              promise.reject(Throwable(failureMessage))
               currentVideoCompression[0] = 0
             }
 
             override fun onCancelled(index: Int) {
               Log.wtf("TAG", "compression has been cancelled")
+              promise.reject(Throwable("compression has been cancelled"))
               // make UI changes, cleanup, etc
               currentVideoCompression[0] = 0
             }

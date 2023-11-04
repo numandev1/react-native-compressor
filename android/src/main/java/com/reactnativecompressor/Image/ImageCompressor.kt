@@ -11,6 +11,7 @@ import android.net.Uri
 import android.util.Base64
 import com.facebook.react.bridge.ReactApplicationContext
 import com.reactnativecompressor.Utils.MediaCache
+import com.reactnativecompressor.Utils.Utils.exifAttributes
 import com.reactnativecompressor.Utils.Utils.generateCacheFilePath
 import com.reactnativecompressor.Utils.Utils.slashifyFilePath
 import java.io.ByteArrayOutputStream
@@ -55,7 +56,28 @@ object ImageCompressor {
         return BitmapFactory.decodeFile(filePath)
     }
 
-    fun encodeImage(imageDataByteArrayOutputStream: ByteArrayOutputStream, isBase64: Boolean, outputExtension: String?, reactContext: ReactApplicationContext?): String? {
+    fun copyExifInfo(imagePath:String, outputUri:String){
+      try {
+        // for copy exif info
+        val sourceExif = ExifInterface(imagePath)
+        val compressedExif = ExifInterface(outputUri)
+        for (tag in exifAttributes) {
+          val compressedValue = compressedExif.getAttribute(tag)
+          if(compressedValue==null)
+          {
+            val sourceValue = sourceExif.getAttribute(tag)
+            if (sourceValue != null) {
+              compressedExif.setAttribute(tag, sourceValue)
+            }
+          }
+        }
+        compressedExif.saveAttributes()
+      } catch (e: Exception) {
+        e.printStackTrace()
+      }
+    }
+
+    fun encodeImage(imageDataByteArrayOutputStream: ByteArrayOutputStream, isBase64: Boolean, outputExtension: String?,imagePath: String?, reactContext: ReactApplicationContext?): String? {
         if (isBase64) {
             val imageData = imageDataByteArrayOutputStream.toByteArray()
             return Base64.encodeToString(imageData, Base64.DEFAULT)
@@ -64,6 +86,9 @@ object ImageCompressor {
             try {
                 val fos = FileOutputStream(outputUri)
                 imageDataByteArrayOutputStream.writeTo(fos)
+
+              copyExifInfo(imagePath!!, outputUri)
+
                 return getRNFileUrl(outputUri)
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -112,7 +137,7 @@ object ImageCompressor {
         val resizedImage = resize(image, options.maxWidth, options.maxHeight)
         val imageDataByteArrayOutputStream = compress(resizedImage, options.output, options.quality,options.disablePngTransparency)
         val isBase64 = options.returnableOutputType === ImageCompressorOptions.ReturnableOutputType.base64
-        return encodeImage(imageDataByteArrayOutputStream, isBase64, options.output.toString(), reactContext)
+        return encodeImage(imageDataByteArrayOutputStream, isBase64, options.output.toString(),imagePath, reactContext)
     }
 
   fun isCompressedSizeLessThanActualFile(sourceFileUrl: String,compressedFileUrl: String?): Boolean {
@@ -197,7 +222,7 @@ object ImageCompressor {
         }
         scaledBitmap = correctImageOrientation(scaledBitmap, imagePath)
         val imageDataByteArrayOutputStream = compress(scaledBitmap, compressorOptions.output, compressorOptions.quality,compressorOptions.disablePngTransparency)
-        val compressedImagePath=encodeImage(imageDataByteArrayOutputStream, isBase64, compressorOptions.output.toString(), reactContext)
+        val compressedImagePath=encodeImage(imageDataByteArrayOutputStream, isBase64, compressorOptions.output.toString(),imagePath, reactContext)
         if(isCompressedSizeLessThanActualFile(imagePath!!,compressedImagePath))
         {
         return  compressedImagePath

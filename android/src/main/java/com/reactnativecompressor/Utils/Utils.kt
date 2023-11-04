@@ -32,31 +32,31 @@ object Utils {
       val currentVideoCompression = intArrayOf(0)
       val videoCompressorClass: VideoCompressorClass? = VideoCompressorClass(reactContext);
       compressorExports[uuid] = videoCompressorClass
-      videoCompressorClass?.start(srcPath, destinationPath, resultWidth, resultHeight, videoBitRate.toInt(),
-          listener = object : CompressionListener {
-            override fun onProgress(index: Int, percent: Float) {
-              if (percent <= 100)
-              {
-                val roundProgress = Math.round(percent)
-                if (progressDivider==0||(roundProgress % progressDivider == 0 && roundProgress > currentVideoCompression[0])) {
-                  EventEmitterHandler.emitVideoCompressProgress((percent / 100).toDouble(),uuid)
-                  currentVideoCompression[0] = roundProgress
-                }
+      videoCompressorClass?.start(
+        srcPath, destinationPath, resultWidth, resultHeight, videoBitRate.toInt(),
+        listener = object : CompressionListener {
+          override fun onProgress(index: Int, percent: Float) {
+            if (percent <= 100) {
+              val roundProgress = Math.round(percent)
+              if (progressDivider == 0 || (roundProgress % progressDivider == 0 && roundProgress > currentVideoCompression[0])) {
+                EventEmitterHandler.emitVideoCompressProgress((percent / 100).toDouble(), uuid)
+                currentVideoCompression[0] = roundProgress
               }
             }
+          }
 
-            override fun onStart(index: Int) {
+          override fun onStart(index: Int) {
 
-            }
+          }
 
-            override fun onSuccess(index: Int, size: Long, path: String?) {
-              val fileUrl = "file://$destinationPath"
-              //convert finish,result(true is success,false is fail)
-              promise.resolve(fileUrl)
-              MediaCache.removeCompletedImagePath(fileUrl)
-              currentVideoCompression[0] = 0
-              compressorExports[uuid]=null
-            }
+          override fun onSuccess(index: Int, size: Long, path: String?) {
+            val fileUrl = "file://$destinationPath"
+            //convert finish,result(true is success,false is fail)
+            promise.resolve(fileUrl)
+            MediaCache.removeCompletedImagePath(fileUrl)
+            currentVideoCompression[0] = 0
+            compressorExports[uuid] = null
+          }
 
             override fun onFailure(index: Int, failureMessage: String) {
               Log.wtf("failureMessage", failureMessage)
@@ -154,6 +154,147 @@ object Utils {
   fun addLog(log: String) {
     Log.d(AudioCompressor.TAG,  log)
   }
+
+  val exifAttributes = arrayOf(
+    "FNumber",
+    "ApertureValue",
+    "Artist",
+    "BitsPerSample",
+    "BrightnessValue",
+    "CFAPattern",
+    "ColorSpace",
+    "ComponentsConfiguration",
+    "CompressedBitsPerPixel",
+    "Compression",
+    "Contrast",
+    "Copyright",
+    "CustomRendered",
+    "DateTime",
+    "DateTimeDigitized",
+    "DateTimeOriginal",
+    "DefaultCropSize",
+    "DeviceSettingDescription",
+    "DigitalZoomRatio",
+    "DNGVersion",
+    "ExifVersion",
+    "ExposureBiasValue",
+    "ExposureIndex",
+    "ExposureMode",
+    "ExposureProgram",
+    "ExposureTime",
+    "FileSource",
+    "Flash",
+    "FlashpixVersion",
+    "FlashEnergy",
+    "FocalLength",
+    "FocalLengthIn35mmFilm",
+    "FocalPlaneResolutionUnit",
+    "FocalPlaneXResolution",
+    "FocalPlaneYResolution",
+    "FNumber",
+    "GainControl",
+    "GPSAltitude",
+    "GPSAltitudeRef",
+    "GPSAreaInformation",
+    "GPSDateStamp",
+    "GPSDestBearing",
+    "GPSDestBearingRef",
+    "GPSDestDistance",
+    "GPSDestDistanceRef",
+    "GPSDestLatitude",
+    "GPSDestLatitudeRef",
+    "GPSDestLongitude",
+    "GPSDestLongitudeRef",
+    "GPSDifferential",
+    "GPSDOP",
+    "GPSImgDirection",
+    "GPSImgDirectionRef",
+    "GPSLatitude",
+    "GPSLatitudeRef",
+    "GPSLongitude",
+    "GPSLongitudeRef",
+    "GPSMapDatum",
+    "GPSMeasureMode",
+    "GPSProcessingMethod",
+    "GPSSatellites",
+    "GPSSpeed",
+    "GPSSpeedRef",
+    "GPSStatus",
+    "GPSTimeStamp",
+    "GPSTrack",
+    "GPSTrackRef",
+    "GPSVersionID",
+    "ImageDescription",
+    "ImageLength",
+    "ImageUniqueID",
+    "ImageWidth",
+    "InteroperabilityIndex",
+    "ISOSpeedRatings",
+    "ISOSpeedRatings",
+    "JPEGInterchangeFormat",
+    "JPEGInterchangeFormatLength",
+    "LightSource",
+    "Make",
+    "MakerNote",
+    "MaxApertureValue",
+    "MeteringMode",
+    "Model",
+    "NewSubfileType",
+    "OECF",
+    "AspectFrame",
+    "PreviewImageLength",
+    "PreviewImageStart",
+    "ThumbnailImage",
+    "Orientation",
+    "PhotometricInterpretation",
+    "PixelXDimension",
+    "PixelYDimension",
+    "PlanarConfiguration",
+    "PrimaryChromaticities",
+    "ReferenceBlackWhite",
+    "RelatedSoundFile",
+    "ResolutionUnit",
+    "RowsPerStrip",
+    "ISO",
+    "JpgFromRaw",
+    "SensorBottomBorder",
+    "SensorLeftBorder",
+    "SensorRightBorder",
+    "SensorTopBorder",
+    "SamplesPerPixel",
+    "Saturation",
+    "SceneCaptureType",
+    "SceneType",
+    "SensingMethod",
+    "Sharpness",
+    "ShutterSpeedValue",
+    "Software",
+    "SpatialFrequencyResponse",
+    "SpectralSensitivity",
+    "StripByteCounts",
+    "StripOffsets",
+    "SubfileType",
+    "SubjectArea",
+    "SubjectDistance",
+    "SubjectDistanceRange",
+    "SubjectLocation",
+    "SubSecTime",
+    "SubSecTimeDigitized",
+    "SubSecTimeDigitized",
+    "SubSecTimeOriginal",
+    "SubSecTimeOriginal",
+    "ThumbnailImageLength",
+    "ThumbnailImageWidth",
+    "TransferFunction",
+    "UserComment",
+    "WhiteBalance",
+    "WhitePoint",
+    "XResolution",
+    "YCbCrCoefficients",
+    "YCbCrPositioning",
+    "YCbCrSubSampling",
+    "YResolution"
+  )
 
   fun getLength(uri: Uri, contentResolver: ContentResolver): Long {
     var assetFileDescriptor: AssetFileDescriptor? = null

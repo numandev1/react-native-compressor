@@ -114,7 +114,38 @@ class ImageCompressor {
         }
         return false
     }
-
+    
+    static func isPNG(_ data: Data) -> Bool {
+        return data.starts(with: [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A])
+    }
+    
+    static func copyExifInfo(actualImagePath:String, image: UIImage, data: Data) -> Data {
+        let fileURL = URL(string: actualImagePath)!
+        let filePath = fileURL.path
+        
+        let url = URL(fileURLWithPath: filePath)
+        let source = CGImageSourceCreateWithURL(url as CFURL, nil)!
+        var metadata = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any]
+        
+        let dataProvider = CGDataProvider(data: data as CFData)
+        let dataImageSource = CGImageSourceCreateWithDataProvider(dataProvider!, nil)!
+        let dataMetadata = CGImageSourceCopyPropertiesAtIndex(dataImageSource, 0, nil) as? [CFString: Any]
+        
+        // Copy all keys from source metadata to destination metadata if they don't exist
+        for (key, value) in dataMetadata ?? [:] {
+            if metadata?[key] == nil {
+                metadata?[key] = value
+            }
+        }
+        
+        let outputFormat = isPNG(data) ? kUTTypePNG : kUTTypeJPEG
+        
+        let destinationData = NSMutableData()
+        let destination = CGImageDestinationCreateWithData(destinationData, outputFormat, 1, nil)!
+        CGImageDestinationAddImage(destination, image.cgImage!, metadata as CFDictionary?)
+        CGImageDestinationFinalize(destination)
+        return destinationData as Data
+    }
     
     static func writeImage(_ image: UIImage, output: Int, quality: Float, outputExtension: String, isBase64: Bool,disablePngTransparency:Bool,isEnableAutoCompress:Bool,actualImagePath:String)-> String{
         var data: Data
@@ -135,7 +166,10 @@ class ImageCompressor {
             }
            
         }
-
+        
+        data=copyExifInfo(actualImagePath: actualImagePath, image: image, data: data)
+        
+        
         if isBase64 {
             return data.base64EncodedString(options: [])
         } else {

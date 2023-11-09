@@ -881,7 +881,7 @@ PODS:
     - React-Codegen
     - React-RCTFabric
     - ReactCommon/turbomodule/core
-  - react-native-compressor (1.8.13):
+  - react-native-compressor (1.8.15):
     - hermes-engine
     - NextLevelSessionExporter
     - RCT-Folly (= 2021.07.22.00)
@@ -1381,7 +1381,7 @@ SPEC CHECKSUMS:
   React-jsinspector: 194e32c6aab382d88713ad3dd0025c5f5c4ee072
   React-logger: cebf22b6cf43434e471dc561e5911b40ac01d289
   react-native-cameraroll: 5d9523136a929b58f092fd7f0a9a13367a4b46e3
-  react-native-compressor: 36560ed68379f0fe9b52b2ee8c1e3d9853dd86b8
+  react-native-compressor: fb94a06841de42572dfbefe5f7e26a89f47161dd
   react-native-document-picker: c9ac93d7b511413f4a0ed61c92ff6c7b1bcf4f94
   react-native-get-random-values: dee677497c6a740b71e5612e8dbd83e7539ed5bb
   react-native-image-picker: 9b4b1d0096500050cbdabf8f4fd00b771065d983

@@ -307,11 +307,13 @@ class VideoCompressor {
         }
     
     
+    
     func getVideoMetaData(_ filePath: String, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
         do {
             VideoCompressor.getAbsoluteVideoPath(filePath, options: [:]) { absoluteImagePath in
                 if absoluteImagePath.hasPrefix("file://") {
-                    let absoluteImagePath = absoluteImagePath.replacingOccurrences(of: "file://", with: "")
+                    
+                    let absoluteImagePath = URL(string: absoluteImagePath)!.path
                     let fileManager = FileManager.default
                     var isDir: ObjCBool = false
                     
@@ -323,7 +325,7 @@ class VideoCompressor {
                     
                     let attrs = try? fileManager.attributesOfItem(atPath: absoluteImagePath)
                     if let fileSize = attrs?[FileAttributeKey.size] as? UInt64 {
-                        let fileSizeString = String(fileSize)
+                        let fileSizeString = fileSize
                         
                         var result: [String: Any] = [:]
                         let assetOptions: [String: Any] = [AVURLAssetPreferPreciseDurationAndTimingKey: true]
@@ -332,13 +334,13 @@ class VideoCompressor {
                             let size = avAsset.naturalSize
                             let _extension = (absoluteImagePath as NSString).pathExtension
                             let time = asset.duration
-                            let seconds = Int(ceil(Double(time.value / Int64(time.timescale))))
+                            let seconds = Double(time.value) / Double(time.timescale)
                             
-                            result["width"] = String(format: "%.2f", size.width)
-                            result["height"] = String(format: "%.2f", size.height)
+                            result["width"] = size.width
+                            result["height"] = size.height
                             result["extension"] = _extension
                             result["size"] = fileSizeString
-                            result["duration"] = String(seconds)
+                            result["duration"] = seconds
                             
                             var commonMetadata: [AVMetadataItem] = []
                             for key in self.metadatas {

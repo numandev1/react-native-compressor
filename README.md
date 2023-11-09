@@ -492,11 +492,11 @@ const metaData = await getVideoMetaData(filePath);
 
 ```
 {
-	"duration": "6",
+	"duration": 20.11,
 	"extension": "mp4",
-	"height": "1080",
-	"size": "16940.0",
-	"width": "1920"
+	"height": 1080,
+	"size": 16940.0,
+	"width": 1920
 }
 ```
 

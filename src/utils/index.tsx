@@ -37,7 +37,13 @@ type createVideoThumbnailType = (
 }>;
 
 type clearCacheType = (cacheDir?: string) => Promise<string>;
-type getVideoMetaDataType = (filePath: string) => Promise<string>;
+type getVideoMetaDataType = (filePath: string) => Promise<{
+  extension: string;
+  size: number;
+  duration: number;
+  width: number;
+  height: number;
+}>;
 type getRealPathType = (
   path: string,
   type: 'video' | 'image'

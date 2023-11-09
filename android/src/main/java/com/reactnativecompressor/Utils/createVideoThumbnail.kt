@@ -39,7 +39,6 @@ class CreateVideoThumbnailClass(private val reactContext: ReactApplicationContex
             weakContext = WeakReference(reactContext.applicationContext)
         }
 
-        @RequiresApi(Build.VERSION_CODES.N)
         override fun doInBackgroundGuarded(): ReadableMap? {
             val format = "jpeg"
             val cacheName = if (options.hasKey("cacheName")) options.getString("cacheName") else ""

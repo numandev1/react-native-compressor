@@ -371,6 +371,10 @@ await clearCache(); // this will clear cache of thumbnails cache directory
 
 - ###### `returnableOutputType: ReturnableOutputType` (default: uri)
   Can be either `uri` or `base64`, defines the Returnable output image format.
+- ###### `activateBackgroundTask(onExpired?: (data: any) => void): Promise<any>`
+  if you wanna compress video while app is in backgroup then you should call this method before compression
+- ###### `deactivateBackgroundTask(): Promise<any>`
+  if you call `activateBackgroundTask` method, then after video compression, you should call `deactivateBackgroundTask` for disable background task mode.
 
 ## Video
 

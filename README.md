@@ -129,9 +129,9 @@ react-native link react-native-compressor
 
 #### iOS
 
-1. In XCode, in the project navigator, right click `Libraries` ➜ `Add Files to [your project's name]`
-2. Go to `node_modules` ➜ `react-native-compressor` and add `Compressor.xcodeproj`
-3. In XCode, in the project navigator, select your project. Add `libCompressor.a` to your project's `Build Phases` ➜ `Link Binary With Libraries`
+1. In XCode, open Podfile
+2. paste this line `pod 'react-native-compressor', :path => '../node_modules/react-native-compressor'` into `Podfile`
+3. run this command inside ios folder `pod install`
 4. Run your project (`Cmd+R`)<
 
 #### Android

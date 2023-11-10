@@ -8,7 +8,6 @@ import android.net.Uri
 import android.os.Build
 import android.text.TextUtils
 import android.webkit.URLUtil
-import androidx.annotation.RequiresApi
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.GuardedResultAsyncTask
 import com.facebook.react.bridge.Promise

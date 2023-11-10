@@ -8,7 +8,6 @@ PODS:
     - hermes-engine/Pre-built (= 0.72.4)
   - hermes-engine/Pre-built (0.72.4)
   - libevent (2.1.12)
-  - NextLevelSessionExporter (0.4.6)
   - RCT-Folly (2021.07.22.00):
     - boost
     - DoubleConversion
@@ -881,9 +880,8 @@ PODS:
     - React-Codegen
     - React-RCTFabric
     - ReactCommon/turbomodule/core
-  - react-native-compressor (1.8.15):
+  - react-native-compressor (1.8.16):
     - hermes-engine
-    - NextLevelSessionExporter
     - RCT-Folly (= 2021.07.22.00)
     - RCTRequired
     - RCTTypeSafety
@@ -1241,7 +1239,6 @@ SPEC REPOS:
   trunk:
     - fmt
     - libevent
-    - NextLevelSessionExporter
     - SocketRocket
 
 EXTERNAL SOURCES:
@@ -1361,7 +1358,6 @@ SPEC CHECKSUMS:
   glog: 04b94705f318337d7ead9e6d17c019bd9b1f6b1b
   hermes-engine: 81191603c4eaa01f5e4ae5737a9efcf64756c7b2
   libevent: 4049cae6c81cdb3654a443be001fb9bdceff7913
-  NextLevelSessionExporter: 4d8aa5e617f1c709724f2453efe5d4628480f65a
   RCT-Folly: 424b8c9a7a0b9ab2886ffe9c3b041ef628fd4fb1
   RCTRequired: 28469809442eb4eb5528462705f7d852948c8a74
   RCTTypeSafety: e9c6c409fca2cc584e5b086862d562540cb38d29
@@ -1381,7 +1377,7 @@ SPEC CHECKSUMS:
   React-jsinspector: 194e32c6aab382d88713ad3dd0025c5f5c4ee072
   React-logger: cebf22b6cf43434e471dc561e5911b40ac01d289
   react-native-cameraroll: 5d9523136a929b58f092fd7f0a9a13367a4b46e3
-  react-native-compressor: fb94a06841de42572dfbefe5f7e26a89f47161dd
+  react-native-compressor: 3ad769f5bac56d7337df076a1c62e74292f7136d
   react-native-document-picker: c9ac93d7b511413f4a0ed61c92ff6c7b1bcf4f94
   react-native-get-random-values: dee677497c6a740b71e5612e8dbd83e7539ed5bb
   react-native-image-picker: 9b4b1d0096500050cbdabf8f4fd00b771065d983
@@ -1412,6 +1408,6 @@ SPEC CHECKSUMS:
   SocketRocket: f32cd54efbe0f095c4d7594881e52619cfe80b17
   Yoga: b76f1acfda8212aa16b7e26bcce3983230c82603
 
-PODFILE CHECKSUM: 686c342866175d212f040c963197ac4ae3a0d39e
+PODFILE CHECKSUM: 6921e9d639a4280c7f39f24a8456ad90b32c9c67
 
 COCOAPODS: 1.13.0

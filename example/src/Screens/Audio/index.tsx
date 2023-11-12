@@ -21,7 +21,12 @@ const Index = () => {
       setFileName(res[0].name);
       setMimeType(res[0].type);
       console.log('source file: ', res[0].uri);
-      Audio.compress(res[0].uri, { quality: 'medium' })
+      Audio.compress(res[0].uri, {
+        quality: 'medium',
+        // bitrate: 64000,
+        // samplerate: 44100,
+        // channels: 1,
+      })
         .then(async (outputFilePath: string) => {
           console.log(outputFilePath, 'outputFilePath compressed audio');
           const detail: any = await getFileInfo(outputFilePath);

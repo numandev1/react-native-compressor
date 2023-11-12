@@ -1,12 +1,15 @@
 /* eslint-disable no-bitwise */
 import { Compressor } from '../Main';
 
-// export const AUDIO_BITRATE = [256, 192, 160, 128, 96, 64, 32];
 type qualityType = 'low' | 'medium' | 'high';
 const INCORRECT_INPUT_PATH = 'Incorrect input path. Please provide a valid one';
+
 type audioCompresssionType = {
   // bitrate?: number;
-  quality: qualityType;
+  quality?: qualityType;
+  bitrate?: number; // 64000-320000
+  samplerate?: number; // 44100 - 192000
+  channels?: number; // Typically 1 or 2
 };
 
 export type defaultResultType = {

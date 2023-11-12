@@ -4,6 +4,7 @@ package com.reactnativecompressor.Audio
 import android.annotation.SuppressLint
 import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
+import com.facebook.react.bridge.ReadableMap
 import com.naman14.androidlame.LameBuilder
 import com.naman14.androidlame.WaveReader
 import com.reactnativecompressor.Utils.MediaCache
@@ -27,21 +28,22 @@ class AudioCompressor {
     @JvmStatic
     fun CompressAudio(
       fileUrl: String,
-      quality: String,
+      optionMap: ReadableMap,
       context: ReactApplicationContext,
       promise: Promise,
     ) {
-      var _fileUrl=fileUrl
+      val realPath = Utils.getRealPath(fileUrl, context)
+      var _fileUrl=realPath
+      val filePathWithoutFileUri = realPath!!.replace("file://", "")
       try {
-        val filePath = fileUrl.replace("file://", "")
-        var wavPath=filePath;
+        var wavPath=filePathWithoutFileUri;
         var isNonWav:Boolean=false
         if (fileUrl.endsWith(".mp4", ignoreCase = true))
         {
           addLog("mp4 file found")
           val mp3Path= Utils.generateCacheFilePath("mp3", context)
           AudioExtractor().genVideoUsingMuxer(fileUrl, mp3Path, -1, -1, true, false)
-          _fileUrl="file:/"+mp3Path
+          _fileUrl=Utils.slashifyFilePath(mp3Path)
           wavPath= Utils.generateCacheFilePath("wav", context)
           try {
             val converter = Converter()
@@ -58,7 +60,7 @@ class AudioCompressor {
           wavPath= Utils.generateCacheFilePath("wav", context)
           try {
           val converter = Converter()
-          converter.convert(filePath, wavPath)
+          converter.convert(filePathWithoutFileUri, wavPath)
         } catch (e: JavaLayerException) {
           addLog("JavaLayerException error"+e.localizedMessage)
           e.printStackTrace();
@@ -67,7 +69,7 @@ class AudioCompressor {
         }
 
 
-        autoCompressHelper(wavPath, quality,context) { mp3Path, finished ->
+        autoCompressHelper(wavPath,filePathWithoutFileUri, optionMap,context) { mp3Path, finished ->
           if (finished) {
             val returnableFilePath:String="file://$mp3Path"
             addLog("finished: " + returnableFilePath)
@@ -87,28 +89,23 @@ class AudioCompressor {
       }
     }
 
-    private fun getAudioBitrateByQuality(quality: String): Int {
-      return when (quality) {
-        "low" -> 64 // Set your low bitrate value here
-        "medium" -> 128 // Set your medium bitrate value here
-        "high" -> 256 // Set your high bitrate value here
-        else -> 128 // Default to medium bitrate if quality is not recognized
-      }
-    }
-
     @SuppressLint("WrongConstant")
     private fun autoCompressHelper(
       fileUrl: String,
-      quality: String,
+      actualFileUrl: String,
+      optionMap: ReadableMap,
       context: ReactApplicationContext,
       completeCallback: (String, Boolean) -> Unit
     ) {
+
+      val options = AudioHelper.fromMap(optionMap)
+      val quality = options.quality
+
       var isCompletedCallbackTriggered:Boolean=false
       try {
         var mp3Path = Utils.generateCacheFilePath("mp3", context)
         val input = File(fileUrl)
         val output = File(mp3Path)
-        val audioBitrate= getAudioBitrateByQuality(quality)
 
         val CHUNK_SIZE = 8192
       addLog("Initialising wav reader")
@@ -122,12 +119,46 @@ class AudioCompressor {
       }
 
       addLog("Intitialising encoder")
-      val androidLame = LameBuilder()
-        .setInSampleRate(waveReader!!.sampleRate)
-        .setOutChannels(waveReader!!.channels)
-        .setOutBitrate(audioBitrate)
-        .setOutSampleRate(waveReader!!.sampleRate)
-        .build()
+
+
+        // for bitrate
+        var audioBitrate:Int
+        if(options.bitrate != -1)
+        {
+          audioBitrate= options.bitrate/1000
+        }
+        else
+        {
+          audioBitrate=AudioHelper.getDestinationBitrateByQuality(actualFileUrl, quality!!)
+          Utils.addLog("dest bitrate: $audioBitrate")
+        }
+
+        var androidLame = LameBuilder();
+        androidLame.setOutBitrate(audioBitrate)
+
+        // for channels
+        var audioChannels:Int
+        if(options.channels != -1){
+          audioChannels= options.channels!!
+        }
+        else
+        {
+          audioChannels=waveReader!!.channels
+        }
+        androidLame.setOutChannels(audioChannels)
+
+        // for sample rate
+        androidLame.setInSampleRate(waveReader!!.sampleRate)
+        var audioSampleRate:Int
+        if(options.samplerate != -1){
+          audioSampleRate= options.samplerate!!
+        }
+        else
+        {
+          audioSampleRate=waveReader!!.sampleRate
+        }
+        androidLame.setOutSampleRate(audioSampleRate)
+        val androidLameBuild=androidLame.build()
 
       try {
         outputStream = BufferedOutputStream(FileOutputStream(output), OUTPUT_STREAM_BUFFER)
@@ -154,7 +185,7 @@ class AudioCompressor {
             if (bytesRead > 0) {
 
               var bytesEncoded = 0
-              bytesEncoded = androidLame.encode(buffer_l, buffer_r, bytesRead, mp3Buf)
+              bytesEncoded = androidLameBuild.encode(buffer_l, buffer_r, bytesRead, mp3Buf)
               addLog("bytes encoded=$bytesEncoded")
 
               if (bytesEncoded > 0) {
@@ -177,7 +208,7 @@ class AudioCompressor {
             if (bytesRead > 0) {
               var bytesEncoded = 0
 
-              bytesEncoded = androidLame.encode(buffer_l, buffer_l, bytesRead, mp3Buf)
+              bytesEncoded = androidLameBuild.encode(buffer_l, buffer_l, bytesRead, mp3Buf)
               addLog("bytes encoded=$bytesEncoded")
 
               if (bytesEncoded > 0) {
@@ -202,7 +233,7 @@ class AudioCompressor {
       }
 
       addLog("flushing final mp3buffer")
-      val outputMp3buf = androidLame.flush(mp3Buf)
+      val outputMp3buf = androidLameBuild.flush(mp3Buf)
       addLog("flushed $outputMp3buf bytes")
       if (outputMp3buf > 0) {
         try {

@@ -7,9 +7,7 @@ const NativeAudio = Compressor;
 const Audio: AudioType = {
   compress: async (url, options = DEFAULT_COMPRESS_AUDIO_OPTIONS) => {
     try {
-      return NativeAudio.compress_audio(url, {
-        quality: options.quality,
-      });
+      return NativeAudio.compress_audio(url, options);
     } catch (error: any) {
       throw error.message;
     }

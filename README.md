@@ -270,6 +270,17 @@ const result = await Audio.compress(
   'file://path_of_file/file_example_MP3_2MG.wav', // recommended wav file but can be use mp3 file
   { quality: 'medium' }
 );
+
+// OR
+
+const result = await Audio.compress(
+  'file://path_of_file/file_example_MP3_2MG.wav', // recommended wav file but can be use mp3 file
+  {
+    bitrate: 64000,
+    samplerate: 44100,
+    channels: 1,
+  }
+);
 ```
 
 ### Background Upload
@@ -421,10 +432,20 @@ await clearCache(); // this will clear cache of thumbnails cache directory
 
 ### audioCompresssionType
 
-- ###### `quality: qualityType` (default: medium)
+- ###### `quality?: qualityType` (default: medium)
+
   we can also control bitrate through quality. qualityType can be `low` | `medium` | `high`
 
-**Note: manual bitrate, samplerate etc will add soon**
+- ###### `bitrate?: number` Range [64000-320000]
+
+  we can control bitrate of audio through bitrate, it should be in the range of `64000-320000`
+
+- ###### `samplerate?: number` Range [44100 - 192000]
+
+  we can control samplerate of audio through samplerate, it should be in the range of `44100 - 192000`
+
+- ###### `channels?: number` Typically 1 or 2
+  we can control channels of audio through channels, Typically 1 or 2
 
 ## Background Upload
 

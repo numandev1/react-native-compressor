@@ -1,9 +1,6 @@
 <div align="center">
  <img height="150" src="/media/logo.png" />
 </div>
-<div align="center">
- <b>Also supports Auto/Manual Compression | Background Upload | Download File | Create Video Thumbnail</b>
-</div>
  
 <br/>
 
@@ -18,6 +15,11 @@
 </div>
 
 **REACT-NATIVE-COMPRESSOR** is a react-native package, which helps us to Compress `Image`, `Video`, and `Audio` before uploading, same like **Whatsapp** without knowing the compression `algorithm`
+
+<div align="center">
+ <b>Also supports Auto/Manual Compression | Background Upload | Download File | Create Video Thumbnail</b>
+</div>
+<br/>
 
 <div align="center">
 <pre>

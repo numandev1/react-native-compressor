@@ -1,6 +1,10 @@
 <div align="center">
- <img height="150" src="/media/logo.png"></h2>
+ <img height="150" src="/media/logo.png" />
 </div>
+<div align="center">
+ <b>Also supports Auto/Manual Compression | Background Upload | Download File | Create Video Thumbnail</b>
+</div>
+ 
 <br/>
 
 <div align="center">

@@ -29,7 +29,7 @@ class Uploader(private val reactContext: ReactApplicationContext) {
   val TAG = "asyncTaskUploader"
   var client: OkHttpClient? = null
   val MIN_EVENT_DT_MS: Long = 100
-  private var currentCall: Call? = null
+  val httpCallManager = HttpCallManager()
 
   fun upload(
     fileUriString: String,
@@ -59,12 +59,12 @@ class Uploader(private val reactContext: ReactApplicationContext) {
 
     okHttpClient?.let {
       val call = it.newCall(request)
-      currentCall = call
+      httpCallManager.registerTask(call,uuid)
       call.enqueue(
         object : Callback {
           override fun onFailure(call: Call, e: IOException) {
             Log.e(TAG, e.message.toString())
-            promise.reject(TAG, e.message, e)
+            promise.reject(TAG, e.message)
           }
 
           override fun onResponse(call: Call, response: Response) {
@@ -198,7 +198,18 @@ class Uploader(private val reactContext: ReactApplicationContext) {
     return responseHeaders
   }
 
-  fun cancelUpload() {
-    currentCall?.cancel()
+  fun cancelUpload(uuid:String,shouldCancelAll:Boolean) {
+    if(shouldCancelAll)
+    {
+      httpCallManager.cancelAllTasks()
+    }
+    else if(uuid=="")
+    {
+      httpCallManager.taskPop()?.cancel()
+    }
+    else
+    {
+      httpCallManager.uploadTaskForId(uuid)?.cancel()
+    }
   }
 }

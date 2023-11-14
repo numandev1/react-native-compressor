@@ -10,6 +10,7 @@ import {
   getVideoMetaData,
   getFileSize,
   backgroundUpload,
+  cancelUpload,
   createVideoThumbnail,
   download,
   clearCache,
@@ -22,6 +23,7 @@ export {
   Audio,
   Image,
   backgroundUpload,
+  cancelUpload,
   download,
   //type
   getDetails,

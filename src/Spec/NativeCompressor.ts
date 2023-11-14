@@ -15,7 +15,7 @@ export interface Spec extends TurboModule {
   // Upload
   upload(fileUrl: string, options: Object): Promise<string>;
   // Cancel upload
-  cancelUpload(): void;
+  cancelUpload(uuid: string, shouldCancelAll: boolean): void;
   // Download
   download(fileUrl: string, options: Object): Promise<string>;
   // Others

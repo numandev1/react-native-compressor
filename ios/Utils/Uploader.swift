@@ -30,6 +30,7 @@ class Uploader : NSObject, URLSessionTaskDelegate{
     var uploadResolvers: [String: RCTPromiseResolveBlock] = [:]
     var uploadRejectors: [String: RCTPromiseRejectBlock] = [:]
     var currentTask: URLSessionDataTask?
+    private lazy var taskManager = UrlTaskManager()
     
     func upload(filePath: String, options: [String: Any], resolve:@escaping RCTPromiseResolveBlock, reject:@escaping RCTPromiseRejectBlock) -> Void {
         let fileUrl = Utils.makeValidUri(filePath: filePath)
@@ -98,14 +99,24 @@ class Uploader : NSObject, URLSessionTaskDelegate{
             let errorMessage = String(format: "Invalid upload type: '%@'.", options["uploadType"] as? String ?? "")
             reject("ERR_FILESYSTEM_INVALID_UPLOAD_TYPE", errorMessage, nil)
         }
-        
-        currentTask = task
+        taskManager.registerTask(task, uuid: uuid)
         task.resume()
      
     }
     
-    func cancelUpload() {
-        currentTask?.cancel()
+    func cancelUpload(uuid:String,shouldCancelAll:Bool) {
+        if(shouldCancelAll==true)
+        {
+            taskManager.cancelAllTasks()
+        } else if(uuid=="")
+        {
+         taskManager.taskPop()?.cancel()
+        }
+        else
+        {
+            taskManager.uploadTaskForId(uuid)?.cancel()
+        }
+        
     }
 
     func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {

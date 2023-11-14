@@ -317,6 +317,53 @@ const uploadResult = await backgroundUpload(
 );
 ```
 
+### Cancel Background Upload
+for cancellation Upload, there is two ways
+1. by calling, cancelUpload function
+2. by calling abort function
+
+##### cancelUpload (support single and all)
+```js
+import { cancelUpload, backgroundUpload } from 'react-native-compressor';
+
+// if we will call without passing any param then it will remove last pushed uploading
+cancelUpload()
+
+// if you pass true as second param then it will cancel all the uploading
+cancelUpload("",true)
+
+// if there is multiple files are uploading, and you wanna cancel specific uploading then you pass specific video id like this
+let videoId=''
+const uploadResult = await backgroundUpload(
+  url,
+  fileUrl,
+  { httpMethod: 'PUT',  getCancellationId: (cancellationId) =>(videoId = cancellationId), },
+  (written, total) => {
+    console.log(written, total);
+  }
+);
+cancelUpload(videoId)
+```
+
+##### cancel by calling abort
+```js
+import { backgroundUpload } from 'react-native-compressor';
+
+const abortSignalRef = useRef(new AbortController());
+
+const uploadResult = await backgroundUpload(
+  url,
+  fileUrl,
+  { httpMethod: 'PUT' },
+  (written, total) => {
+    console.log(written, total);
+  },
+  abortSignalRef.current.signal
+);
+
+abortSignalRef.current?.abort(); // this will cancel uploading
+```
+
 ### Download File
 
 ```js
@@ -493,11 +540,24 @@ export declare type UploaderOptions = (
 ) & {
   headers?: Record<string, string>;
   httpMethod?: UploaderHttpMethod;
+  getCancellationId?: (cancellationId: string) => void;
 };
 ```
 
 **Note:** some of the uploader code is borrowed from [Expo](https://github.com/expo/expo)
 I tested file uploader on this backend [Nodejs-File-Uploader](https://github.com/numandev1/nodejs-file-uploader)
+
+### Cancel Background Upload
+for cancellation Upload, there is two ways, you can use one of it
+- ##### cancelUpload: ( uuid?: string, shouldCancelAll?: boolean) => void
+  1. If we call without passing any param then it will remove the last pushed uploading
+  2. If you pass true as the second param then it will cancel all the uploading
+  3. if there is multiple files are uploading, and you wanna cancel specific uploading then you pass a specific video ID like this
+
+- ##### we can use [AbortController](https://github.com/facebook/react-native/blob/255fef5263afdf9933ba2f8a3dbcbca39ea9928a/packages/react-native/types/modules/globals.d.ts#L531) in backgroundUpload [Usage](#cancel-background-upload)
+  `const abortSignalRef = useRef(new AbortController());`
+
+  `abortSignalRef.current?.abort();`
 
 ### Download
 

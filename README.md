@@ -79,6 +79,7 @@ We should use **react-native-compressor** instead of **FFmpeg** because **react-
 * [Other Utilities](#api)
   - [Background Upload](#background-upload-1)
   - [Cancel Background Upload](#cancel-background-upload-1)
+  - [Get Metadata Of Image](#get-metadata-of-image)
   - [Get Metadata Of Video](#get-metadata-of-video)
   - [Get Real Path](#get-real-path)
   - [Get Temp file Path](#get-temp-file-path)
@@ -438,6 +439,8 @@ await clearCache(); // this will clear cache of thumbnails cache directory
 - ###### `returnableOutputType: ReturnableOutputType` (default: uri)
   Can be either `uri` or `base64`, defines the Returnable output image format.
 
+**if you wanna get image metadata (exif) then [read this](#get-metadata-of-image)**
+
 ## Video
 
 - ###### `compress(url: string, options?: videoCompresssionType , onProgress?: (progress: number)): Promise<string>`
@@ -450,6 +453,9 @@ await clearCache(); // this will clear cache of thumbnails cache directory
   if you wanna compress video while app is in backgroup then you should call this method before compression
 - ###### `deactivateBackgroundTask(): Promise<any>`
   if you call `activateBackgroundTask` method, then after video compression, you should call `deactivateBackgroundTask` for disable background task mode.
+
+- ###### `getCancellationId: function`
+  `getCancellationId` is a callback function that gives us compress video id, which can be used in `Video.cancelCompression` method to cancel the compression
 
 ### videoCompresssionType
 
@@ -477,8 +483,7 @@ await clearCache(); // this will clear cache of thumbnails cache directory
 
   previously default was 16 but now it is 0 by default. 0 mean 0mb. This is an offset, which you can set for minimumFileSizeForCompress will allow this package to dont compress less than or equal to `minimumFileSizeForCompress` ref [#26](https://github.com/numandev1/react-native-compressor/issues/26)
 
-- ###### `getCancellationId: function`
-  `getCancellationId` is a callback function that gives us compress video id, which can be used in `Video.cancelCompression` method to cancel the compression
+**if you wanna get video metadata then [read this](#get-metadata-of-video)**
 
 ## Audio
 
@@ -596,6 +601,29 @@ const metaData = await getVideoMetaData(filePath);
 ```
 
 - ###### `getVideoMetaData(path: string)`
+
+### Get Metadata Of Image
+
+if you want to get metadata of video than you can use this function
+
+```js
+import { getImageMetaData } from 'react-native-compressor';
+
+const metaData = await getImageMetaData(filePath);
+```
+
+```
+{
+  "ImageWidth": 4032,
+  "ImageHeight": 3024,
+  "Orientation": 3,
+  "size": 4127057,
+  "extension": "jpg",
+  "exif":{...}
+}
+```
+
+- ###### `getImageMetaData(path: string)`
 
 ### Get Real Path
 

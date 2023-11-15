@@ -4,6 +4,7 @@ import { TurboModuleRegistry } from 'react-native';
 export interface Spec extends TurboModule {
   // Image
   image_compress(imagePath: string, optionMap: Object): Promise<string>;
+  getImageMetaData(filePath: string): Promise<string>;
   // Video
   compress(fileUrl: string, optionMap: Object): Promise<string>;
   cancelCompression(uuid: string): void;

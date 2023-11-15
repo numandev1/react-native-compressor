@@ -19,6 +19,7 @@ abstract class CompressorSpec(context: ReactApplicationContext?) : ReactContextB
     abstract fun generateFilePath(_extension: String, promise: Promise)
     abstract fun getRealPath(path: String, type: String, promise: Promise)
     abstract fun getVideoMetaData(filePath: String, promise: Promise)
+    abstract fun getImageMetaData(String filePath, Promise promise);
     abstract fun getFileSize(filePath: String, promise: Promise)
     abstract fun compress(fileUrl: String, optionMap: ReadableMap, promise: Promise)
     abstract fun cancelCompression(uuid: String)

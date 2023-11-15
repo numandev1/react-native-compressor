@@ -7,6 +7,10 @@ RCT_EXTERN_METHOD(image_compress: (NSString*) imagePath
                   withResolver: (RCTPromiseResolveBlock) resolve
                   withRejecter: (RCTPromiseRejectBlock) reject)
 
+RCT_EXTERN_METHOD(getImageMetaData: (NSString*) filePath
+                  withResolver: (RCTPromiseResolveBlock) resolve
+                  withRejecter: (RCTPromiseRejectBlock) reject)
+
 RCT_EXTERN_METHOD(compress_audio: (NSString*) filePath
                   withOptions: (NSDictionary*) optionsDict
                   withResolver: (RCTPromiseResolveBlock) resolve

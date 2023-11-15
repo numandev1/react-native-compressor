@@ -14,7 +14,7 @@ import type { ProgressBarRafType } from '../../Components/ProgressBar';
 import * as ImagePicker from 'react-native-image-picker';
 import CameraRoll from '@react-native-camera-roll/camera-roll';
 import prettyBytes from 'pretty-bytes';
-import { Image, getFileSize } from 'react-native-compressor';
+import { Image, getFileSize, getImageMetaData } from 'react-native-compressor';
 import { getFileInfo } from '../../Utils';
 const Index = () => {
   const progressRef = useRef<ProgressBarRafType>();
@@ -26,7 +26,7 @@ const Index = () => {
   const [orignalSize, setOrignalSize] = useState<string>('');
   const [compressedSize, setCompressedSize] = useState(0);
 
-  const compressHandler = (result: ImagePicker.ImagePickerResponse) => {
+  const compressHandler = async (result: ImagePicker.ImagePickerResponse) => {
     if (result.didCancel) {
       Alert.alert('Failed selecting Image');
       return;
@@ -40,9 +40,12 @@ const Index = () => {
         setMimeType(source.type);
         setOrignalUri(source.uri);
       }
+      const metadata = await getImageMetaData(source.uri);
+      console.log(JSON.stringify(metadata, null, 4), 'metadata');
       Image.compress(source.uri)
         .then(async (compressedFileUri) => {
           console.log(compressedFileUri, 'compressedFileUri');
+
           setCommpressedUri(compressedFileUri);
           const detail: any = await getFileInfo(compressedFileUri);
           setCompressedSize(prettyBytes(parseInt(detail.size || 0)));

@@ -36,13 +36,22 @@ export declare type UploaderOptions = (
 ) & {
   headers?: Record<string, string>;
   httpMethod?: UploaderHttpMethod | HttpMethod;
+  getCancellationId?: (cancellationId: string) => void;
+};
+
+export const cancelUpload: (
+  uuid?: string,
+  shouldCancelAll?: boolean
+) => void = (uuid = '', shouldCancelAll = false) => {
+  return Compressor.cancelUpload(uuid, shouldCancelAll);
 };
 
 export const backgroundUpload = async (
   url: string,
   fileUrl: string,
   options: UploaderOptions,
-  onProgress?: (writtem: number, total: number) => void
+  onProgress?: (writtem: number, total: number) => void,
+  abortSignal?: AbortSignal
 ): Promise<any> => {
   const uuid = uuidv4();
   let subscription: NativeEventSubscription;
@@ -60,6 +69,13 @@ export const backgroundUpload = async (
     if (Platform.OS === 'android' && fileUrl.includes('file://')) {
       fileUrl = fileUrl.replace('file://', '');
     }
+
+    if (options?.getCancellationId) {
+      options?.getCancellationId(uuid);
+    }
+
+    abortSignal?.addEventListener('abort', () => cancelUpload(uuid));
+
     const result = await Compressor.upload(fileUrl, {
       uuid,
       method: options.httpMethod,
@@ -74,5 +90,6 @@ export const backgroundUpload = async (
     if (subscription) {
       subscription.remove();
     }
+    abortSignal?.removeEventListener('abort', () => cancelUpload(uuid));
   }
 };

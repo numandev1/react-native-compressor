@@ -1,9 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, Button, Image, Alert, Platform } from 'react-native';
+import {
+  View,
+  Text,
+  Button,
+  Image,
+  Alert,
+  Platform,
+  BackHandler,
+} from 'react-native';
 import {
   Video,
   getRealPath,
   backgroundUpload,
+  cancelUpload,
   UploadType,
   UploaderHttpMethod,
   createVideoThumbnail,
@@ -17,12 +26,16 @@ import { getFileInfo } from '../../Utils';
 import ProgressBar from '../../Components/ProgressBar';
 import type { ProgressBarRafType } from '../../Components/ProgressBar';
 // const DOMAIN = 'http://localhost:8080';
-const DOMAIN = 'http://192.168.1.3:8080';
+const DOMAIN = 'http://192.168.1.5:8080';
 const uploadPutRequest = `${DOMAIN}/upload/putRequestFile.mov`;
+const uploadPutRequest1 = `${DOMAIN}/upload/putRequestFile1.mov`;
 const uploadPostRequest = `${DOMAIN}/upload`;
 // const uploadPostRequestFail = `${DOMAIN}/uploadFail`;
+let counter1 = 0;
 export default function App() {
+  const cancellationIdForUploadRef = useRef<string>('');
   const progressRef = useRef<ProgressBarRafType>();
+  const abortSignalRef = useRef(new AbortController());
   const cancellationIdRef = useRef<string>('');
   const [sourceVideo, setSourceVideo] = useState<string>();
   const [sourceSize, setSourceSize] = useState<number>();
@@ -36,6 +49,7 @@ export default function App() {
   const [backgroundMode, setBackgroundMode] = useState<boolean>(false);
 
   useEffect(() => {
+    counter1 = -1;
     if (!sourceVideo) return;
     createVideoThumbnail(sourceVideo, {})
       .then((response) => setSourceVideoThumbnail(response.path))
@@ -67,7 +81,7 @@ export default function App() {
     if (doingSomething) {
       let counter = 1;
       const timer = setInterval(() => {
-        console.log(counter, ' Doing Simething', new Date());
+        console.log(counter, ' Doing Something', new Date());
         counter += 1;
       }, 500);
       return () => {
@@ -76,6 +90,16 @@ export default function App() {
     }
     return undefined;
   }, [doingSomething]);
+
+  useEffect(() => {
+    const handler = () => {
+      abortSignalRef.current?.abort();
+      return true;
+    };
+    BackHandler.addEventListener('hardwareBackPress', handler);
+
+    return () => BackHandler.removeEventListener('hardwareBackPress', handler);
+  }, []);
 
   const selectVideo = async () => {
     try {
@@ -203,7 +227,8 @@ export default function App() {
         (written, total) => {
           progressRef.current?.setProgress(written / total);
           console.log(written, total);
-        }
+        },
+        abortSignalRef.current.signal
       );
 
       console.log(result, 'result');
@@ -222,18 +247,22 @@ export default function App() {
       const headers = {
         Authorization: `Bearer ABCABC`,
       };
+      counter1++;
       const result = await backgroundUpload(
-        uploadPutRequest,
+        counter1 % 2 == 0 ? uploadPutRequest : uploadPutRequest1,
         localFileUrl,
         {
           uploadType: UploadType.BINARY_CONTENT,
           httpMethod: UploaderHttpMethod.PUT,
           headers,
+          getCancellationId: (cancellationId) =>
+            (cancellationIdForUploadRef.current = cancellationId),
         },
         (written, total) => {
           progressRef.current?.setProgress(written / total);
           console.log(written, total);
-        }
+        },
+        abortSignalRef.current.signal
       );
 
       console.log(result, 'result');
@@ -242,6 +271,11 @@ export default function App() {
     } finally {
       progressRef.current?.setProgress(0);
     }
+  };
+
+  const cancelUploader = () => {
+    console.log('cancelUploader', cancellationIdForUploadRef.current);
+    cancelUpload(cancellationIdForUploadRef.current);
   };
 
   const onCompressVideofromCameraoll = async () => {
@@ -293,6 +327,8 @@ export default function App() {
                 title="Upload(Put)"
                 onPress={() => uploadByPutRequest('actual')}
               />
+
+              <Button title="Cancel Upload" onPress={() => cancelUploader()} />
             </View>
           )}
         </View>

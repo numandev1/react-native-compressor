@@ -14,6 +14,8 @@ export interface Spec extends TurboModule {
   compress_audio(fileUrl: string, optionMap: Object): Promise<string>;
   // Upload
   upload(fileUrl: string, options: Object): Promise<string>;
+  // Cancel upload
+  cancelUpload(uuid: string, shouldCancelAll: boolean): void;
   // Download
   download(fileUrl: string, options: Object): Promise<string>;
   // Others

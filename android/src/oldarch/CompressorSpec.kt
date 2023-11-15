@@ -23,6 +23,7 @@ abstract class CompressorSpec(context: ReactApplicationContext?) : ReactContextB
     abstract fun compress(fileUrl: String, optionMap: ReadableMap, promise: Promise)
     abstract fun cancelCompression(uuid: String)
     abstract fun upload(fileUrl: String, options: ReadableMap, promise: Promise)
+    abstract fun cancelUpload(uuid: String, shouldCancelAll:Boolean)
 
     abstract fun download(fileUrl: String, options: ReadableMap, promise: Promise)
     abstract fun activateBackgroundTask(options: ReadableMap, promise: Promise)

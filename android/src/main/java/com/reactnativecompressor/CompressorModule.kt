@@ -126,6 +126,11 @@ class CompressorModule(private val reactContext: ReactApplicationContext) : Comp
   }
 
   @ReactMethod
+  override fun cancelUpload(uuid: String,shouldCancelAll:Boolean) {
+    uploader.cancelUpload(uuid,shouldCancelAll)
+  }
+
+  @ReactMethod
   override fun download(
     fileUrl: String,
     options: ReadableMap,

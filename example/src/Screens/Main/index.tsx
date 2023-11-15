@@ -1,4 +1,4 @@
-import { StackNavigationProp } from '@react-navigation/stack';
+import { type StackNavigationProp } from '@react-navigation/stack';
 import React from 'react';
 import {
   FlatList,
@@ -7,9 +7,11 @@ import {
   Pressable,
   ScrollView,
   View,
+  type StyleProp,
+  type ViewStyle,
 } from 'react-native';
 
-import { SCREENS, Screens } from '..';
+import { SCREENS, type Screens } from '..';
 
 type RootStackParams = { Home: undefined } & { [key: string]: undefined };
 type MainScreenProps = {

@@ -35,6 +35,11 @@ class Compressor: RCTEventEmitter {
         ImageMain.image_compress(imagePath, optionMap: optionMap, resolve: resolve, reject: reject)
     }
     
+    @objc(getImageMetaData:withResolver:withRejecter:)
+    func getImageMetaData(_ filePath: String, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
+        ImageMain.getImageMetaData(filePath,resolve: resolve,reject: reject)
+    }
+    
     @objc(compress_audio:withOptions:withResolver:withRejecter:)
     func compress_audio(_ fileUrl: String, optionMap: NSDictionary, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
         AudioMain.compress_audio(fileUrl, optionMap: optionMap, resolve: resolve, reject: reject)

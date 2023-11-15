@@ -66,7 +66,8 @@
     "thumbnail",
     "create-thumbnail",
     "video-metadata",
-    "media"
+    "media",
+    "bitrate"
   ],
   "repository": "https://github.com/numandev1/react-native-compressor",
   "author": "numandev1 <muhammadnuman70@gmail.com> (https://github.com/numandev1)",

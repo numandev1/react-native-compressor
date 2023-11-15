@@ -1,6 +1,6 @@
 /* eslint-disable no-bitwise */
 import { Compressor } from '../Main';
-
+import { Platform } from 'react-native';
 type qualityType = 'low' | 'medium' | 'high';
 const INCORRECT_INPUT_PATH = 'Incorrect input path. Please provide a valid one';
 
@@ -40,6 +40,16 @@ type createVideoThumbnailType = (
 }>;
 
 type clearCacheType = (cacheDir?: string) => Promise<string>;
+
+type getImageMetaDataType = (filePath: string) => Promise<{
+  ImageWidth: number;
+  ImageHeight: number;
+  Orientation: number;
+  size: number;
+  extension: string;
+  exif: { [key: string]: string };
+}>;
+
 type getVideoMetaDataType = (filePath: string) => Promise<{
   extension: string;
   size: number;
@@ -66,6 +76,32 @@ export const getRealPath: getRealPathType = (path, type = 'video') => {
 
 export const getVideoMetaData: getVideoMetaDataType = (path: string) => {
   return Compressor.getVideoMetaData(path);
+};
+
+const unifyMetaData = (exifResult: any) => {
+  const output: any = {};
+  const isIos = Platform.OS === 'ios';
+  output.ImageWidth = isIos
+    ? exifResult?.PixelWidth
+    : parseInt(exifResult.ImageWidth);
+
+  output.ImageHeight = isIos
+    ? exifResult?.PixelHeight
+    : parseInt(exifResult.ImageLength);
+
+  output.Orientation = isIos
+    ? exifResult.Orientation
+    : parseInt(exifResult.Orientation);
+
+  output.size = exifResult.size;
+  output.extension = exifResult.extension;
+  output.exif = exifResult;
+  return output;
+};
+
+export const getImageMetaData: getImageMetaDataType = async (path: string) => {
+  const result = await Compressor.getImageMetaData(path);
+  return unifyMetaData(result);
 };
 
 export const createVideoThumbnail: createVideoThumbnailType = (

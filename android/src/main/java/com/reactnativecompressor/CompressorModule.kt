@@ -15,7 +15,6 @@ import com.reactnativecompressor.Utils.Uploader
 import com.reactnativecompressor.Utils.Utils
 import com.reactnativecompressor.Utils.Utils.generateCacheFilePath
 import com.reactnativecompressor.Utils.Utils.getRealPath
-import com.reactnativecompressor.Utils.convertReadableMapToUploaderOptions
 import com.reactnativecompressor.Video.VideoMain
 
 class CompressorModule(private val reactContext: ReactApplicationContext) : CompressorSpec(reactContext) {
@@ -46,6 +45,11 @@ class CompressorModule(private val reactContext: ReactApplicationContext) : Comp
             promise: Promise) {
       imageMain.image_compress(imagePath,optionMap,promise)
     }
+
+  @ReactMethod
+  override fun getImageMetaData(filePath: String, promise: Promise) {
+    imageMain.getImageMetaData(filePath,promise)
+  }
 
   // VIdeo
   @ReactMethod

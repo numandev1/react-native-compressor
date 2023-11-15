@@ -17,7 +17,7 @@
 **REACT-NATIVE-COMPRESSOR** is a react-native package, which helps us to Compress `Image`, `Video`, and `Audio` before uploading, same like **Whatsapp** without knowing the compression `algorithm`
 
 <div align="center">
- <b>Also supports Auto/Manual Compression | Background Upload | Download File | Create Video Thumbnail</b>
+ <h4>Auto/Manual Compression | Background Upload | Download File | Create Video Thumbnail</h4>
 </div>
 <br/>
 
@@ -72,11 +72,13 @@ We should use **react-native-compressor** instead of **FFmpeg** because **react-
     - [Video Api Docs](#video-1)
   - [Audio](#audio)
   - [Background Upload](#background-upload)
+  - [Cancel Background Upload](#cancel-background-upload)
   - [Download File](#download)
   - [Create Video Thumbnail and Clear Cache](#create-video-thumbnail-and-clear-cache)
 
 * [Other Utilities](#api)
   - [Background Upload](#background-upload-1)
+  - [Cancel Background Upload](#cancel-background-upload-1)
   - [Get Metadata Of Video](#get-metadata-of-video)
   - [Get Real Path](#get-real-path)
   - [Get Temp file Path](#get-temp-file-path)

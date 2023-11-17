@@ -125,16 +125,25 @@ class ImageCompressor {
         
         let url = URL(fileURLWithPath: filePath)
         let source = CGImageSourceCreateWithURL(url as CFURL, nil)!
-        var metadata = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any]
+        let metadata = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any]
         
         let dataProvider = CGDataProvider(data: data as CFData)
         let dataImageSource = CGImageSourceCreateWithDataProvider(dataProvider!, nil)!
-        let dataMetadata = CGImageSourceCopyPropertiesAtIndex(dataImageSource, 0, nil) as? [CFString: Any]
+        var dataMetadata = CGImageSourceCopyPropertiesAtIndex(dataImageSource, 0, nil) as? [CFString: Any]
         
         // Copy all keys from source metadata to destination metadata if they don't exist
-        for (key, value) in dataMetadata ?? [:] {
-            if metadata?[key] == nil {
-                metadata?[key] = value
+        for (key, value) in metadata ?? [:] {
+            if dataMetadata?[key] == nil {
+                dataMetadata?[key] = value
+            } else {
+                if let metadataObj = dataMetadata?[key] as? NSMutableDictionary,
+                    let valueObj = value as? NSDictionary {
+                    for (key, value) in valueObj {
+                        if metadataObj[key] == nil {
+                            metadataObj[key] = value
+                        }
+                    }
+                }
             }
         }
         
@@ -142,7 +151,7 @@ class ImageCompressor {
         
         let destinationData = NSMutableData()
         let destination = CGImageDestinationCreateWithData(destinationData, outputFormat, 1, nil)!
-        CGImageDestinationAddImage(destination, image.cgImage!, metadata as CFDictionary?)
+        CGImageDestinationAddImage(destination, image.cgImage!, dataMetadata as CFDictionary?)
         CGImageDestinationFinalize(destination)
         return destinationData as Data
     }

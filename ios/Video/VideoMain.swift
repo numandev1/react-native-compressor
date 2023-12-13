@@ -154,7 +154,7 @@ class VideoCompressor {
         let minValue:Float=min(Float(originalHeight)/Float(height),Float(originalWidth)/Float(width))
         var remeasuredBitrate:Int = Int(Float(originalBitrate) / minValue)
         remeasuredBitrate = Int(Float(remeasuredBitrate)*compressFactor)
-        let minBitrate:Int = self.getVideoBitrateWithFactor(f: minCompressFactor) / (1280 * 720 / (width * height))
+        let minBitrate:Int = Int(Float(self.getVideoBitrateWithFactor(f: minCompressFactor)) / (1280 * 720 / Float(width * height)))
         if (originalBitrate < minBitrate) {
           return remeasuredBitrate;
         }

@@ -154,7 +154,7 @@ class VideoCompressor {
         let minValue:Float=min(Float(originalHeight)/Float(height),Float(originalWidth)/Float(width))
         var remeasuredBitrate:Int = Int(Float(originalBitrate) / minValue)
         remeasuredBitrate = Int(Float(remeasuredBitrate)*compressFactor)
-        let minBitrate:Int = self.getVideoBitrateWithFactor(f: minCompressFactor) / (1280 * 720 / (width * height))
+        let minBitrate:Int = Int(Float(self.getVideoBitrateWithFactor(f: minCompressFactor)) / (1280 * 720 / Float(width * height)))
         if (originalBitrate < minBitrate) {
           return remeasuredBitrate;
         }
@@ -186,8 +186,8 @@ class VideoCompressor {
 
         let bitrate=Float(abs(track.estimatedDataRate));
         let scale:Float = actualWidth > actualHeight ? (Float(maxSize) / actualWidth) : (Float(maxSize) / actualHeight);
-        let resultWidth:Float = round(actualWidth * scale / 2) * 2;
-        let resultHeight:Float = round(actualHeight * scale / 2) * 2;
+        let resultWidth:Float = round(actualWidth * min(scale, 1) / 2) * 2;
+        let resultHeight:Float = round(actualHeight * min(scale, 1) / 2) * 2;
 
         let videoBitRate:Int = self.makeVideoBitrate(
             originalHeight: Int(actualHeight), originalWidth: Int(actualWidth),

@@ -26,8 +26,8 @@ object AutoVideoCompression {
                 val actualWidth = metaRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)!!.toInt()
                 val bitrate = metaRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_BITRATE)!!.toInt()
                 val scale = if (actualWidth > actualHeight) maxSize / actualWidth else maxSize / actualHeight
-                val resultWidth = Math.round(actualWidth * scale / 2) * 2
-                val resultHeight = Math.round(actualHeight * scale / 2) * 2
+                val resultWidth = Math.round(actualWidth * Math.min(scale, 1f) / 2) * 2
+                val resultHeight = Math.round(actualHeight * Math.min(scale, 1f) / 2) * 2
                 val videoBitRate = makeVideoBitrate(
                   actualHeight, actualWidth,
                   bitrate,

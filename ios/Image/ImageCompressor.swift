@@ -294,7 +294,7 @@ class ImageCompressor {
         if let _image = image {
             image = ImageCompressor.scaleAndRotateImage(_image)
             let outputExtension = ImageCompressorOptions.getOutputInString(options.output)
-            let resizedImage = ImageCompressor.manualResize(_image, maxWidth: options.maxWidth, maxHeight: options.maxHeight)
+            let resizedImage = ImageCompressor.manualResize(image!, maxWidth: options.maxWidth, maxHeight: options.maxHeight)
             let isBase64 = options.returnableOutputType == .rbase64
             return ImageCompressor.manualCompress(resizedImage, output: options.output.rawValue, quality: options.quality, outputExtension: outputExtension, isBase64: isBase64,disablePngTransparency: options.disablePngTransparency,actualImagePath: imagePath)
         } else {

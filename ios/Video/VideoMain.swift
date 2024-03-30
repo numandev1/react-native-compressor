@@ -1,6 +1,6 @@
 import Foundation
 import AssetsLibrary
-import AVFoundation 
+import AVFoundation
 import Photos
 import MobileCoreServices
 
@@ -10,7 +10,7 @@ struct CompressionError: Error {
   var localizedDescription: String {
     return message
   }
-  
+
   init(message: String) {
     self.message = message
   }
@@ -18,9 +18,9 @@ struct CompressionError: Error {
 
 class VideoCompressor {
   var backgroundTaskId: UIBackgroundTaskIdentifier = .invalid;
- 
+
   var compressorExports: [String: NextLevelSessionExporter] = [:]
-    
+
     let metadatas: [String] = [
         "albumName",
         "artist",
@@ -74,11 +74,11 @@ class VideoCompressor {
       reject("failed", "Compression Failed", error)
     })
   }
-    
+
     func cancelCompression(uuid: String) -> Void {
         compressorExports[uuid]?.cancelExport()
     }
-    
+
     func getfileSize(forURL url: Any) -> Double {
         var fileURL: URL?
         var fileSize: Double = 0.0
@@ -98,11 +98,11 @@ class VideoCompressor {
         }
         return fileSize
     }
-  
-  
+
+
   func compressVideo(url: URL, options: [String: Any], onProgress: @escaping (Float) -> Void,  onCompletion: @escaping (URL) -> Void, onFailure: @escaping (Error) -> Void){
       let uuid:String = options["uuid"] as! String
-      
+
       VideoCompressor.getAbsoluteVideoPath(url.absoluteString, options: options) { absoluteVideoPath in
         var minimumFileSizeForCompress:Double=0.0;
           let videoURL = URL(string: absoluteVideoPath)
@@ -135,8 +135,8 @@ class VideoCompressor {
                     onFailure(error)
                 }
             }
-            
-            
+
+
 
         }
         else
@@ -166,12 +166,12 @@ class VideoCompressor {
     func getVideoBitrateWithFactor(f:Float)->Int {
         return Int(f * 2000 * 1000 * 1.13);
       }
-    
+
     func autoCompressionHelper(url: URL, options: [String: Any], onProgress: @escaping (Float) -> Void,  onCompletion: @escaping (URL) -> Void, onFailure: @escaping (Error) -> Void){
         let maxSize:Float = options["maxSize"] as! Float;
         let uuid:String = options["uuid"] as! String
         let progressDivider=options["progressDivider"] as? Int ?? 0
-    
+
         let asset = AVAsset(url: url)
         guard asset.tracks.count >= 1 else {
           let error = CompressionError(message: "Invalid video URL, no track found")
@@ -179,7 +179,7 @@ class VideoCompressor {
           return
         }
         let track = getVideoTrack(asset: asset);
-        
+
         let videoSize = track.naturalSize.applying(track.preferredTransform);
         let actualWidth = Float(abs(videoSize.width))
         let actualHeight = Float(abs(videoSize.height))
@@ -194,7 +194,7 @@ class VideoCompressor {
             originalBitrate: Int(bitrate),
             height: Int(resultHeight), width: Int(resultWidth)
             );
-        
+
         exportVideoHelper(url: url, asset: asset, bitRate: videoBitRate, resultWidth: resultWidth, resultHeight: resultHeight,uuid: uuid,progressDivider: progressDivider) { progress in
             onProgress(progress)
         } onCompletion: { outputURL in
@@ -206,7 +206,7 @@ class VideoCompressor {
 
     func manualCompressionHelper(url: URL, options: [String: Any], onProgress: @escaping (Float) -> Void,  onCompletion: @escaping (URL) -> Void, onFailure: @escaping (Error) -> Void){
         let uuid:String = options["uuid"] as! String
-        var bitRate=options["bitrate"] as! Float?;
+        var bitRate = (options["bitrate"] as? NSNumber)?.floatValue;
         let progressDivider=options["progressDivider"] as? Int ?? 0
         let asset = AVAsset(url: url)
         guard asset.tracks.count >= 1 else {
@@ -215,7 +215,7 @@ class VideoCompressor {
           return
         }
         let track = getVideoTrack(asset: asset);
-        
+
         let videoSize = track.naturalSize.applying(track.preferredTransform);
         var width = Float(abs(videoSize.width))
         var height = Float(abs(videoSize.height))
@@ -243,19 +243,19 @@ class VideoCompressor {
             onFailure(error)
         }
       }
-    
+
     func exportVideoHelper(url: URL,asset: AVAsset, bitRate: Int,resultWidth:Float,resultHeight:Float,uuid:String,progressDivider: Int, onProgress: @escaping (Float) -> Void,  onCompletion: @escaping (URL) -> Void, onFailure: @escaping (Error) -> Void){
         var currentVideoCompression:Int=0
-        
+
         var tmpURL = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
           .appendingPathComponent(ProcessInfo().globallyUniqueString)
           .appendingPathExtension("mp4")
         tmpURL = URL(string: Utils.makeValidUri(filePath: tmpURL.absoluteString))!
-        
+
         let exporter = NextLevelSessionExporter(withAsset: asset)
         exporter.outputURL = tmpURL
         exporter.outputFileType = AVFileType.mp4
-        
+
         let compressionDict: [String: Any] = [
           AVVideoAverageBitRateKey: bitRate,
           AVVideoProfileLevelKey: AVVideoProfileLevelH264HighAutoLevel,
@@ -274,7 +274,7 @@ class VideoCompressor {
           AVNumberOfChannelsKey: NSNumber(integerLiteral: 2),
           AVSampleRateKey: NSNumber(value: Float(44100))
         ]
-        
+
         compressorExports[uuid] = exporter
         exporter.export(progressHandler: { (progress) in
             let roundProgress:Int=Int((progress*100).rounded());
@@ -299,33 +299,33 @@ class VideoCompressor {
           }
         })
     }
-    
+
     func getVideoTrack(asset: AVAsset) -> AVAssetTrack {
         let tracks = asset.tracks(withMediaType: AVMediaType.video)
         return tracks[0];
         }
-    
-    
-    
+
+
+
     func getVideoMetaData(_ filePath: String, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
         do {
             VideoCompressor.getAbsoluteVideoPath(filePath, options: [:]) { absoluteImagePath in
                 if absoluteImagePath.hasPrefix("file://") {
-                    
+
                     let absoluteImagePath = URL(string: absoluteImagePath)!.path
                     let fileManager = FileManager.default
                     var isDir: ObjCBool = false
-                    
+
                     if !fileManager.fileExists(atPath: absoluteImagePath, isDirectory: &isDir) || isDir.boolValue {
                         let err = NSError(domain: "file not found", code: -15, userInfo: nil)
                         reject(String(err.code), err.localizedDescription, err)
                         return
                     }
-                    
+
                     let attrs = try? fileManager.attributesOfItem(atPath: absoluteImagePath)
                     if let fileSize = attrs?[FileAttributeKey.size] as? UInt64 {
                         let fileSizeString = fileSize
-                        
+
                         var result: [String: Any] = [:]
                         let assetOptions: [String: Any] = [AVURLAssetPreferPreciseDurationAndTimingKey: true]
                         let asset = AVURLAsset(url: URL(fileURLWithPath: absoluteImagePath), options: assetOptions)
@@ -334,25 +334,25 @@ class VideoCompressor {
                             let _extension = (absoluteImagePath as NSString).pathExtension
                             let time = asset.duration
                             let seconds = Double(time.value) / Double(time.timescale)
-                            
+
                             result["width"] = size.width
                             result["height"] = size.height
                             result["extension"] = _extension
                             result["size"] = fileSizeString
                             result["duration"] = seconds
-                            
+
                             var commonMetadata: [AVMetadataItem] = []
                             for key in self.metadatas {
                                 let items = AVMetadataItem.metadataItems(from: asset.commonMetadata, withKey: key, keySpace: AVMetadataKeySpace.common)
                                 commonMetadata.append(contentsOf: items)
                             }
-                            
+
                             for item in commonMetadata {
                                 if let value = item.value {
                                     result[item.commonKey!.rawValue] = value
                                 }
                             }
-                            
+
                             resolve(result)
                         }
                     }
@@ -362,7 +362,7 @@ class VideoCompressor {
             reject(error.localizedDescription, error.localizedDescription, nil)
         }
     }
-    
+
     static func getAbsoluteVideoPath(_ videoPath: String, options: [String: Any], completionHandler: @escaping (String) -> Void) {
         if videoPath.hasPrefix("http://") || videoPath.hasPrefix("https://") {
             let uuid=options["uuid"] as? String ?? ""
@@ -434,5 +434,5 @@ class VideoCompressor {
             }
         }
     }
-    
+
     }

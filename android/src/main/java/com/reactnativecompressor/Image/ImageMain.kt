@@ -42,7 +42,7 @@ class ImageMain(private val reactContext: ReactApplicationContext) {
       val srcPath = uri.path
       val params = Arguments.createMap()
       val file = File(srcPath)
-      val sizeInKBs = (file.length() / 1024).toDouble()
+      val sizeInBytes = file.length().toDouble()
       val exif = ExifInterface(srcPath!!)
       for (tag in exifAttributes) {
         val value: String? = exif.getAttribute(tag)
@@ -53,7 +53,7 @@ class ImageMain(private val reactContext: ReactApplicationContext) {
 
       }
       val extension = filePath!!.substring(filePath.lastIndexOf(".") + 1)
-      params.putDouble("size", sizeInKBs)
+      params.putDouble("size", sizeInBytes)
       params.putString("extension", extension)
       promise.resolve(params)
     } catch (e: Exception) {

@@ -14,6 +14,7 @@ let AlAsset_Library_Scheme = "assets-library"
 class AudioMain{
     static func compress_audio(_ fileUrl: String, optionMap: NSDictionary, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
         do {
+            let fileUrl = fileUrl.replacingOccurrences(of: "file://", with: "")
             let fileManager = FileManager.default
             var isDir: ObjCBool = false
             if !fileManager.fileExists(atPath: fileUrl, isDirectory: &isDir) || isDir.boolValue {

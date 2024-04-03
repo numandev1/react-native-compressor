@@ -14,12 +14,6 @@ let AlAsset_Library_Scheme = "assets-library"
 class AudioMain{
     static func compress_audio(_ fileUrl: String, optionMap: NSDictionary, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
         do {
-            var fileUrl = fileUrl
-            
-            if fileUrl.hasPrefix("file://") {
-                fileUrl = fileUrl.replacingOccurrences(of: "file://", with: "")
-            }
-          
             let fileManager = FileManager.default
             var isDir: ObjCBool = false
             if !fileManager.fileExists(atPath: fileUrl, isDirectory: &isDir) || isDir.boolValue {
@@ -27,19 +21,19 @@ class AudioMain{
                 reject(String(err.code), err.localizedDescription, err)
                 return
             }
-            
+
             let audioOptions = AudioOptions.fromDictionary((optionMap as! [String : Any]))
-            let outputMp3Path = "file://\(Utils.generateCacheFilePath("m4a"))"
-            
-            let oldUfileUrlRL = URL(string: fileUrl)!
-            let newURL = URL(string: outputMp3Path)!
-            
+            let outputMp3Path = Utils.generateCacheFilePath("m4a")
+
+            let oldUfileUrlRL = URL(fileURLWithPath: fileUrl)
+            let newURL = URL(fileURLWithPath: outputMp3Path)
+
             var options = FormatConverter.Options()
-            
+
             if(audioOptions.samplerate != -1){
                 options.sampleRate = Double(audioOptions.samplerate)
             }
-            
+
             if(audioOptions.bitrate != -1){
                 options.bitRate = UInt32(audioOptions.bitrate)
             }
@@ -49,16 +43,16 @@ class AudioMain{
                 print("output bitrate: \(bitrate)")
                 options.bitRate = UInt32(bitrate)
             }
-            
-            
+
+
             if(audioOptions.channels != -1){
                 options.channels = UInt32(audioOptions.channels)
             }
-         
+
             options.format = .m4a
             options.eraseFile = false
             options.bitDepthRule = .any
-             
+
             let converter = FormatConverter(inputURL: oldUfileUrlRL, outputURL: newURL, options: options)
             converter.start { error in
             // check to see if error isn't nil, otherwise you're good
@@ -68,10 +62,10 @@ class AudioMain{
                     reject(error?.localizedDescription,error?.localizedDescription, error)
                     return
                 }
-               
+
                 resolve(newURL.absoluteString)
             }
-            
+
         } catch {
             reject(error.localizedDescription, error.localizedDescription, nil)
         }

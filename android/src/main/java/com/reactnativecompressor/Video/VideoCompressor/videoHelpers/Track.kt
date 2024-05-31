@@ -13,6 +13,7 @@ import com.googlecode.mp4parser.boxes.mp4.objectdescriptors.ESDescriptor
 import com.googlecode.mp4parser.boxes.mp4.objectdescriptors.SLConfigDescriptor
 import com.mp4parser.iso14496.part15.AvcConfigurationBox
 import java.util.*
+import kotlin.reflect.jvm.isAccessible
 
 class Track(id: Int, format: MediaFormat, audio: Boolean) {
 
@@ -186,17 +187,41 @@ class Track(id: Int, format: MediaFormat, audio: Boolean) {
             val decoderConfigDescriptor = DecoderConfigDescriptor().setup()
 
             val audioSpecificConfig = AudioSpecificConfig()
-            audioSpecificConfig.setAudioObjectType(2)
-            audioSpecificConfig.setSamplingFrequencyIndex(
-                samplingFrequencyIndexMap[audioSampleEntry.sampleRate.toInt()]!!
-            )
-            audioSpecificConfig.setChannelConfiguration(audioSampleEntry.channelCount)
-            decoderConfigDescriptor.audioSpecificInfo = audioSpecificConfig
-            descriptor.decoderConfigDescriptor = decoderConfigDescriptor
 
-            val data = descriptor.serialize()
-            esds.esDescriptor = descriptor
-            esds.data = data
+            // Fix for com.googlecode.mp4parser:isoparser multiple version management
+            // Updates based on
+            // https://github.com/sannies/mp4parser/commit/9cf7f9185b294ac4fa1cd86be1915cd355d859eb#diff-5860894eeaba912c09de175e617d53d5beecebeadd2b64695ed736f9e598bf55
+            // and
+            // https://github.com/sannies/mp4parser/commit/b85f62274b56cc68d6c6e3dc2f9d4e23318e3341#diff-5860894eeaba912c09de175e617d53d5beecebeadd2b64695ed736f9e598bf55
+            //
+            val method = audioSpecificConfig::class.members.firstOrNull { it.name == "setOriginalAudioObjectType" }
+            if (method != null) {
+                // com.googlecode.mp4parser:isoparser is >= 1.1
+                method.isAccessible = true
+                method.call(audioSpecificConfig, 2)
+                audioSpecificConfig.setSamplingFrequencyIndex(
+                    samplingFrequencyIndexMap[audioSampleEntry.sampleRate.toInt()]!!
+                )
+                audioSpecificConfig.setChannelConfiguration(audioSampleEntry.channelCount)
+                decoderConfigDescriptor.audioSpecificInfo = audioSpecificConfig
+                descriptor.decoderConfigDescriptor = decoderConfigDescriptor
+
+                esds.esDescriptor = descriptor
+            } else {
+                // com.googlecode.mp4parser:isoparser is < 1.1 (eg: 1.0.6)
+                audioSpecificConfig.setAudioObjectType(2)
+                audioSpecificConfig.setSamplingFrequencyIndex(
+                    samplingFrequencyIndexMap[audioSampleEntry.sampleRate.toInt()]!!
+                )
+                audioSpecificConfig.setChannelConfiguration(audioSampleEntry.channelCount)
+                decoderConfigDescriptor.audioSpecificInfo = audioSpecificConfig
+                descriptor.decoderConfigDescriptor = decoderConfigDescriptor
+
+                val data = descriptor.serialize()
+                esds.esDescriptor = descriptor
+                esds.data = data
+            }
+
             audioSampleEntry.addBox(esds)
             sampleDescriptionBox.addBox(audioSampleEntry)
         }

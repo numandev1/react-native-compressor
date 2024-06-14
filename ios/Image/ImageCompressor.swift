@@ -176,7 +176,7 @@ class ImageCompressor {
            
         }
         
-        data=copyExifInfo(actualImagePath: actualImagePath, image: image, data: data)
+        data=copyExifInfo(actualImagePath: actualImagePath, image: UIImage(data: data) ?? image, data: data)
         
         
         if isBase64 {

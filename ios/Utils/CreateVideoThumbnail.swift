@@ -14,7 +14,7 @@ class CreateVideoThumbnail: NSObject {
     func create(_ fileUrl:String, options: NSDictionary, resolve: @escaping RCTPromiseResolveBlock, rejecter reject: @escaping RCTPromiseRejectBlock) {
     let headers = options["headers"] as? [String: Any] ?? [:]
     let format = "jpeg"
-   
+
     do {
       // Prepare cache folder
       var tempDirectory = NSSearchPathForDirectoriesInDomains(.cachesDirectory, .userDomainMask, true).last ?? ""
@@ -77,8 +77,14 @@ class CreateVideoThumbnail: NSObject {
         let cachePathDir: String = cacheDir.isEmpty ? "thumbnails/" : cacheDir
         var cacheDirectoryPath = NSSearchPathForDirectoriesInDomains(.cachesDirectory, .userDomainMask, true).last ?? ""
         cacheDirectoryPath = (cacheDirectoryPath as NSString).appendingPathComponent(cachePathDir)
-        
+
         let fm = FileManager.default
+
+        if !fm.fileExists(atPath: cacheDirectoryPath) {
+            reject("Error", "Directory does not exist", nil)
+            return
+        }
+
         do {
             let files = try fm.contentsOfDirectory(atPath: cacheDirectoryPath)
             for file in files {

@@ -1,11 +1,11 @@
 package com.reactnativecompressor.Video.VideoCompressor.video
 
-import com.coremedia.iso.BoxParser
-import com.coremedia.iso.IsoFile
-import com.coremedia.iso.IsoTypeWriter
-import com.coremedia.iso.boxes.Box
-import com.coremedia.iso.boxes.Container
-import com.googlecode.mp4parser.DataSource
+import org.mp4parser.Box
+import org.mp4parser.BoxParser
+import org.mp4parser.Container
+import org.mp4parser.IsoFile
+import org.mp4parser.tools.IsoTypeWriter
+
 import java.nio.ByteBuffer
 import java.nio.channels.WritableByteChannel
 
@@ -15,15 +15,15 @@ class Mdat : Box {
     private var contentSize = (1024 * 1024 * 1024).toLong()
     private var dataOffset: Long = 0
 
-    override fun getParent(): Container = parent
+  fun getParent(): Container = parent
 
-    override fun setParent(parent: Container) {
+  fun setParent(parent: Container) {
         this.parent = parent
     }
 
     override fun getSize(): Long = 16 + contentSize
 
-    override fun getOffset(): Long = dataOffset
+  fun getOffset(): Long = dataOffset
 
     fun setDataOffset(offset: Long) {
         dataOffset = offset
@@ -62,13 +62,5 @@ class Mdat : Box {
         }
         bb.rewind()
         writableByteChannel.write(bb)
-    }
-
-    override fun parse(
-        dataSource: DataSource?,
-        header: ByteBuffer?,
-        contentSize: Long,
-        boxParser: BoxParser?
-    ) {
     }
 }

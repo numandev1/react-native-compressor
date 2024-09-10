@@ -3,15 +3,17 @@ package com.reactnativecompressor.Video.VideoCompressor.video
 import android.media.MediaCodec
 import android.media.MediaCodecInfo
 import android.media.MediaFormat
-import com.coremedia.iso.boxes.SampleDescriptionBox
-import com.coremedia.iso.boxes.sampleentry.AudioSampleEntry
-import com.coremedia.iso.boxes.sampleentry.VisualSampleEntry
-import com.googlecode.mp4parser.boxes.mp4.ESDescriptorBox
-import com.googlecode.mp4parser.boxes.mp4.objectdescriptors.AudioSpecificConfig
-import com.googlecode.mp4parser.boxes.mp4.objectdescriptors.DecoderConfigDescriptor
-import com.googlecode.mp4parser.boxes.mp4.objectdescriptors.ESDescriptor
-import com.googlecode.mp4parser.boxes.mp4.objectdescriptors.SLConfigDescriptor
-import com.mp4parser.iso14496.part15.AvcConfigurationBox
+import com.reactnativecompressor.Utils.Utils
+import org.mp4parser.boxes.iso14496.part1.objectdescriptors.AudioSpecificConfig
+import org.mp4parser.boxes.iso14496.part1.objectdescriptors.DecoderConfigDescriptor
+import org.mp4parser.boxes.iso14496.part1.objectdescriptors.ESDescriptor
+import org.mp4parser.boxes.iso14496.part1.objectdescriptors.SLConfigDescriptor
+import org.mp4parser.boxes.iso14496.part12.SampleDescriptionBox
+import org.mp4parser.boxes.iso14496.part14.ESDescriptorBox
+import org.mp4parser.boxes.iso14496.part15.AvcConfigurationBox
+import org.mp4parser.boxes.sampleentry.AudioSampleEntry
+import org.mp4parser.boxes.sampleentry.VisualSampleEntry
+import java.nio.ByteBuffer
 import java.util.*
 import kotlin.reflect.jvm.isAccessible
 
@@ -67,28 +69,10 @@ class Track(id: Int, format: MediaFormat, audio: Boolean) {
                     VisualSampleEntry(VisualSampleEntry.TYPE3).setup(width, height)
 
                 val avcConfigurationBox = AvcConfigurationBox()
-                if (format.getByteBuffer("csd-0") != null) {
-                    val spsArray = ArrayList<ByteArray>()
-                    val spsBuff = format.getByteBuffer("csd-0")
-                    spsBuff!!.position(4)
-
-                    val spsBytes = ByteArray(spsBuff.remaining())
-                    spsBuff[spsBytes]
-                    spsArray.add(spsBytes)
-
-                    val ppsArray = ArrayList<ByteArray>()
-                    val ppsBuff = format.getByteBuffer("csd-1")
-                    ppsBuff?.let {
-                        it.position(4)
-
-                        val ppsBytes = ByteArray(it.remaining())
-                        it[ppsBytes]
-
-                        ppsArray.add(ppsBytes)
-                        avcConfigurationBox.sequenceParameterSets = spsArray
-                        avcConfigurationBox.pictureParameterSets = ppsArray
-                    }
-                }
+                avcConfigurationBox.sequenceParameterSets =
+                  format.getByteBuffer("csd-0")?.let { listOf(Utils.subBuffer(it, 4)) }
+                avcConfigurationBox.pictureParameterSets =
+                  format.getByteBuffer("csd-1")?.let { listOf(Utils.subBuffer(it, 4)) }
 
                 if (format.containsKey("level")) {
                     when (format.getInteger("level")) {

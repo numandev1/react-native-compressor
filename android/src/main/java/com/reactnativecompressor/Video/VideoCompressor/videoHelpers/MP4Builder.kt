@@ -2,8 +2,10 @@ package com.reactnativecompressor.Video.VideoCompressor.video
 
 import android.media.MediaCodec
 import android.media.MediaFormat
-import com.coremedia.iso.boxes.*
-import com.googlecode.mp4parser.util.Matrix
+import org.mp4parser.Box
+import org.mp4parser.boxes.iso14496.part12.*
+
+import org.mp4parser.support.Matrix
 import java.io.FileOutputStream
 import java.nio.ByteBuffer
 import java.nio.channels.FileChannel
@@ -42,7 +44,7 @@ class MP4Builder {
     @Throws(Exception::class)
     private fun flushCurrentMdat() {
         val oldPosition = fc.position()
-        fc.position(mdat.offset)
+        fc.position(mdat.getOffset())
         mdat.getBox(fc)
         fc.position(oldPosition)
         mdat.setDataOffset(0)

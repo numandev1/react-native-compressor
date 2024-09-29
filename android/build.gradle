@@ -111,11 +111,10 @@ dependencies {
   //noinspection GradleDynamicVersion
   implementation "com.facebook.react:react-native:+"
   implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
-  implementation "org.jetbrains.kotlin:kotlin-reflect:$kotlin_version"
 
   implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4"
   implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.4"
-  implementation "com.googlecode.mp4parser:isoparser:1.0.6"
+  implementation 'org.mp4parser:isoparser:1.9.56'
   implementation 'com.github.banketree:AndroidLame-kotlin:v0.0.1'
   implementation 'javazoom:jlayer:1.0.1'
 }

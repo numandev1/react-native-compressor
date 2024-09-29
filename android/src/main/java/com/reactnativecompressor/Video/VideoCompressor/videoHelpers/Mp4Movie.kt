@@ -2,7 +2,7 @@ package com.reactnativecompressor.Video.VideoCompressor.video
 
 import android.media.MediaCodec
 import android.media.MediaFormat
-import com.googlecode.mp4parser.util.Matrix
+import org.mp4parser.support.Matrix
 import java.io.File
 import java.util.*
 

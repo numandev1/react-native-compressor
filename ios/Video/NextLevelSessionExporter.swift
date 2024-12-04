@@ -254,36 +254,31 @@ extension NextLevelSessionExporter {
         self._reader?.startReading()
         self._writer?.startSession(atSourceTime: self.timeRange.start)
         
-        let audioSemaphore = DispatchSemaphore(value: 0)
-        let videoSemaphore = DispatchSemaphore(value: 0)
+        let dispatchGroup = DispatchGroup()
     
         let videoTracks = asset.tracks(withMediaType: AVMediaType.video)
         if let videoInput = self._videoInput,
            let videoOutput = self._videoOutput,
            videoTracks.count > 0 {
+            dispatchGroup.enter()
             videoInput.requestMediaDataWhenReady(on: self._inputQueue, using: {
                 if self.encode(readySamplesFromReaderOutput: videoOutput, toWriterInput: videoInput) == false {
-                    videoSemaphore.signal()
+                    dispatchGroup.leave()
                 }
             })
-        } else {
-            videoSemaphore.signal()
-        }
+        } 
         
         if let audioInput = self._audioInput,
             let audioOutput = self._audioOutput {
+            dispatchGroup.enter()
             audioInput.requestMediaDataWhenReady(on: self._inputQueue, using: {
                 if self.encode(readySamplesFromReaderOutput: audioOutput, toWriterInput: audioInput) == false {
-                    audioSemaphore.signal()
+                    dispatchGroup.leave()
                 }
             })
-        } else {
-            audioSemaphore.signal()
-        }
+        } 
         
-        DispatchQueue.global().async {
-            audioSemaphore.wait()
-            videoSemaphore.wait()
+        dispatchGroup.notify(queue: .global()) {
             DispatchQueue.main.async {
                 self.finish()
             }
@@ -369,13 +364,20 @@ extension NextLevelSessionExporter {
     
     private func setupAudioOutput(withAsset asset: AVAsset) {
         let audioTracks = asset.tracks(withMediaType: AVMediaType.audio)
+        var audioTracksToUse: [AVAssetTrack] = []
         
         guard audioTracks.count > 0 else {
             self._audioOutput = nil
             return
         }
-
-        self._audioOutput = AVAssetReaderAudioMixOutput(audioTracks: audioTracks, audioSettings: nil)
+        // Remove APAC tracks
+        for audioTrack in audioTracks {
+            let mediaSubtypes = audioTrack.formatDescriptions.filter { CMFormatDescriptionGetMediaType($0 as! CMFormatDescription) == kCMMediaType_Audio }.map { CMFormatDescriptionGetMediaSubType($0 as! CMFormatDescription) }
+            for mediaSubtype in mediaSubtypes where mediaSubtype != kAudioFormatAPAC {
+                audioTracksToUse.append(audioTrack)
+            }
+        }
+        self._audioOutput = AVAssetReaderAudioMixOutput(audioTracks: audioTracksToUse, audioSettings: nil)
         self._audioOutput?.alwaysCopiesSampleData = false
         self._audioOutput?.audioMix = self.audioMix
         if let reader = self._reader,

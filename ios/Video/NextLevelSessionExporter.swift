@@ -4,7 +4,8 @@ import Foundation
 import AVFoundation
 import CoreAudioTypes
 
-// MARK: - types
+// TODO: need to add a support for check if this is not defined in the coreaudio types
+let kAudioFormatAPAC: UInt32 = 1634754915 // 'apac'
 
 /// Session export errors.
 public enum NextLevelSessionExporterError: Error, CustomStringConvertible {

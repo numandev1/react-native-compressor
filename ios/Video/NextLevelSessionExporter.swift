@@ -2,6 +2,7 @@
 
 import Foundation
 import AVFoundation
+import CoreAudioTypes
 
 // MARK: - types
 

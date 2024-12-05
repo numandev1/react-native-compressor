@@ -90,6 +90,7 @@ PLATFORMS
   x86_64-darwin-19
   x86_64-darwin-20
   x86_64-darwin-22
+  x86_64-darwin-24
 
 DEPENDENCIES
   activesupport (>= 6.1.7.3, < 7.1.0)
@@ -99,4 +100,4 @@ RUBY VERSION
    ruby 3.0.0p0
 
 BUNDLED WITH
-   2.4.19
+   2.5.20

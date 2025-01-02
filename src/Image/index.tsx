@@ -14,7 +14,7 @@ export type compressionMethod = 'auto' | 'manual';
 
 export type CompressorOptions = {
   /***
-   * The maximum width boundary used when compressing a landscape image.
+   * The compression method to use.
    */
   compressionMethod?: compressionMethod;
   /***

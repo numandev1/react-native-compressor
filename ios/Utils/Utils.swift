@@ -110,20 +110,24 @@ class Utils {
     static func getfileSizeInBytes(forURL url: Any) -> Double {
         var fileURL: URL?
         var fileSize: Double = 0.0
-        if (url is URL) || (url is String)
-        {
-            if (url is URL) {
-                fileURL = url as? URL
-            }
-            else {
-                fileURL = URL(fileURLWithPath: url as! String)
-            }
-            var fileSizeValue = 0.0
-            try? fileSizeValue = (fileURL?.resourceValues(forKeys: [URLResourceKey.fileSizeKey]).allValues.first?.value as! Double?)!
-            if fileSizeValue > 0.0 {
-                fileSize = Double(fileSizeValue)
-            }
+        
+        if (url is URL) {
+            let urlWithSlash = Utils.slashifyFilePath(path: (url as? URL)?.absoluteString)
+            fileURL = URL(string: urlWithSlash!)
+        } else if (url is String) {
+            let urlWithSlash = Utils.slashifyFilePath(path: url as? String)
+            fileURL = URL(fileURLWithPath: urlWithSlash!)
+        } else {
+            return fileSize
         }
+        
+        var fileSizeValue = 0.0
+        
+        try? fileSizeValue = (fileURL?.resourceValues(forKeys: [URLResourceKey.fileSizeKey]).allValues.first?.value as! Double?)!
+        if fileSizeValue > 0.0 {
+            fileSize = Double(fileSizeValue)
+        }
+        
         return fileSize
     }
     

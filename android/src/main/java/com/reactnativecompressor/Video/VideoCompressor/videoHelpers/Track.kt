@@ -258,10 +258,7 @@ class Track(id: Int, format: MediaFormat, audio: Boolean) {
     }
 
     private fun AudioSampleEntry.setup(format: MediaFormat): AudioSampleEntry = apply {
-        channelCount =
-            if (format.getInteger(MediaFormat.KEY_CHANNEL_COUNT) == 1) 2 else format.getInteger(
-                MediaFormat.KEY_CHANNEL_COUNT
-            )
+        channelCount = format.getInteger(MediaFormat.KEY_CHANNEL_COUNT)
         sampleRate = format.getInteger(MediaFormat.KEY_SAMPLE_RATE).toLong()
         dataReferenceIndex = 1
         sampleSize = 16

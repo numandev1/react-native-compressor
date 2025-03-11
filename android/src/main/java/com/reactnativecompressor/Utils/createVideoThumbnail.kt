@@ -6,10 +6,10 @@ import android.graphics.BitmapFactory
 import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.os.Build
+import android.os.AsyncTask
 import android.text.TextUtils
 import android.webkit.URLUtil
 import com.facebook.react.bridge.Arguments
-import com.facebook.react.bridge.GuardedResultAsyncTask
 import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContext
@@ -31,14 +31,14 @@ class CreateVideoThumbnailClass(private val reactContext: ReactApplicationContex
         ProcessDataTask(reactContext,fileUrl, promise, options).execute()
     }
 
-    private class ProcessDataTask(reactContext: ReactContext,private val filePath:String, private val promise: Promise, private val options: ReadableMap) : GuardedResultAsyncTask<ReadableMap?>(reactContext.exceptionHandler) {
+    private class ProcessDataTask(reactContext: ReactContext,private val filePath:String, private val promise: Promise, private val options: ReadableMap) : AsyncTask<Void, Void, ReadableMap?>() {
         private val weakContext: WeakReference<Context>
 
         init {
             weakContext = WeakReference(reactContext.applicationContext)
         }
 
-        override fun doInBackgroundGuarded(): ReadableMap? {
+        override fun doInBackground(vararg params: Void?): ReadableMap? {
             val format = "jpeg"
             val cacheName = if (options.hasKey("cacheName")) options.getString("cacheName") else ""
             val thumbnailDir = weakContext.get()!!.applicationContext.cacheDir.absolutePath + "/thumbnails"
@@ -84,8 +84,8 @@ class CreateVideoThumbnailClass(private val reactContext: ReactApplicationContex
             return null
         }
 
-        override fun onPostExecuteGuarded(readableArray: ReadableMap?) {
-            promise.resolve(readableArray)
+        override fun onPostExecute(result: ReadableMap?) {
+            promise.resolve(result)
         }
     }
 

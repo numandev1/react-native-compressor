@@ -9,7 +9,6 @@ import android.os.Build
 import android.text.TextUtils
 import android.webkit.URLUtil
 import com.facebook.react.bridge.Arguments
-import com.facebook.react.bridge.GuardedResultAsyncTask
 import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContext
@@ -23,69 +22,76 @@ import java.io.UnsupportedEncodingException
 import java.lang.ref.WeakReference
 import java.net.URLDecoder
 import java.util.UUID
-
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class CreateVideoThumbnailClass(private val reactContext: ReactApplicationContext) {
     @ReactMethod
-    fun create(fileUrl:String,options: ReadableMap, promise: Promise) {
-        ProcessDataTask(reactContext,fileUrl, promise, options).execute()
+    fun create(fileUrl: String, options: ReadableMap, promise: Promise) {
+        CoroutineScope(Dispatchers.Main).launch {
+            try {
+                val result = processDataInBackground(reactContext, fileUrl, options)
+                promise.resolve(result)
+            } catch (e: Exception) {
+                promise.reject("CreateVideoThumbnail_ERROR", e)
+            }
+        }
     }
 
-    private class ProcessDataTask(reactContext: ReactContext,private val filePath:String, private val promise: Promise, private val options: ReadableMap) : GuardedResultAsyncTask<ReadableMap?>(reactContext.exceptionHandler) {
-        private val weakContext: WeakReference<Context>
+    private suspend fun processDataInBackground(reactContext: ReactContext, filePath: String, options: ReadableMap): ReadableMap? = withContext(Dispatchers.IO) {
+        val weakContext = WeakReference(reactContext.applicationContext)
+        val format = "jpeg"
+        val cacheName = if (options.hasKey("cacheName")) options.getString("cacheName") else ""
+        val thumbnailDir = weakContext.get()!!.applicationContext.cacheDir.absolutePath + "/thumbnails"
+        val cacheDir = createDirIfNotExists(thumbnailDir)
 
-        init {
-            weakContext = WeakReference(reactContext.applicationContext)
-        }
-
-        override fun doInBackgroundGuarded(): ReadableMap? {
-            val format = "jpeg"
-            val cacheName = if (options.hasKey("cacheName")) options.getString("cacheName") else ""
-            val thumbnailDir = weakContext.get()!!.applicationContext.cacheDir.absolutePath + "/thumbnails"
-            val cacheDir = createDirIfNotExists(thumbnailDir)
-            if (!TextUtils.isEmpty(cacheName)) {
-                val file = File(thumbnailDir, "$cacheName.$format")
-                if (file.exists()) {
-                    val map = Arguments.createMap()
-                    map.putString("path", "file://" + file.absolutePath)
-                    val image = BitmapFactory.decodeFile(file.absolutePath)
-                    map.putDouble("size", image.byteCount.toDouble())
-                    map.putString("mime", "image/$format")
-                    map.putDouble("width", image.width.toDouble())
-                    map.putDouble("height", image.height.toDouble())
-                    return map
-                }
-            }
-            val headers: Map<String, String> = if (options.hasKey("headers")) options.getMap("headers")!!.toHashMap() as Map<String, String> else HashMap<String, String>()
-            val fileName = if (TextUtils.isEmpty(cacheName)) "thumb-" + UUID.randomUUID().toString() else "$cacheName.$format"
-            var fOut: OutputStream? = null
-            try {
-                val file = File(cacheDir, fileName)
-                val context = weakContext.get()
-                val image = getBitmapAtTime(context, filePath, 0, headers)
-                file.createNewFile()
-                fOut = FileOutputStream(file)
-
-                // 100 means no compression, the lower you go, the stronger the compression
-                image.compress(Bitmap.CompressFormat.JPEG, 90, fOut)
-                fOut.flush()
-                fOut.close()
-
+        if (!TextUtils.isEmpty(cacheName)) {
+            val file = File(thumbnailDir, "$cacheName.$format")
+            if (file.exists()) {
                 val map = Arguments.createMap()
                 map.putString("path", "file://" + file.absolutePath)
+                val image = BitmapFactory.decodeFile(file.absolutePath)
                 map.putDouble("size", image.byteCount.toDouble())
                 map.putString("mime", "image/$format")
                 map.putDouble("width", image.width.toDouble())
                 map.putDouble("height", image.height.toDouble())
-                return map
-            } catch (e: Exception) {
-                promise.reject("CreateVideoThumbnail_ERROR", e)
+                return@withContext map
             }
-            return null
         }
 
-        override fun onPostExecuteGuarded(readableArray: ReadableMap?) {
-            promise.resolve(readableArray)
+        val headers: Map<String, String> = if (options.hasKey("headers")) options.getMap("headers")!!.toHashMap() as Map<String, String> else HashMap<String, String>()
+        val fileName = if (TextUtils.isEmpty(cacheName)) "thumb-" + UUID.randomUUID().toString() else "$cacheName.$format"
+        var fOut: OutputStream? = null
+
+        try {
+            val file = File(cacheDir, fileName)
+            val context = weakContext.get()
+            val image = getBitmapAtTime(context, filePath, 0, headers)
+            file.createNewFile()
+            fOut = FileOutputStream(file)
+
+            // 100 means no compression, the lower you go, the stronger the compression
+            image.compress(Bitmap.CompressFormat.JPEG, 90, fOut)
+            fOut.flush()
+            fOut.close()
+
+            val map = Arguments.createMap()
+            map.putString("path", "file://" + file.absolutePath)
+            map.putDouble("size", image.byteCount.toDouble())
+            map.putString("mime", "image/$format")
+            map.putDouble("width", image.width.toDouble())
+            map.putDouble("height", image.height.toDouble())
+            return@withContext map
+        } catch (e: Exception) {
+            throw e
+        } finally {
+            try {
+                fOut?.close()
+            } catch (e: IOException) {
+                // Ignore
+            }
         }
     }
 

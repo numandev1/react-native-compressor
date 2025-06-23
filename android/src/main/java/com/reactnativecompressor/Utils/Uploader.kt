@@ -161,7 +161,7 @@ class Uploader(private val reactContext: ReactApplicationContext) {
     if (mimeType == null) {
       val fileExtension = MimeTypeMap.getFileExtensionFromUrl(fileUri.toString())
       if (fileExtension != null) {
-        return MimeTypeMap.getSingleton().getMimeTypeFromExtension(fileExtension.toLowerCase())
+        return MimeTypeMap.getSingleton().getMimeTypeFromExtension(fileExtension.lowercase())
       }
     }
 

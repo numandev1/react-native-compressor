@@ -58,7 +58,7 @@ class AudioHelper {
       var destinationBitrate = originalBitrate
       Utils.addLog("source bitrate: $originalBitrate")
 
-      when (quality.toLowerCase()) {
+      when (quality.lowercase()) {
         "low" -> destinationBitrate = maxOf(64, (originalBitrate * 0.3).toInt())
         "medium" -> destinationBitrate = (originalBitrate * 0.5).toInt()
         "high" -> destinationBitrate = minOf(320, (originalBitrate * 0.7).toInt())

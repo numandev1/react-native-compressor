@@ -1,30 +1,25 @@
 package com.reactnativecompressor.Audio
 
-
-import android.annotation.SuppressLint
+import android.media.MediaCodec
+import android.media.MediaCodecInfo
+import android.media.MediaExtractor
+import android.media.MediaFormat
+import android.media.MediaMuxer
+import android.os.Build
+import androidx.annotation.RequiresApi
 import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReadableMap
-import com.naman14.androidlame.LameBuilder
-import com.naman14.androidlame.WaveReader
 import com.reactnativecompressor.Utils.MediaCache
 import com.reactnativecompressor.Utils.Utils
 import com.reactnativecompressor.Utils.Utils.addLog
-import javazoom.jl.converter.Converter
-import javazoom.jl.decoder.JavaLayerException
-import java.io.BufferedOutputStream
-import java.io.File
-import java.io.FileNotFoundException
-import java.io.FileOutputStream
-import java.io.IOException
 
 class AudioCompressor {
   companion object {
-    val TAG="AudioMain"
-    private const val OUTPUT_STREAM_BUFFER = 8192
+    private const val TIMEOUT_USEC = 10000L
+    private const val AAC_MIME_TYPE = "audio/mp4a-latm"
 
-    var outputStream: BufferedOutputStream? = null
-    var waveReader: WaveReader? = null
+    @RequiresApi(Build.VERSION_CODES.JELLY_BEAN_MR2)
     @JvmStatic
     fun CompressAudio(
       fileUrl: String,
@@ -33,232 +28,196 @@ class AudioCompressor {
       promise: Promise,
     ) {
       val realPath = Utils.getRealPath(fileUrl, context)
-      var _fileUrl=realPath
+      var _fileUrl = realPath
       val filePathWithoutFileUri = realPath!!.replace("file://", "")
+
       try {
-        var wavPath=filePathWithoutFileUri;
-        var isNonWav:Boolean=false
-        if (fileUrl.endsWith(".mp4", ignoreCase = true))
-        {
+        var inputPath = filePathWithoutFileUri
+        var isNonWav = false
+
+        // Handle MP4 files by extracting audio first
+        if (fileUrl.endsWith(".mp4", ignoreCase = true)) {
           addLog("mp4 file found")
-          val mp3Path= Utils.generateCacheFilePath("mp3", context)
+          val mp3Path = Utils.generateCacheFilePath("mp3", context)
           AudioExtractor().genVideoUsingMuxer(fileUrl, mp3Path, -1, -1, true, false)
-          _fileUrl=Utils.slashifyFilePath(mp3Path)
-          wavPath= Utils.generateCacheFilePath("wav", context)
-          try {
-            val converter = Converter()
-            converter.convert(mp3Path, wavPath)
-          } catch (e: JavaLayerException) {
-            addLog("JavaLayerException error"+e.localizedMessage)
-            e.printStackTrace();
-          }
-          isNonWav=true
-        }
-        else if (!fileUrl.endsWith(".wav", ignoreCase = true))
-        {
-          addLog("non wav file found")
-          wavPath= Utils.generateCacheFilePath("wav", context)
-          try {
-          val converter = Converter()
-          converter.convert(filePathWithoutFileUri, wavPath)
-        } catch (e: JavaLayerException) {
-          addLog("JavaLayerException error"+e.localizedMessage)
-          e.printStackTrace();
-        }
-          isNonWav=true
+          inputPath = mp3Path
+          isNonWav = true
         }
 
-
-        autoCompressHelper(wavPath,filePathWithoutFileUri, optionMap,context) { mp3Path, finished ->
-          if (finished) {
-            val returnableFilePath:String="file://$mp3Path"
-            addLog("finished: " + returnableFilePath)
+        compressAudioWithMediaCodec(inputPath, filePathWithoutFileUri, optionMap, context) { outputPath, success ->
+          if (success) {
+            val returnableFilePath = "file://$outputPath"
+            addLog("finished: $returnableFilePath")
             MediaCache.removeCompletedImagePath(fileUrl)
-            if(isNonWav)
-            {
-              File(wavPath).delete()
-            }
             promise.resolve(returnableFilePath)
           } else {
-            addLog("error: "+mp3Path)
+            addLog("error: $outputPath")
             promise.resolve(_fileUrl)
           }
         }
       } catch (e: Exception) {
+        addLog("Exception in CompressAudio: ${e.message}")
         promise.resolve(_fileUrl)
       }
     }
 
-    @SuppressLint("WrongConstant")
-    private fun autoCompressHelper(
-      fileUrl: String,
-      actualFileUrl: String,
+    @RequiresApi(Build.VERSION_CODES.JELLY_BEAN_MR2)
+    private fun compressAudioWithMediaCodec(
+      inputPath: String,
+      originalPath: String,
       optionMap: ReadableMap,
       context: ReactApplicationContext,
-      completeCallback: (String, Boolean) -> Unit
+      callback: (String, Boolean) -> Unit
     ) {
-
       val options = AudioHelper.fromMap(optionMap)
-      val quality = options.quality
+      val outputPath = Utils.generateCacheFilePath("m4a", context)
 
-      var isCompletedCallbackTriggered:Boolean=false
-      try {
-        var mp3Path = Utils.generateCacheFilePath("mp3", context)
-        val input = File(fileUrl)
-        val output = File(mp3Path)
-
-        val CHUNK_SIZE = 8192
-      addLog("Initialising wav reader")
-
-      waveReader = WaveReader(input)
+      var extractor: MediaExtractor? = null
+      var muxer: MediaMuxer? = null
+      var encoder: MediaCodec? = null
 
       try {
-        waveReader!!.openWave()
-      } catch (e: IOException) {
-        e.printStackTrace()
-      }
+        // Setup extractor
+        extractor = MediaExtractor()
+        extractor.setDataSource(inputPath)
 
-      addLog("Intitialising encoder")
-
-
-        // for bitrate
-        var audioBitrate:Int
-        if(options.bitrate != -1)
-        {
-          audioBitrate= options.bitrate/1000
-        }
-        else
-        {
-          audioBitrate=AudioHelper.getDestinationBitrateByQuality(actualFileUrl, quality!!)
-          Utils.addLog("dest bitrate: $audioBitrate")
+        val audioTrackIndex = selectAudioTrack(extractor)
+        if (audioTrackIndex < 0) {
+          callback("No audio track found", false)
+          return
         }
 
-        var androidLame = LameBuilder();
-        androidLame.setOutBitrate(audioBitrate)
+        extractor.selectTrack(audioTrackIndex)
+        val inputFormat = extractor.getTrackFormat(audioTrackIndex)
 
-        // for channels
-        var audioChannels:Int
-        if(options.channels != -1){
-          audioChannels= options.channels!!
+        // Get input audio properties
+        val inputSampleRate = inputFormat.getInteger(MediaFormat.KEY_SAMPLE_RATE)
+        val inputChannelCount = inputFormat.getInteger(MediaFormat.KEY_CHANNEL_COUNT)
+
+        // Calculate output parameters
+        val outputSampleRate = if (options.samplerate != -1) options.samplerate else inputSampleRate
+        val outputChannelCount = if (options.channels != -1) options.channels else inputChannelCount
+        val outputBitrate = if (options.bitrate != -1) {
+          options.bitrate
+        } else {
+          AudioHelper.getDestinationBitrateByQuality(originalPath, options.quality!!) * 1000
         }
-        else
-        {
-          audioChannels=waveReader!!.channels
-        }
-        androidLame.setOutChannels(audioChannels)
 
-        // for sample rate
-        androidLame.setInSampleRate(waveReader!!.sampleRate)
-        var audioSampleRate:Int
-        if(options.samplerate != -1){
-          audioSampleRate= options.samplerate!!
-        }
-        else
-        {
-          audioSampleRate=waveReader!!.sampleRate
-        }
-        androidLame.setOutSampleRate(audioSampleRate)
-        val androidLameBuild=androidLame.build()
+        // Setup encoder
+        val outputFormat = MediaFormat.createAudioFormat(AAC_MIME_TYPE, outputSampleRate, outputChannelCount)
+        outputFormat.setInteger(MediaFormat.KEY_BIT_RATE, outputBitrate)
+        outputFormat.setInteger(MediaFormat.KEY_AAC_PROFILE, MediaCodecInfo.CodecProfileLevel.AACObjectLC)
 
-      try {
-        outputStream = BufferedOutputStream(FileOutputStream(output), OUTPUT_STREAM_BUFFER)
-      } catch (e: FileNotFoundException) {
-        e.printStackTrace()
-      }
+        encoder = MediaCodec.createEncoderByType(AAC_MIME_TYPE)
+        encoder.configure(outputFormat, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE)
+        encoder.start()
 
-      var bytesRead = 0
+        // Setup muxer
+        muxer = MediaMuxer(outputPath, MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4)
 
-      val buffer_l = ShortArray(CHUNK_SIZE)
-      val buffer_r = ShortArray(CHUNK_SIZE)
-      val mp3Buf = ByteArray(CHUNK_SIZE)
+        // Process audio
+        val success = processAudio(extractor, encoder, muxer, inputFormat, outputFormat)
 
-      val channels = waveReader!!.channels
+        callback(outputPath, success)
 
-      addLog("started encoding")
-      while (true) {
+      } catch (e: Exception) {
+        addLog("Error in compressAudioWithMediaCodec: ${e.message}")
+        callback("Error: ${e.message}", false)
+      } finally {
         try {
-          if (channels == 2) {
-
-            bytesRead = waveReader!!.read(buffer_l, buffer_r, CHUNK_SIZE)
-            addLog("bytes read=$bytesRead")
-
-            if (bytesRead > 0) {
-
-              var bytesEncoded = 0
-              bytesEncoded = androidLameBuild.encode(buffer_l, buffer_r, bytesRead, mp3Buf)
-              addLog("bytes encoded=$bytesEncoded")
-
-              if (bytesEncoded > 0) {
-                try {
-                  addLog("writing mp3 buffer to outputstream with $bytesEncoded bytes")
-                  outputStream!!.write(mp3Buf, 0, bytesEncoded)
-                } catch (e: IOException) {
-                  e.printStackTrace()
-                }
-
-              }
-
-            } else
-              break
-          } else {
-
-            bytesRead = waveReader!!.read(buffer_l, CHUNK_SIZE)
-            addLog("bytes read=$bytesRead")
-
-            if (bytesRead > 0) {
-              var bytesEncoded = 0
-
-              bytesEncoded = androidLameBuild.encode(buffer_l, buffer_l, bytesRead, mp3Buf)
-              addLog("bytes encoded=$bytesEncoded")
-
-              if (bytesEncoded > 0) {
-                try {
-                  addLog("writing mp3 buffer to outputstream with $bytesEncoded bytes")
-                  outputStream!!.write(mp3Buf, 0, bytesEncoded)
-                } catch (e: IOException) {
-                  e.printStackTrace()
-                }
-
-              }
-
-            } else
-              break
-          }
-
-
-        } catch (e: IOException) {
-          e.printStackTrace()
+          encoder?.stop()
+          encoder?.release()
+          muxer?.stop()
+          muxer?.release()
+          extractor?.release()
+        } catch (e: Exception) {
+          addLog("Error releasing resources: ${e.message}")
         }
-
-      }
-
-      addLog("flushing final mp3buffer")
-      val outputMp3buf = androidLameBuild.flush(mp3Buf)
-      addLog("flushed $outputMp3buf bytes")
-      if (outputMp3buf > 0) {
-        try {
-          addLog("writing final mp3buffer to outputstream")
-          outputStream!!.write(mp3Buf, 0, outputMp3buf)
-          addLog("closing output stream")
-          outputStream!!.close()
-          completeCallback(output.absolutePath, true)
-          isCompletedCallbackTriggered=true
-        } catch (e: IOException) {
-          completeCallback(e.localizedMessage, false)
-          e.printStackTrace()
-        }
-      }
-
-      } catch (e: IOException) {
-        completeCallback(e.localizedMessage, false)
-      }
-      if(!isCompletedCallbackTriggered)
-      {
-        completeCallback("something went wrong", false)
       }
     }
 
+    private fun selectAudioTrack(extractor: MediaExtractor): Int {
+      val trackCount = extractor.trackCount
+      for (i in 0 until trackCount) {
+        val format = extractor.getTrackFormat(i)
+        val mime = format.getString(MediaFormat.KEY_MIME)
+        if (mime?.startsWith("audio/") == true) {
+          return i
+        }
+      }
+      return -1
+    }
 
+    @RequiresApi(Build.VERSION_CODES.JELLY_BEAN_MR2)
+    private fun processAudio(
+      extractor: MediaExtractor,
+      encoder: MediaCodec,
+      muxer: MediaMuxer,
+      inputFormat: MediaFormat,
+      outputFormat: MediaFormat
+    ): Boolean {
+      var muxerTrackIndex = -1
+      var muxerStarted = false
+      val bufferInfo = MediaCodec.BufferInfo()
 
+      try {
+        while (true) {
+          // Feed input to encoder
+          val inputBufferIndex = encoder.dequeueInputBuffer(TIMEOUT_USEC)
+          if (inputBufferIndex >= 0) {
+            val inputBuffer = encoder.getInputBuffer(inputBufferIndex)
+            val sampleSize = extractor.readSampleData(inputBuffer!!, 0)
+
+            if (sampleSize < 0) {
+              // End of stream
+              encoder.queueInputBuffer(inputBufferIndex, 0, 0, 0, MediaCodec.BUFFER_FLAG_END_OF_STREAM)
+            } else {
+              val presentationTimeUs = extractor.sampleTime
+              encoder.queueInputBuffer(inputBufferIndex, 0, sampleSize, presentationTimeUs, 0)
+              extractor.advance()
+            }
+          }
+
+          // Get output from encoder
+          val outputBufferIndex = encoder.dequeueOutputBuffer(bufferInfo, TIMEOUT_USEC)
+          when {
+            outputBufferIndex == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED -> {
+              if (muxerStarted) {
+                throw RuntimeException("Format changed twice")
+              }
+              val newFormat = encoder.outputFormat
+              muxerTrackIndex = muxer.addTrack(newFormat)
+              muxer.start()
+              muxerStarted = true
+            }
+            outputBufferIndex >= 0 -> {
+              val outputBuffer = encoder.getOutputBuffer(outputBufferIndex)
+              if (bufferInfo.flags and MediaCodec.BUFFER_FLAG_CODEC_CONFIG != 0) {
+                bufferInfo.size = 0
+              }
+
+              if (bufferInfo.size != 0) {
+                if (!muxerStarted) {
+                  throw RuntimeException("Muxer hasn't started")
+                }
+                outputBuffer!!.position(bufferInfo.offset)
+                outputBuffer.limit(bufferInfo.offset + bufferInfo.size)
+                muxer.writeSampleData(muxerTrackIndex, outputBuffer, bufferInfo)
+              }
+
+              encoder.releaseOutputBuffer(outputBufferIndex, false)
+
+              if (bufferInfo.flags and MediaCodec.BUFFER_FLAG_END_OF_STREAM != 0) {
+                break
+              }
+            }
+          }
+        }
+        return true
+      } catch (e: Exception) {
+        addLog("Error in processAudio: ${e.message}")
+        return false
+      }
+    }
   }
 }

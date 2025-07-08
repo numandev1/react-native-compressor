@@ -115,7 +115,7 @@ dependencies {
   implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4"
   implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.4"
   implementation 'org.mp4parser:isoparser:1.9.56'
-  implementation 'com.github.banketree:AndroidLame-kotlin:v0.0.1'
+  // Removed libandroidlame dependency - replaced with native MediaCodec
   implementation 'javazoom:jlayer:1.0.1'
 }
 

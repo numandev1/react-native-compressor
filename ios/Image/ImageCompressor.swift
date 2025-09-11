@@ -366,16 +366,8 @@ class ImageCompressor {
             var size = CGSize.zero
             var scale: CGFloat = 1
             var resizeMode = RCTResizeMode.contain
-            var assetID = ""
-            var results: PHFetchResult<PHAsset>?
-            
-            if imageURL?.scheme?.caseInsensitiveCompare("assets-library") == .orderedSame {
-                assetID = imageURL?.absoluteString ?? ""
-                results = PHAsset.fetchAssets(withALAssetURLs: [imageURL!], options: nil)
-            } else {
-                assetID = imagePath.replacingOccurrences(of: "ph://", with: "")
-                results = PHAsset.fetchAssets(withLocalIdentifiers: [assetID], options: nil)
-            }
+            let assetID = imagePath.replacingOccurrences(of: "ph://", with: "")
+            let results = PHAsset.fetchAssets(withLocalIdentifiers: [assetID], options: nil)
             
             guard let asset = results?.firstObject else {
                 return

@@ -369,7 +369,7 @@ class ImageCompressor {
             let assetID = imagePath.replacingOccurrences(of: "ph://", with: "")
             let results = PHAsset.fetchAssets(withLocalIdentifiers: [assetID], options: nil)
             
-            guard let asset = results?.firstObject else {
+            guard let asset = results.firstObject else {
                 return
             }
             

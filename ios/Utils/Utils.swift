@@ -17,10 +17,7 @@ class Utils {
     }
     
     static func makeValidUri(filePath: String) -> String {
-        let fileWithUrl = URL(fileURLWithPath: filePath)
-        let absoluteUrl = fileWithUrl.deletingLastPathComponent()
-        let fileUrl = "file://\(absoluteUrl.path)/\(fileWithUrl.lastPathComponent)"
-        return fileUrl;
+        return (filePath.starts(with: "file://") ? URL(string: filePath)! : URL(fileURLWithPath: filePath)).absoluteURL.absoluteString
     }
     
     static func getFileSize(from urlString: String, completion: @escaping (NSNumber?, Error?) -> Void) {

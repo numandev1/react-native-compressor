@@ -1,6 +1,6 @@
 {
   "name": "react-native-compressor",
-  "version": "1.12.0",
+  "version": "1.13.0",
   "description": "Compress Image, Video, and Audio same like Whatsapp & Auto/Manual Compression | Background Upload | Download File | Create Video Thumbnail",
   "main": "lib/commonjs/index",
   "module": "lib/module/index",

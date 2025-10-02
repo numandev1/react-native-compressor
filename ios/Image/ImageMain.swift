@@ -7,18 +7,29 @@
 
 import Foundation
 class ImageMain {
-    static func image_compress(_ imagePath: String, optionMap: NSDictionary, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
+    static func image_compress(_ value: String, optionMap: NSDictionary, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
         do {
             let options = ImageCompressorOptions.fromDictionary(optionMap as! [String : Any])
-            ImageCompressor.getAbsoluteImagePath(imagePath, options: options) { absoluteImagePath in
+            
+            if options.input != InputType.base64 {
+                ImageCompressor.getAbsoluteImagePath(value, options: options) { absoluteImagePath in
+                    if options.autoCompress {
+                        let result = ImageCompressor.autoCompressHandler(imagePath: absoluteImagePath, base64: nil, options: options)
+                        resolve(result)
+                    } else {
+                        let result = ImageCompressor.manualCompressHandler(imagePath: absoluteImagePath, base64: nil, options: options)
+                        resolve(result)
+                    }
+                    MediaCache.removeCompletedImagePath(absoluteImagePath)
+                }
+            } else {
                 if options.autoCompress {
-                    let result = ImageCompressor.autoCompressHandler(absoluteImagePath, options: options)
+                    let result = ImageCompressor.autoCompressHandler(imagePath: nil, base64: value, options: options)
                     resolve(result)
                 } else {
-                    let result = ImageCompressor.manualCompressHandler(absoluteImagePath, options: options)
+                    let result = ImageCompressor.manualCompressHandler(imagePath: nil, base64: value, options: options)
                     resolve(result)
                 }
-                MediaCache.removeCompletedImagePath(absoluteImagePath)
             }
         } catch {
             reject(error.localizedDescription, error.localizedDescription, nil)

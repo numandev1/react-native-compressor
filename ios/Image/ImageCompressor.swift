@@ -101,17 +101,25 @@ class ImageCompressor {
         return UIImage()
     }
     
-    static func isCompressedSizeLessThanActualFile(sourceFileUrl: String,compressedFileUrl: String)-> Bool {
-        let sourceVideoURL = URL(string: sourceFileUrl)
-        let sourcefileSize:Double=Utils.getfileSizeInBytes(forURL:sourceVideoURL!)
+    static func isCompressedSizeLessThanActualFile(sourceFileUrl: String?, sourceData: Data?, compressedFileUrl: String)-> Bool {
+        var sourcefileSize: Int = 0
         
-        let compressedVideoURL = URL(string: compressedFileUrl)
-        let compressedfileSize:Double=Utils.getfileSizeInBytes(forURL:compressedVideoURL!)
-        
-        if(compressedfileSize<=sourcefileSize)
-        {
-        return true
+        if let _sourceFileUrl = sourceFileUrl {
+            let sourceVideoURL = URL(string: _sourceFileUrl)
+            sourcefileSize = Utils.getfileSizeInBytes(forURL: sourceVideoURL!)
         }
+        
+        if let _sourceData = sourceData {
+            sourcefileSize = _sourceData.count
+        }
+        
+        let compressedFileURL = URL(string: compressedFileUrl)
+        let compressedfileSize = Utils.getfileSizeInBytes(forURL: compressedFileURL!)
+        
+        if compressedfileSize <= sourcefileSize {
+            return true
+        }
+        
         return false
     }
     
@@ -119,7 +127,7 @@ class ImageCompressor {
         return data.starts(with: [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A])
     }
     
-    static func copyExifInfo(actualImagePath:String, image: UIImage, data: Data) -> Data {
+    static func copyExifInfo(actualImagePath: String, image: UIImage, data: Data) -> Data {
         let fileURL = URL(string: actualImagePath)!
         let filePath = fileURL.path
         
@@ -156,46 +164,45 @@ class ImageCompressor {
         return destinationData as Data
     }
     
-    static func writeImage(_ image: UIImage, output: Int, quality: Float, outputExtension: String, isBase64: Bool,disablePngTransparency:Bool,isEnableAutoCompress:Bool,actualImagePath:String)-> String{
+    static func writeImage(_ image: UIImage, output: Int, quality: Float, outputExtension: String, isBase64: Bool, disablePngTransparency: Bool, isEnableAutoCompress: Bool, actualImagePath: String?)-> String {
         var data: Data
         var exception: NSException?
+        
         switch OutputType(rawValue: output)! {
         case .jpg:
             data = image.jpegData(compressionQuality: CGFloat(quality))!
         case .png:
-            if(disablePngTransparency)
-            {
+            if disablePngTransparency {
                 data = image.jpegData(compressionQuality: CGFloat(quality))!
                 let compressedImage = UIImage(data: data)
                 data = compressedImage!.pngData()!
+            } else {
+                data = image.pngData()!
             }
-            else
-            {
-                data=image.pngData()!
-            }
-           
         }
         
-        data=copyExifInfo(actualImagePath: actualImagePath, image: UIImage(data: data) ?? image, data: data)
-        
+        if let _actualImagePath = actualImagePath {
+            data = copyExifInfo(actualImagePath: _actualImagePath, image: UIImage(data: data) ?? image, data: data)
+        }
         
         if isBase64 {
             return data.base64EncodedString(options: [])
         } else {
             let filePath = Utils.generateCacheFilePath(outputExtension)
+            
             do {
                 try data.write(to: URL(fileURLWithPath: filePath), options: .atomic)
                 let returnablePath = makeValidUri(filePath)
-                if(isEnableAutoCompress==true)
-                {
-                    if(self.isCompressedSizeLessThanActualFile(sourceFileUrl: actualImagePath,compressedFileUrl: returnablePath))
-                    {
+                
+                if isEnableAutoCompress == true {
+                    if self.isCompressedSizeLessThanActualFile(sourceFileUrl: actualImagePath, sourceData: data, compressedFileUrl: returnablePath) {
                         return returnablePath
-                    }
-                    else
-                    {
-                        MediaCache.deleteFile(atPath:returnablePath)
-                        return actualImagePath
+                    } else {
+                        MediaCache.deleteFile(atPath: returnablePath)
+                        
+                        if let _actualImagePath = actualImagePath {
+                            return _actualImagePath
+                        }
                     }
                 }
                 
@@ -210,8 +217,8 @@ class ImageCompressor {
     }
 
     
-    static func manualCompress(_ image: UIImage, output: Int, quality: Float, outputExtension: String, isBase64: Bool,disablePngTransparency:Bool,actualImagePath:String) -> String {
-        return writeImage(image, output: output, quality: quality, outputExtension: outputExtension, isBase64: isBase64, disablePngTransparency: disablePngTransparency,isEnableAutoCompress: false,actualImagePath: actualImagePath)
+    static func manualCompress(_ image: UIImage, output: Int, quality: Float, outputExtension: String, isBase64: Bool, disablePngTransparency: Bool, actualImagePath: String?) -> String {
+        return writeImage(image, output: output, quality: quality, outputExtension: outputExtension, isBase64: isBase64, disablePngTransparency: disablePngTransparency, isEnableAutoCompress: false, actualImagePath: actualImagePath)
     }
 
     
@@ -280,15 +287,19 @@ class ImageCompressor {
     }
 
     
-  static func manualCompressHandler(_ imagePath: String, options: ImageCompressorOptions) -> String {
+    static func manualCompressHandler(imagePath: String?, base64: String?, options: ImageCompressorOptions) -> String {
         var exception: NSException?
         var image: UIImage?
 
         switch options.input {
         case .base64:
-            image = ImageCompressor.decodeImage(imagePath)
+            if let _base64 = base64 {
+                image = ImageCompressor.decodeImage(_base64)
+            }
         case .uri:
-            image = ImageCompressor.loadImage(imagePath)
+            if let _imagePath = imagePath {
+                image = ImageCompressor.loadImage(_imagePath)
+            }
         }
 
         if let _image = image {
@@ -296,7 +307,7 @@ class ImageCompressor {
             let outputExtension = ImageCompressorOptions.getOutputInString(options.output)
             let resizedImage = ImageCompressor.manualResize(image!, maxWidth: options.maxWidth, maxHeight: options.maxHeight)
             let isBase64 = options.returnableOutputType == .rbase64
-            return ImageCompressor.manualCompress(resizedImage, output: options.output.rawValue, quality: options.quality, outputExtension: outputExtension, isBase64: isBase64,disablePngTransparency: options.disablePngTransparency,actualImagePath: imagePath)
+            return ImageCompressor.manualCompress(resizedImage, output: options.output.rawValue, quality: options.quality, outputExtension: outputExtension, isBase64: isBase64,disablePngTransparency: options.disablePngTransparency, actualImagePath: imagePath)
         } else {
             exception = NSException(name: NSExceptionName(rawValue: "unsupported_value"), reason: "Unsupported value type.", userInfo: nil)
             exception?.raise()
@@ -306,9 +317,20 @@ class ImageCompressor {
     }
 
     
-    static func autoCompressHandler(_ imagePath: String, options: ImageCompressorOptions) -> String {
+    static func autoCompressHandler(imagePath: String?, base64: String?, options: ImageCompressorOptions) -> String {
         var exception: NSException?
-        var image = ImageCompressor.loadImage(imagePath)
+        var image: UIImage?
+        
+        switch options.input {
+        case .base64:
+            if let _base64 = base64 {
+                image = ImageCompressor.decodeImage(_base64)
+            }
+        case .uri:
+            if let _imagePath = imagePath {
+                image = ImageCompressor.loadImage(_imagePath)
+            }
+        }
         
         if var image = image {
             image = ImageCompressor.scaleAndRotateImage(image)
@@ -343,9 +365,13 @@ class ImageCompressor {
             let isBase64 = options.returnableOutputType == .rbase64
             
             if let img = UIGraphicsGetImageFromCurrentImageContext() {
-                return writeImage(img, output: options.output.rawValue, quality: Float(compressionQuality), outputExtension: outputExtension, isBase64: isBase64, disablePngTransparency: options.disablePngTransparency,isEnableAutoCompress: true,actualImagePath: imagePath)
+                return writeImage(img, output: options.output.rawValue, quality: Float(compressionQuality), outputExtension: outputExtension, isBase64: isBase64, disablePngTransparency: options.disablePngTransparency, isEnableAutoCompress: true, actualImagePath: imagePath)
             }
+        } else {
+            exception = NSException(name: NSExceptionName(rawValue: "unsupported_value"), reason: "Unsupported value type.", userInfo: nil)
+            exception?.raise()
         }
+        
         return ""
     }
     

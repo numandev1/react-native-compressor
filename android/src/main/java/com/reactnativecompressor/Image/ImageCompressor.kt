@@ -47,13 +47,15 @@ object ImageCompressor {
 
     fun decodeImage(value: String?): Bitmap {
         val data = Base64.decode(value, Base64.DEFAULT)
-        return BitmapFactory.decodeByteArray(data, 0, data.size)
+        val bmp = BitmapFactory.decodeByteArray(data, 0, data.size)
+        return correctImageOrientation(bmp, filePath) ?: bmp
     }
 
     fun loadImage(value: String?): Bitmap {
         val uri = Uri.parse(value)
         val filePath = uri.path
-        return BitmapFactory.decodeFile(filePath)
+        val bmp = BitmapFactory.decodeFile(filePath)
+        return correctImageOrientation(bmp, filePath) ?: bmp
     }
 
     fun copyExifInfo(imagePath:String, outputUri:String){

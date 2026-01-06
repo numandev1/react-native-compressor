@@ -70,6 +70,8 @@ class Utils {
                    let fileSize = attrs[.size] as? UInt64 {
                     let fileSizeString = String(fileSize)
                     resolve(fileSizeString)
+                } else {
+                    reject("FILE_SIZE_ERROR", "Failed to get file size for path: \(filePath)", nil)
                 }
             }
         } catch {

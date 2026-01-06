@@ -28,23 +28,47 @@ class ImageMain {
     static func getImageMetaData(_ filePath: String, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
         let options = ImageCompressorOptions.fromDictionary([:])
         ImageCompressor.getAbsoluteImagePath(filePath, options: options) { ImagePath in
-            if ImagePath.hasPrefix("file://") {
-                let absoluteImagePath = URL(string: ImagePath)!.path
-                Utils.getFileSize(absoluteImagePath) { fileSize in
-                    let _extension = (absoluteImagePath as NSString).pathExtension
-                    let imageData = NSData(contentsOfFile: absoluteImagePath)!
-                    let imageSource = CGImageSourceCreateWithData(imageData, nil)!
-                    let imageProperties = CGImageSourceCopyPropertiesAtIndex(imageSource, 0, nil)!
-                    let exif=imageProperties as NSDictionary
-                    let mutableExif = exif.mutableCopy() as! NSMutableDictionary
-                    if let fileSizeInt = Int(fileSize as! String) {
-                        mutableExif.setValue(fileSizeInt, forKey: "size")
-                        }
-                    mutableExif.setValue(_extension, forKey: "extension")
-                    resolve(mutableExif)
-                } reject: { code, message, error in
-                    reject(code, message, error)
+            guard ImagePath.hasPrefix("file://") else {
+                reject("INVALID_PATH", "Image path must start with file://", nil)
+                return
+            }
+            
+            guard let url = URL(string: ImagePath) else {
+                reject("INVALID_URL", "Failed to create URL from image path", nil)
+                return
+            }
+            
+            let absoluteImagePath = url.path
+            let fileURL = url as CFURL
+            
+            Utils.getFileSize(absoluteImagePath) { fileSize in
+                let _extension = (absoluteImagePath as NSString).pathExtension
+                
+                // Use CGImageSourceCreateWithURL to avoid loading entire file into memory (prevents OOM crashes for large images)
+                guard let imageSource = CGImageSourceCreateWithURL(fileURL, nil) else {
+                    reject("INVALID_IMAGE", "Failed to create image source from URL", nil)
+                    return
                 }
+                
+                guard let imageProperties = CGImageSourceCopyPropertiesAtIndex(imageSource, 0, nil) else {
+                    reject("NO_PROPERTIES", "Failed to get image properties", nil)
+                    return
+                }
+                
+                let exif = imageProperties as NSDictionary
+                guard let mutableExif = exif.mutableCopy() as? NSMutableDictionary else {
+                    reject("COPY_ERROR", "Failed to create mutable copy of image properties", nil)
+                    return
+                }
+                
+                if let fileSizeString = fileSize as? String, let fileSizeInt = Int(fileSizeString) {
+                    mutableExif.setValue(fileSizeInt, forKey: "size")
+                }
+                
+                mutableExif.setValue(_extension, forKey: "extension")
+                resolve(mutableExif)
+            } reject: { code, message, error in
+                reject(code, message, error)
             }
         }
     }

@@ -2,7 +2,7 @@ import { NativeEventEmitter, Platform } from 'react-native';
 import type { NativeEventSubscription } from 'react-native';
 import { Compressor } from '../Main';
 const CompressEventEmitter = new NativeEventEmitter(Compressor);
-import { uuidv4 } from './index';
+import { uuidv4 } from './helpers';
 export enum UploadType {
   BINARY_CONTENT = 0,
   MULTIPART = 1,

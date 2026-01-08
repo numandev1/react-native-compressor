@@ -117,6 +117,7 @@ dependencies {
   implementation 'org.mp4parser:isoparser:1.9.56'
   implementation 'com.github.kaushik-naik:TAndroidLame:277c2ab4b0'
   implementation 'javazoom:jlayer:1.0.1'
+  implementation 'com.squareup.okhttp3:okhttp:4.9.1'
 }
 
 if (isNewArchitectureEnabled()) {

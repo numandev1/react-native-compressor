@@ -133,11 +133,20 @@ object ImageCompressor {
     }
 
     fun manualCompressImage(imagePath: String?, options: ImageCompressorOptions, reactContext: ReactApplicationContext?): String? {
-        val image = if (options.input === ImageCompressorOptions.InputType.base64) decodeImage(imagePath) else loadImage(imagePath)
-        val resizedImage = resize(image, options.maxWidth, options.maxHeight)
-        val imageDataByteArrayOutputStream = compress(resizedImage, options.output, options.quality,options.disablePngTransparency)
-        val isBase64 = options.returnableOutputType === ImageCompressorOptions.ReturnableOutputType.base64
-        return encodeImage(imageDataByteArrayOutputStream, isBase64, options.output.toString(),imagePath, reactContext)
+      val image = if (options.input === ImageCompressorOptions.InputType.base64) decodeImage(imagePath) else loadImage(imagePath)
+      val resizedImage = resize(image, options.maxWidth, options.maxHeight)
+      val isBase64 = options.returnableOutputType === ImageCompressorOptions.ReturnableOutputType.base64
+      val uri = Uri.parse(imagePath)
+      val imagePathNew = uri.path
+      var scaledBitmap: Bitmap? = correctImageOrientation(resizedImage, imagePathNew)
+      val imageDataByteArrayOutputStream = compress(scaledBitmap, options.output, options.quality, options.disablePngTransparency)
+      val compressedImagePath = encodeImage(imageDataByteArrayOutputStream, isBase64, options.output.toString(), imagePath, reactContext)
+      if (isCompressedSizeLessThanActualFile(imagePath!!, compressedImagePath)) {
+          return compressedImagePath
+      } else {
+          MediaCache.deleteFile(compressedImagePath!!)
+          return slashifyFilePath(imagePath)
+      }
     }
 
   fun isCompressedSizeLessThanActualFile(sourceFileUrl: String,compressedFileUrl: String?): Boolean {
@@ -249,20 +258,45 @@ object ImageCompressor {
     }
 
     fun correctImageOrientation(bitmap: Bitmap?, imagePath: String?): Bitmap? {
+        if (bitmap == null || imagePath == null) return bitmap
+
         return try {
-            val exif = ExifInterface(imagePath!!)
+            val exif = ExifInterface(imagePath)
             val orientation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)
             val matrix = Matrix()
+
             when (orientation) {
-                ExifInterface.ORIENTATION_ROTATE_90 -> matrix.postRotate(90f)
-                ExifInterface.ORIENTATION_ROTATE_180 -> matrix.postRotate(180f)
-                ExifInterface.ORIENTATION_ROTATE_270 -> matrix.postRotate(270f)
-                else -> return bitmap // No rotation needed
+                ExifInterface.ORIENTATION_NORMAL -> return bitmap
+                ExifInterface.ORIENTATION_FLIP_HORIZONTAL -> {
+                    matrix.setScale(-1f, 1f)
+                }
+                ExifInterface.ORIENTATION_ROTATE_180 -> {
+                    matrix.setRotate(180f)
+                }
+                ExifInterface.ORIENTATION_FLIP_VERTICAL -> {
+                    matrix.setScale(1f, -1f)
+                }
+                ExifInterface.ORIENTATION_TRANSPOSE -> {
+                    matrix.setRotate(90f)
+                    matrix.postScale(-1f, 1f)
+                }
+                ExifInterface.ORIENTATION_ROTATE_90 -> {
+                    matrix.setRotate(90f)
+                }
+                ExifInterface.ORIENTATION_TRANSVERSE -> {
+                    matrix.setRotate(-90f)
+                    matrix.postScale(-1f, 1f)
+                }
+                ExifInterface.ORIENTATION_ROTATE_270 -> {
+                    matrix.setRotate(-90f)
+                }
+                else -> return bitmap
             }
-            Bitmap.createBitmap(bitmap!!, 0, 0, bitmap.width, bitmap.height, matrix, true)
+
+            Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
         } catch (e: IOException) {
             e.printStackTrace()
-            bitmap // Return original bitmap if an error occurs
+            bitmap
         }
     }
 }

@@ -30,6 +30,7 @@ class Uploader : NSObject, URLSessionTaskDelegate{
     var uploadResolvers: [String: RCTPromiseResolveBlock] = [:]
     var uploadRejectors: [String: RCTPromiseRejectBlock] = [:]
     var currentTask: URLSessionDataTask?
+    var storage:[Int:Data] = [:]
     private lazy var taskManager = UrlTaskManager()
     
     func upload(filePath: String, options: [String: Any], resolve:@escaping RCTPromiseResolveBlock, reject:@escaping RCTPromiseRejectBlock) -> Void {
@@ -123,6 +124,8 @@ class Uploader : NSObject, URLSessionTaskDelegate{
       guard let uuid = session.configuration.identifier else {return}
       guard let reject = uploadRejectors[uuid] else{return}
       guard let resolve = uploadResolvers[uuid] else{return}
+      guard let data = self.storage[task.taskIdentifier],
+            let json = try? JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] else {return}
       guard error == nil else {
         reject("failed", "Upload Failed", error)
         uploadRejectors[uuid] = nil
@@ -136,12 +139,18 @@ class Uploader : NSObject, URLSessionTaskDelegate{
         return;
       }
 
-      let result: [String : Any] = ["status": response.statusCode, "headers": response.allHeaderFields, "body": ""]
+      let result: [String : Any] = ["status": response.statusCode, "headers": response.allHeaderFields, "body": json]
       
       resolve(result)
       uploadResolvers[uuid] = nil
+      self.storage[task.taskIdentifier] = nil
     }
       
+
+    public func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
+        self.storage[dataTask.taskIdentifier] = data
+    }
+
     func urlSession(_ session: URLSession, task: URLSessionTask, didSendBodyData bytesSent: Int64, totalBytesSent: Int64, totalBytesExpectedToSend: Int64)
     {
       guard let uuid = session.configuration.identifier else {return}

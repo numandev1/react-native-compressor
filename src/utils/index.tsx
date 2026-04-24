@@ -1,4 +1,3 @@
-/* eslint-disable no-bitwise */
 import { Compressor } from '../Main';
 import { Platform } from 'react-native';
 type qualityType = 'low' | 'medium' | 'high';
@@ -30,7 +29,7 @@ type createVideoThumbnailType = (
   fileUrl: string,
   options?: {
     headers?: { [key: string]: string };
-  }
+  },
 ) => Promise<{
   path: string;
   size: number;
@@ -57,10 +56,7 @@ type getVideoMetaDataType = (filePath: string) => Promise<{
   width: number;
   height: number;
 }>;
-type getRealPathType = (
-  path: string,
-  type: 'video' | 'image'
-) => Promise<string>;
+type getRealPathType = (path: string, type: 'video' | 'image') => Promise<string>;
 
 export const generateFilePath: any = (extension: string) => {
   return new Promise((resolve, reject) => {
@@ -81,17 +77,11 @@ export const getVideoMetaData: getVideoMetaDataType = (path: string) => {
 const unifyMetaData = (exifResult: any) => {
   const output: any = {};
   const isIos = Platform.OS === 'ios';
-  output.ImageWidth = isIos
-    ? exifResult?.PixelWidth
-    : parseInt(exifResult.ImageWidth);
+  output.ImageWidth = isIos ? exifResult?.PixelWidth : parseInt(exifResult.ImageWidth);
 
-  output.ImageHeight = isIos
-    ? exifResult?.PixelHeight
-    : parseInt(exifResult.ImageLength);
+  output.ImageHeight = isIos ? exifResult?.PixelHeight : parseInt(exifResult.ImageLength);
 
-  output.Orientation = isIos
-    ? exifResult.Orientation
-    : parseInt(exifResult.Orientation);
+  output.Orientation = isIos ? exifResult.Orientation : parseInt(exifResult.Orientation);
 
   output.size = exifResult.size;
   output.extension = exifResult.extension;
@@ -104,10 +94,7 @@ export const getImageMetaData: getImageMetaDataType = async (path: string) => {
   return unifyMetaData(result);
 };
 
-export const createVideoThumbnail: createVideoThumbnailType = (
-  fileUrl,
-  options = {}
-) => {
+export const createVideoThumbnail: createVideoThumbnailType = (fileUrl, options = {}) => {
   return Compressor.createVideoThumbnail(fileUrl, options);
 };
 
@@ -115,8 +102,7 @@ export const clearCache: clearCacheType = (cacheDir?: string) => {
   return Compressor.clearCache(cacheDir);
 };
 
-const isValidUrl = (url: string) =>
-  /^(?:\w+:)?\/\/([^\s\.]+\.\S{2}|localhost[\:?\d]*)\S*$/.test(url);
+const isValidUrl = (url: string) => /^(?:\w+:)?\/\/([^\s\.]+\.\S{2}|localhost[\:?\d]*)\S*$/.test(url);
 
 const getFullFilename = (path: string | null) => {
   if (typeof path === 'string') {
@@ -128,8 +114,7 @@ const getFullFilename = (path: string | null) => {
     }
 
     // In case of url, check if it ends with "/" and do not consider it furthermore
-    if (_path[_path.length - 1] === '/')
-      _path = _path.substring(0, path.length - 1);
+    if (_path[_path.length - 1] === '/') _path = _path.substring(0, path.length - 1);
 
     const array = _path.split('/');
     return array.length > 1 ? array[array.length - 1] : INCORRECT_INPUT_PATH;
@@ -151,15 +136,10 @@ const getFilename = (path: string | null) => {
 };
 
 const isRemoteMedia = (path: string | null) => {
-  return typeof path === 'string'
-    ? path?.split(':/')?.[0]?.includes('http')
-    : null;
+  return typeof path === 'string' ? path?.split(':/')?.[0]?.includes('http') : null;
 };
 
-export const getDetails = (
-  mediaFullPath: string,
-  extesnion: 'mp3' | 'mp4' = 'mp3'
-): Promise<any | null> => {
+export const getDetails = (mediaFullPath: string, extesnion: 'mp3' | 'mp4' = 'mp3'): Promise<any | null> => {
   return new Promise(async (resolve, reject) => {
     try {
       // Since we used "-v error", a work around is to call first this command before the following

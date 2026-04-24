@@ -27,7 +27,7 @@ export interface Spec extends TurboModule {
   removeListeners(count: number): void;
   createVideoThumbnail(
     fileUrl: string,
-    options: Object
+    options: Object,
   ): Promise<{
     path: string;
     size: number;

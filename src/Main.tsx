@@ -9,9 +9,7 @@ const LINKING_ERROR =
 // @ts-expect-error
 const isTurboModuleEnabled = global.__turboModuleProxy != null;
 
-const CompressorModule = isTurboModuleEnabled
-  ? require('./Spec/NativeCompressor').default
-  : NativeModules.Compressor;
+const CompressorModule = isTurboModuleEnabled ? require('./Spec/NativeCompressor').default : NativeModules.Compressor;
 
 const Compressor = CompressorModule
   ? CompressorModule
@@ -21,7 +19,7 @@ const Compressor = CompressorModule
         get() {
           throw new Error(LINKING_ERROR);
         },
-      }
+      },
     );
 
 export { Compressor };

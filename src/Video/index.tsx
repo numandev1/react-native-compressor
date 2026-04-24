@@ -18,11 +18,7 @@ type videoCompresssionType = {
 };
 
 export type VideoCompressorType = {
-  compress(
-    fileUrl: string,
-    options?: videoCompresssionType,
-    onProgress?: (progress: number) => void
-  ): Promise<string>;
+  compress(fileUrl: string, options?: videoCompresssionType, onProgress?: (progress: number) => void): Promise<string>;
   cancelCompression(cancellationId: string): void;
   activateBackgroundTask(onExpired?: (data: any) => void): Promise<any>;
   deactivateBackgroundTask(): Promise<any>;
@@ -37,38 +33,27 @@ export const cancelCompression = (cancellationId: string) => {
 };
 
 const Video: VideoCompressorType = {
-  compress: async (
-    fileUrl: string,
-    options?: videoCompresssionType,
-    onProgress?: (progress: number) => void
-  ) => {
+  compress: async (fileUrl: string, options?: videoCompresssionType, onProgress?: (progress: number) => void) => {
     const uuid = uuidv4();
     let subscription: NativeEventSubscription;
     let subscription2: NativeEventSubscription;
 
     try {
       if (onProgress) {
-        subscription = VideoCompressEventEmitter.addListener(
-          'videoCompressProgress',
-          (event: any) => {
-            if (event.uuid === uuid) {
-              onProgress(event.data.progress);
-            }
+        subscription = VideoCompressEventEmitter.addListener('videoCompressProgress', (event: any) => {
+          if (event.uuid === uuid) {
+            onProgress(event.data.progress);
           }
-        );
+        });
       }
 
       if (options?.downloadProgress) {
         //@ts-ignore
-        subscription2 = VideoCompressEventEmitter.addListener(
-          'downloadProgress',
-          (event: any) => {
-            if (event.uuid === uuid) {
-              options.downloadProgress &&
-                options.downloadProgress(event.data.progress);
-            }
+        subscription2 = VideoCompressEventEmitter.addListener('downloadProgress', (event: any) => {
+          if (event.uuid === uuid) {
+            options.downloadProgress && options.downloadProgress(event.data.progress);
           }
-        );
+        });
       }
 
       const modifiedOptions: {
@@ -79,8 +64,7 @@ const Video: VideoCompressorType = {
         minimumFileSizeForCompress?: number;
         progressDivider?: number;
       } = { uuid };
-      if (options?.progressDivider)
-        modifiedOptions.progressDivider = options?.progressDivider;
+      if (options?.progressDivider) modifiedOptions.progressDivider = options?.progressDivider;
       if (options?.bitrate) modifiedOptions.bitrate = options?.bitrate;
       if (options?.compressionMethod) {
         modifiedOptions.compressionMethod = options?.compressionMethod;
@@ -93,17 +77,13 @@ const Video: VideoCompressorType = {
         modifiedOptions.maxSize = 640;
       }
       if (options?.minimumFileSizeForCompress !== undefined) {
-        modifiedOptions.minimumFileSizeForCompress =
-          options?.minimumFileSizeForCompress;
+        modifiedOptions.minimumFileSizeForCompress = options?.minimumFileSizeForCompress;
       }
       if (options?.getCancellationId) {
         options?.getCancellationId(uuid);
       }
 
-      const result = await NativeVideoCompressor.compress(
-        fileUrl,
-        modifiedOptions
-      );
+      const result = await NativeVideoCompressor.compress(fileUrl, modifiedOptions);
       return result;
     } finally {
       // @ts-ignore
@@ -119,16 +99,12 @@ const Video: VideoCompressorType = {
   cancelCompression,
   activateBackgroundTask(onExpired?) {
     if (onExpired) {
-      const subscription: NativeEventSubscription =
-        VideoCompressEventEmitter.addListener(
-          'backgroundTaskExpired',
-          (event: any) => {
-            onExpired(event);
-            if (subscription) {
-              subscription.remove();
-            }
-          }
-        );
+      const subscription: NativeEventSubscription = VideoCompressEventEmitter.addListener('backgroundTaskExpired', (event: any) => {
+        onExpired(event);
+        if (subscription) {
+          subscription.remove();
+        }
+      });
     }
     return NativeVideoCompressor.activateBackgroundTask({});
   },

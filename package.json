@@ -33,13 +33,11 @@
     "lint": "eslint \"**/*.{js,ts,tsx}\"",
     "prepack": "bob build",
     "release": "release-it",
-    "example": "yarn --cwd example",
     "example:bare": "yarn workspace react-native-compressor-bare-example",
     "example:expo": "yarn workspace react-native-compressor-expo-example",
-    "build:android": "cd example/android && ./gradlew assembleDebug --no-daemon --console=plain -PreactNativeArchitectures=arm64-v8a",
-    "build:ios": "cd example/ios && xcodebuild -workspace CompressorExample.xcworkspace -scheme CompressorExample -configuration Debug -sdk iphonesimulator CC=clang CPLUSPLUS=clang++ LD=clang LDPLUSPLUS=clang++ GCC_OPTIMIZATION_LEVEL=0 GCC_PRECOMPILE_PREFIX_HEADER=YES ASSETCATALOG_COMPILER_OPTIMIZATION=time DEBUG_INFORMATION_FORMAT=dwarf COMPILER_INDEX_STORE_ENABLE=NO",
-    "bootstrap": "yarn example && yarn install && yarn example pods-newarch",
-    "clean": "del-cli android/build example/android/build example/android/app/build example/ios/build"
+    "build:android": "cd examples/bare/android && ./gradlew assembleDebug --no-daemon --console=plain -PreactNativeArchitectures=arm64-v8a",
+    "build:ios": "cd examples/bare/ios && xcodebuild -workspace BareExample.xcworkspace -scheme BareExample -configuration Debug -sdk iphonesimulator CC=clang CPLUSPLUS=clang++ LD=clang LDPLUSPLUS=clang++ GCC_OPTIMIZATION_LEVEL=0 GCC_PRECOMPILE_PREFIX_HEADER=YES ASSETCATALOG_COMPILER_OPTIMIZATION=time DEBUG_INFORMATION_FORMAT=dwarf COMPILER_INDEX_STORE_ENABLE=NO",
+    "clean": "del-cli android/build examples/bare/android/build examples/bare/android/app/build examples/bare/ios/build"
   },
   "keywords": [
     "react-native",
@@ -142,8 +140,6 @@
     ]
   },
   "workspaces": [
-    "example",
-    "exampleExpo",
     "examples/*"
   ],
   "packageManager": "yarn@4.14.1"

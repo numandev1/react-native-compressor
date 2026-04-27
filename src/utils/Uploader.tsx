@@ -39,10 +39,7 @@ export declare type UploaderOptions = (
   getCancellationId?: (cancellationId: string) => void;
 };
 
-export const cancelUpload: (
-  uuid?: string,
-  shouldCancelAll?: boolean
-) => void = (uuid = '', shouldCancelAll = false) => {
+export const cancelUpload: (uuid?: string, shouldCancelAll?: boolean) => void = (uuid = '', shouldCancelAll = false) => {
   return Compressor.cancelUpload(uuid, shouldCancelAll);
 };
 
@@ -51,20 +48,17 @@ export const backgroundUpload = async (
   fileUrl: string,
   options: UploaderOptions,
   onProgress?: (writtem: number, total: number) => void,
-  abortSignal?: AbortSignal
+  abortSignal?: AbortSignal,
 ): Promise<any> => {
   const uuid = uuidv4();
   let subscription: NativeEventSubscription;
   try {
     if (onProgress) {
-      subscription = CompressEventEmitter.addListener(
-        'uploadProgress',
-        (event: any) => {
-          if (event.uuid === uuid) {
-            onProgress(event.data.written, event.data.total);
-          }
+      subscription = CompressEventEmitter.addListener('uploadProgress', (event: any) => {
+        if (event.uuid === uuid) {
+          onProgress(event.data.written, event.data.total);
         }
-      );
+      });
     }
     if (Platform.OS === 'android' && fileUrl.includes('file://')) {
       fileUrl = fileUrl.replace('file://', '');

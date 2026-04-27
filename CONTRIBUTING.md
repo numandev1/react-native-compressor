@@ -14,54 +14,40 @@ yarn
 
 > While it's possible to use [`npm`](https://github.com/npm/cli), the tooling is built around [`yarn`](https://classic.yarnpkg.com/), so you'll have an easier time if you use `yarn` for development.
 
-While developing, you can run the [example app](/example/) to test your changes. Any changes you make in your library's JavaScript code will be reflected in the example app without a rebuild. If you change any native code, then you'll need to rebuild the example app.
+While developing, you can run the example apps to test your changes. There are two example apps available:
 
-To start the packager:
+- **Bare React Native** example at [`examples/bare/`](/examples/bare/)
+- **Expo** example at [`examples/expo/`](/examples/expo/)
 
-```sh
-yarn example start
-```
-
-To run the example app on Android:
+To start the packager for the bare example:
 
 ```sh
-yarn example android
+yarn example:bare start
 ```
 
-To run the example app on iOS:
+To run the bare example app on Android:
 
 ```sh
-yarn example ios
+yarn example:bare android
 ```
 
-By default, the example is configured to build with the old architecture. To run the example with the new architecture, you can do the following:
+To run the bare example app on iOS:
 
-1. For Android, run:
+```sh
+yarn example:bare ios
+```
 
-   ```sh
-   ORG_GRADLE_PROJECT_newArchEnabled=true yarn example android
-   ```
+To run the Expo example:
 
-2. For iOS, run:
-
-   ```sh
-   RCT_NEW_ARCH_ENABLED=1 yarn example pods
-   yarn example ios
-   ```
+```sh
+yarn example:expo start
+```
 
 If you are building for a different architecture than your previous build, make sure to remove the build folders first. You can run the following command to cleanup all build folders:
 
 ```sh
 yarn clean
 ```
-
-To confirm that the app is running with the new architecture, you can check the Metro logs for a message like this:
-
-```sh
-Running "CompressorExample" with {"fabric":true,"initialProps":{"concurrentRoot":true},"rootTag":1}
-```
-
-Note the `"fabric":true` and `"concurrentRoot":true` properties.
 
 Make sure your code passes TypeScript and ESLint. Run the following to verify:
 
@@ -82,9 +68,9 @@ Remember to add tests for your change if possible. Run the unit tests by:
 yarn test
 ```
 
-To edit the Objective-C or Swift files, open `example/ios/CompressorExample.xcworkspace` in XCode and find the source files at `Pods > Development Pods > react-native-compressor`.
+To edit the Objective-C or Swift files, open `examples/bare/ios/BareExample.xcworkspace` in XCode and find the source files at `Pods > Development Pods > react-native-compressor`.
 
-To edit the Java or Kotlin files, open `example/android` in Android studio and find the source files at `react-native-compressor` under `Android`.
+To edit the Java or Kotlin files, open `examples/bare/android` in Android Studio and find the source files at `react-native-compressor` under `Android`.
 
 
 ### Commit message convention
@@ -122,13 +108,13 @@ yarn release
 
 The `package.json` file contains various scripts for common tasks:
 
-- `yarn bootstrap`: setup project by installing all dependencies and pods.
 - `yarn typecheck`: type-check files with TypeScript.
 - `yarn lint`: lint files with ESLint.
 - `yarn test`: run unit tests with Jest.
-- `yarn example start`: start the Metro server for the example app.
-- `yarn example android`: run the example app on Android.
-- `yarn example ios`: run the example app on iOS.
+- `yarn example:bare start`: start the Metro server for the bare example app.
+- `yarn example:bare android`: run the bare example app on Android.
+- `yarn example:bare ios`: run the bare example app on iOS.
+- `yarn example:expo start`: start the Expo example app.
 
 ### Sending a pull request
 

@@ -66,9 +66,7 @@ type ImageType = {
 const Image: ImageType = {
   compress: async (value, options = {}) => {
     if (!value) {
-      throw new Error(
-        'Compression value is empty, please provide a value for compression.'
-      );
+      throw new Error('Compression value is empty, please provide a value for compression.');
     }
 
     let subscription: NativeEventSubscription;
@@ -77,15 +75,11 @@ const Image: ImageType = {
         const uuid = uuidv4();
         //@ts-ignore
         options.uuid = uuid;
-        subscription = ImageCompressEventEmitter.addListener(
-          'downloadProgress',
-          (event: any) => {
-            if (event.uuid === uuid) {
-              options.downloadProgress &&
-                options.downloadProgress(event.data.progress);
-            }
+        subscription = ImageCompressEventEmitter.addListener('downloadProgress', (event: any) => {
+          if (event.uuid === uuid) {
+            options.downloadProgress && options.downloadProgress(event.data.progress);
           }
-        );
+        });
       }
 
       const cleanData = value.replace(base64UrlRegex, '');

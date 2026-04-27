@@ -1,0 +1,40 @@
+{
+  "name": "react-native-compressor-expo-example",
+  "main": "expo-router/entry",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "web": "expo start --web"
+  },
+  "dependencies": {
+    "@dr.pogodin/react-native-fs": "^2.38.2",
+    "@react-native-camera-roll/camera-roll": "^7.10.2",
+    "@react-native-documents/picker": "^12.0.1",
+    "expo": "~54.0.33",
+    "expo-image-picker": "^55.0.19",
+    "expo-linking": "~8.0.11",
+    "expo-router": "~6.0.23",
+    "expo-splash-screen": "~31.0.13",
+    "expo-status-bar": "~3.0.9",
+    "expo-system-ui": "~6.0.9",
+    "pretty-bytes": "^6.1.1",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "react-native": "0.81.5",
+    "react-native-get-random-values": "^1.9.0",
+    "react-native-progress": "^5.0.0",
+    "react-native-reanimated": "^4.3.0",
+    "react-native-safe-area-context": "~5.6.0",
+    "react-native-screens": "~4.16.0",
+    "react-native-svg": "^15.15.4",
+    "react-native-web": "~0.21.0",
+    "react-native-worklets": "^0.8.1"
+  },
+  "devDependencies": {
+    "@types/react": "~19.1.0",
+    "eslint-config-expo": "~10.0.0"
+  },
+  "private": true
+}

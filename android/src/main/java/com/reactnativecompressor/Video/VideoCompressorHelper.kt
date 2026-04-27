@@ -27,6 +27,7 @@ class VideoCompressorHelper {
     var maxSize = 640.0f
     var progressDivider: Int? = 0
     var minimumFileSizeForCompress = 0.0f
+    var stripAudio = false
 
     companion object {
         private var _reactContext: ReactApplicationContext? = null
@@ -84,6 +85,7 @@ class VideoCompressorHelper {
                     "minimumFileSizeForCompress" -> options.minimumFileSizeForCompress = map.getDouble(key).toFloat()
                     "bitrate" -> options.bitrate = map.getDouble(key).toFloat()
                     "progressDivider" -> options.progressDivider = map.getInt(key)
+                    "stripAudio" -> options.stripAudio = map.getBoolean(key)
                 }
             }
             return options
@@ -112,7 +114,7 @@ class VideoCompressorHelper {
                     }
                 }
                 val videoBitRate = if (options.bitrate > 0) options.bitrate else (height * width * 1.5).toFloat()
-                Utils.compressVideo(srcPath!!, destinationPath, width, height, videoBitRate, options.uuid!!,options.progressDivider!!, promise, reactContext)
+                Utils.compressVideo(srcPath!!, destinationPath, width, height, videoBitRate, options.uuid!!,options.progressDivider!!, options.stripAudio, promise, reactContext)
             } catch (ex: Exception) {
                 promise.reject(ex)
             }

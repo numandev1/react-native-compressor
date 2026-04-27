@@ -1,0 +1,64 @@
+diff --git a/lib/Video.js b/lib/Video.js
+index 3ec75c5d3176f4c96cbcb9f99cb01ff7e6ea23ce..fcd7fc70e08ddf5a60b2b62db29240a1a756bcc4 100644
+--- a/lib/Video.js
++++ b/lib/Video.js
+@@ -483,10 +483,12 @@ const Video = (0, react_1.forwardRef)(({ source, style, resizeMode, poster, post
+             _posterResizeMode = posterResizeMode;
+         }
+         // poster style
+-        const baseStyle = {
+-            ...react_native_1.StyleSheet.absoluteFillObject,
+-            resizeMode: _posterResizeMode,
+-        };
++        const baseStyle = [
++            react_native_1.StyleSheet.absoluteFill,
++            {
++                resizeMode: _posterResizeMode,
++            },
++        ];
+         let posterStyle = baseStyle;
+         if (!isPosterDeprecated && poster?.style) {
+             const styles = Array.isArray(poster.style)
+@@ -517,9 +519,7 @@ const Video = (0, react_1.forwardRef)(({ source, style, resizeMode, poster, post
+         source,
+         resizeMode,
+     ]);
+-    const _style = (0, react_1.useMemo)(() => ({
+-        ...react_native_1.StyleSheet.absoluteFillObject,
+-    }), []);
++    const _style = (0, react_1.useMemo)(() => react_native_1.StyleSheet.absoluteFill, []);
+     return (react_1.default.createElement(react_native_1.View, { style: style },
+         react_1.default.createElement(VideoNativeComponent_1.default, { ref: nativeRef, ...rest, src: src, style: _style, resizeMode: resizeMode, restoreUserInterfaceForPIPStopCompletionHandler: _restoreUserInterfaceForPIPStopCompletionHandler, selectedTextTrack: _selectedTextTrack, selectedAudioTrack: _selectedAudioTrack, selectedVideoTrack: _selectedVideoTrack, shutterColor: _shutterColor, onGetLicense: usingExternalGetLicense ? onGetLicense : undefined, onVideoLoad: onLoad || hasPoster
+                 ? onVideoLoad
+diff --git a/src/Video.tsx b/src/Video.tsx
+index 82b73abdc2b11be2a067dbab8ae1e014b995f77e..765dd33bbece0731d5eacebe515d33bff72bbce8 100644
+--- a/src/Video.tsx
++++ b/src/Video.tsx
+@@ -813,10 +813,12 @@ const Video = forwardRef<VideoRef, ReactVideoProps>(
+       }
+
+       // poster style
+-      const baseStyle: StyleProp<ImageStyle> = {
+-        ...StyleSheet.absoluteFillObject,
+-        resizeMode: _posterResizeMode,
+-      };
++      const baseStyle: StyleProp<ImageStyle> = [
++        StyleSheet.absoluteFill,
++        {
++          resizeMode: _posterResizeMode,
++        },
++      ];
+
+       let posterStyle: StyleProp<ImageStyle> = baseStyle;
+
+@@ -866,9 +868,7 @@ const Video = forwardRef<VideoRef, ReactVideoProps>(
+     ]);
+
+     const _style: StyleProp<ViewStyle> = useMemo(
+-      () => ({
+-        ...StyleSheet.absoluteFillObject,
+-      }),
++      () => StyleSheet.absoluteFill,
+       [],
+     );
+

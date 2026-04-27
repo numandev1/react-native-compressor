@@ -139,6 +139,9 @@
       }
     ]
   },
+  "resolutions": {
+    "react-native-video": "patch:react-native-video@npm%3A6.19.1#~/.yarn/patches/react-native-video-npm-6.19.1-2c06079fd0.patch"
+  },
   "workspaces": [
     "examples/*"
   ],

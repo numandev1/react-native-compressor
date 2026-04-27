@@ -170,6 +170,7 @@ class VideoCompressor {
         let maxSize:Float = options["maxSize"] as! Float;
         let uuid:String = options["uuid"] as! String
         let progressDivider=options["progressDivider"] as? Int ?? 0
+        let stripAudio=options["stripAudio"] as? Bool ?? false
 
         let asset = AVAsset(url: url)
         guard asset.tracks.count >= 1 else {
@@ -194,7 +195,7 @@ class VideoCompressor {
             height: Int(resultHeight), width: Int(resultWidth)
             );
 
-        exportVideoHelper(url: url, asset: asset, bitRate: videoBitRate, resultWidth: resultWidth, resultHeight: resultHeight,uuid: uuid,progressDivider: progressDivider) { progress in
+        exportVideoHelper(url: url, asset: asset, bitRate: videoBitRate, resultWidth: resultWidth, resultHeight: resultHeight,uuid: uuid,progressDivider: progressDivider, stripAudio: stripAudio) { progress in
             onProgress(progress)
         } onCompletion: { outputURL in
             onCompletion(outputURL)
@@ -207,6 +208,7 @@ class VideoCompressor {
         let uuid:String = options["uuid"] as! String
         var bitRate = (options["bitrate"] as? NSNumber)?.floatValue;
         let progressDivider=options["progressDivider"] as? Int ?? 0
+        let stripAudio=options["stripAudio"] as? Bool ?? false
         let asset = AVAsset(url: url)
         guard asset.tracks.count >= 1 else {
           let error = CompressionError(message: "Invalid video URL, no track found")
@@ -234,7 +236,7 @@ class VideoCompressor {
 
         let videoBitRate = bitRate ?? height*width*1.5
 
-        exportVideoHelper(url: url, asset: asset, bitRate: Int(videoBitRate), resultWidth: width, resultHeight: height,uuid: uuid,progressDivider: progressDivider) { progress in
+        exportVideoHelper(url: url, asset: asset, bitRate: Int(videoBitRate), resultWidth: width, resultHeight: height,uuid: uuid,progressDivider: progressDivider, stripAudio: stripAudio) { progress in
             onProgress(progress)
         } onCompletion: { outputURL in
             onCompletion(outputURL)
@@ -243,7 +245,7 @@ class VideoCompressor {
         }
       }
 
-    func exportVideoHelper(url: URL,asset: AVAsset, bitRate: Int,resultWidth:Float,resultHeight:Float,uuid:String,progressDivider: Int, onProgress: @escaping (Float) -> Void,  onCompletion: @escaping (URL) -> Void, onFailure: @escaping (Error) -> Void){
+    func exportVideoHelper(url: URL,asset: AVAsset, bitRate: Int,resultWidth:Float,resultHeight:Float,uuid:String,progressDivider: Int, stripAudio: Bool = false, onProgress: @escaping (Float) -> Void,  onCompletion: @escaping (URL) -> Void, onFailure: @escaping (Error) -> Void){
         var currentVideoCompression:Int=0
 
         var tmpURL = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
@@ -267,12 +269,15 @@ class VideoCompressor {
           AVVideoScalingModeKey: AVVideoScalingModeResizeAspectFill,
           AVVideoCompressionPropertiesKey: compressionDict
         ]
-        exporter.audioOutputConfiguration = [
-          AVFormatIDKey: kAudioFormatMPEG4AAC,
-          AVEncoderBitRateKey: NSNumber(integerLiteral: 128000),
-          AVNumberOfChannelsKey: NSNumber(integerLiteral: 2),
-          AVSampleRateKey: NSNumber(value: Float(44100))
-        ]
+        exporter.stripAudio = stripAudio
+        if !stripAudio {
+            exporter.audioOutputConfiguration = [
+              AVFormatIDKey: kAudioFormatMPEG4AAC,
+              AVEncoderBitRateKey: NSNumber(integerLiteral: 128000),
+              AVNumberOfChannelsKey: NSNumber(integerLiteral: 2),
+              AVSampleRateKey: NSNumber(value: Float(44100))
+            ]
+        }
 
         compressorExports[uuid] = exporter
         exporter.export(progressHandler: { (progress) in

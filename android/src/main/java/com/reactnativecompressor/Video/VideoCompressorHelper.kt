@@ -88,6 +88,16 @@ class VideoCompressorHelper {
             }
             return options
         }
+
+        fun getMetadataInt(metaRetriever: MediaMetadataRetriever, key: Int): Int {
+            return metaRetriever.extractMetadata(key)
+                ?.toDoubleOrNull()
+                ?.toLong()
+                ?.coerceIn(0L, Int.MAX_VALUE.toLong())
+                ?.toInt()
+                ?: 0
+        }
+
         fun VideoCompressManual(fileUrl: String?, options: VideoCompressorHelper, promise: Promise, reactContext: ReactApplicationContext?) {
             try {
                 val uri = Uri.parse(fileUrl)
@@ -95,24 +105,34 @@ class VideoCompressorHelper {
                 val destinationPath = Utils.generateCacheFilePath("mp4", reactContext!!)
                 val metaRetriever = MediaMetadataRetriever()
                 metaRetriever.setDataSource(srcPath)
-                var height = metaRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)!!.toInt()
-                var width = metaRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)!!.toInt()
-                val bitrate = metaRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_BITRATE)!!.toInt()
-                val isPortrait = height > width
-                val maxSize = options.maxSize.toInt()
-                if (isPortrait && height > maxSize) {
-                    width = (maxSize.toFloat() / height * width).toInt()
-                    height = maxSize
-                } else if (width > maxSize) {
-                    height = (maxSize.toFloat() / width * height).toInt()
-                    width = maxSize
-                } else {
-                    if (options.bitrate == 0f) {
-                        options.bitrate = (bitrate * 0.8).toInt().toFloat()
-                    }
+                val height = getMetadataInt(metaRetriever, MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)
+                val width = getMetadataInt(metaRetriever, MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)
+                val bitrate = getMetadataInt(metaRetriever, MediaMetadataRetriever.METADATA_KEY_BITRATE)
+                val frameRate = getMetadataInt(metaRetriever, MediaMetadataRetriever.METADATA_KEY_CAPTURE_FRAMERATE)
+                if (height <= 0 || width <= 0) {
+                    promise.reject(Throwable("Failed to read the input video dimensions"))
+                    return
                 }
-                val videoBitRate = if (options.bitrate > 0) options.bitrate else (height * width * 1.5).toFloat()
-                Utils.compressVideo(srcPath!!, destinationPath, width, height, videoBitRate, options.uuid!!,options.progressDivider!!, promise, reactContext)
+                val profile = VideoCompressionProfileFactory.createManual(
+                    sourceWidth = width,
+                    sourceHeight = height,
+                    sourceBitrate = bitrate,
+                    sourceFrameRate = frameRate,
+                    maxSize = options.maxSize,
+                    requestedBitrate = options.bitrate,
+                )
+                Utils.compressVideo(
+                    srcPath!!,
+                    destinationPath,
+                    profile.width,
+                    profile.height,
+                    profile.bitrate.toFloat(),
+                    profile.frameRate,
+                    options.uuid!!,
+                    options.progressDivider!!,
+                    promise,
+                    reactContext,
+                )
             } catch (ex: Exception) {
                 promise.reject(ex)
             }

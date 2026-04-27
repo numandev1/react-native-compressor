@@ -104,11 +104,11 @@ class VideoCompressor {
 
       VideoCompressor.getAbsoluteVideoPath(url.absoluteString, options: options) { absoluteVideoPath in
         var minimumFileSizeForCompress:Double=0.0;
-          let videoURL = URL(string: absoluteVideoPath)
+        let videoURL = URL(string: absoluteVideoPath)
         let fileSize=self.getfileSize(forURL: videoURL!);
-          if((options["minimumFileSizeForCompress"]) != nil)
-        {0
-              minimumFileSizeForCompress=options["minimumFileSizeForCompress"] as! Double;
+        if((options["minimumFileSizeForCompress"]) != nil)
+        {
+              minimumFileSizeForCompress=(options["minimumFileSizeForCompress"] as? NSNumber)?.doubleValue ?? 0;
         }
         if(fileSize>minimumFileSizeForCompress)
         {
@@ -146,55 +146,128 @@ class VideoCompressor {
 }
 
 
-    func  makeVideoBitrate(originalHeight:Int,originalWidth:Int,originalBitrate:Int,height:Int,width:Int)->Int {
-        let compressFactor:Float = 0.8
-        let  minCompressFactor:Float = 0.8
-        let maxBitrate:Int = 1669000
-        let minValue:Float=min(Float(originalHeight)/Float(height),Float(originalWidth)/Float(width))
-        var remeasuredBitrate:Int = Int(Float(originalBitrate) / minValue)
-        remeasuredBitrate = Int(Float(remeasuredBitrate)*compressFactor)
-        let minBitrate:Int = Int(Float(self.getVideoBitrateWithFactor(f: minCompressFactor)) / (1280 * 720 / Float(width * height)))
-        if (originalBitrate < minBitrate) {
-          return remeasuredBitrate;
+    struct CompressionProfile {
+        let width: Int
+        let height: Int
+        let bitrate: Int
+        let frameRate: Int
+    }
+
+    func normalizeDimension(_ value: CGFloat) -> Int {
+        let rounded = max(Int(value.rounded()), 2)
+        return rounded % 2 == 0 ? rounded : rounded - 1
+    }
+
+    func normalizeFrameRate(for track: AVAssetTrack) -> Int {
+        let nominalFrameRate = Int(track.nominalFrameRate.rounded())
+        if nominalFrameRate <= 0 {
+            return 30
         }
-        if (remeasuredBitrate > maxBitrate) {
-          return maxBitrate;
+
+        return min(max(nominalFrameRate, 1), 30)
+    }
+
+    func scaledDimensions(width: CGFloat, height: CGFloat, maxSize: CGFloat) -> (width: Int, height: Int) {
+        let safeWidth = normalizeDimension(width)
+        let safeHeight = normalizeDimension(height)
+        let longSide = max(safeWidth, safeHeight)
+        let safeMaxSize = max(Int(maxSize.rounded()), 2)
+
+        guard longSide > safeMaxSize else {
+            return (safeWidth, safeHeight)
         }
-        return max(remeasuredBitrate, minBitrate);
-      }
-    func getVideoBitrateWithFactor(f:Float)->Int {
-        return Int(f * 2000 * 1000 * 1.13);
-      }
+
+        let scale = CGFloat(safeMaxSize) / CGFloat(longSide)
+        return (
+            normalizeDimension(CGFloat(safeWidth) * scale),
+            normalizeDimension(CGFloat(safeHeight) * scale)
+        )
+    }
+
+    func estimateBitrate(
+        originalWidth: Int,
+        originalHeight: Int,
+        originalBitrate: Int,
+        originalFrameRate: Int,
+        targetWidth: Int,
+        targetHeight: Int,
+        targetFrameRate: Int
+    ) -> Int {
+        let targetLongSide = max(targetWidth, targetHeight)
+        let floor: Int
+        let ceiling: Int
+
+        switch targetLongSide {
+        case 1920...:
+            floor = 4_000_000
+            ceiling = 8_000_000
+        case 1280...1919:
+            floor = 2_200_000
+            ceiling = 5_000_000
+        case 960...1279:
+            floor = 1_600_000
+            ceiling = 3_500_000
+        case 720...959:
+            floor = 1_200_000
+            ceiling = 2_500_000
+        default:
+            floor = 850_000
+            ceiling = 1_500_000
+        }
+
+        guard originalBitrate > 0 else {
+            return floor
+        }
+
+        let originalPixels = max(originalWidth * originalHeight, 1)
+        let targetPixels = max(targetWidth * targetHeight, 1)
+        let pixelRatio = Double(targetPixels) / Double(originalPixels)
+        let safeOriginalFrameRate = max(originalFrameRate, 1)
+        let frameRateRatio = Double(targetFrameRate) / Double(safeOriginalFrameRate)
+        let scaledBitrate = Int((Double(originalBitrate) * pixelRatio * max(frameRateRatio, 0.85)).rounded())
+        let sourceCap = max(Int((Double(originalBitrate) * 0.95).rounded()), floor)
+        return min(max(scaledBitrate, floor), min(ceiling, sourceCap))
+    }
+
+    func createCompressionProfile(track: AVAssetTrack, maxSize: CGFloat, requestedBitrate: Int?) -> CompressionProfile {
+        let videoSize = track.naturalSize.applying(track.preferredTransform)
+        let actualWidth = abs(videoSize.width)
+        let actualHeight = abs(videoSize.height)
+        let dimensions = scaledDimensions(width: actualWidth, height: actualHeight, maxSize: maxSize)
+        let frameRate = normalizeFrameRate(for: track)
+        let sourceFrameRate = Int(track.nominalFrameRate.rounded())
+        let bitrate = requestedBitrate ?? estimateBitrate(
+            originalWidth: normalizeDimension(actualWidth),
+            originalHeight: normalizeDimension(actualHeight),
+            originalBitrate: Int(abs(track.estimatedDataRate.rounded())),
+            originalFrameRate: sourceFrameRate,
+            targetWidth: dimensions.width,
+            targetHeight: dimensions.height,
+            targetFrameRate: frameRate
+        )
+
+        return CompressionProfile(
+            width: dimensions.width,
+            height: dimensions.height,
+            bitrate: max(bitrate, 1),
+            frameRate: frameRate
+        )
+    }
 
     func autoCompressionHelper(url: URL, options: [String: Any], onProgress: @escaping (Float) -> Void,  onCompletion: @escaping (URL) -> Void, onFailure: @escaping (Error) -> Void){
-        let maxSize:Float = options["maxSize"] as! Float;
+        let maxSize = (options["maxSize"] as? NSNumber)?.floatValue ?? 640
         let uuid:String = options["uuid"] as! String
         let progressDivider=options["progressDivider"] as? Int ?? 0
 
         let asset = AVAsset(url: url)
-        guard asset.tracks.count >= 1 else {
+        guard let track = getVideoTrack(asset: asset) else {
           let error = CompressionError(message: "Invalid video URL, no track found")
           onFailure(error)
           return
         }
-        let track = getVideoTrack(asset: asset);
+        let profile = createCompressionProfile(track: track, maxSize: CGFloat(maxSize), requestedBitrate: nil)
 
-        let videoSize = track.naturalSize.applying(track.preferredTransform);
-        let actualWidth = Float(abs(videoSize.width))
-        let actualHeight = Float(abs(videoSize.height))
-
-        let bitrate=Float(abs(track.estimatedDataRate));
-        let scale:Float = actualWidth > actualHeight ? (Float(maxSize) / actualWidth) : (Float(maxSize) / actualHeight);
-        let resultWidth:Float = round(actualWidth * min(scale, 1) / 2) * 2;
-        let resultHeight:Float = round(actualHeight * min(scale, 1) / 2) * 2;
-
-        let videoBitRate:Int = self.makeVideoBitrate(
-            originalHeight: Int(actualHeight), originalWidth: Int(actualWidth),
-            originalBitrate: Int(bitrate),
-            height: Int(resultHeight), width: Int(resultWidth)
-            );
-
-        exportVideoHelper(url: url, asset: asset, bitRate: videoBitRate, resultWidth: resultWidth, resultHeight: resultHeight,uuid: uuid,progressDivider: progressDivider) { progress in
+        exportVideoHelper(url: url, asset: asset, bitRate: profile.bitrate, frameRate: profile.frameRate, resultWidth: profile.width, resultHeight: profile.height,uuid: uuid,progressDivider: progressDivider) { progress in
             onProgress(progress)
         } onCompletion: { outputURL in
             onCompletion(outputURL)
@@ -205,36 +278,18 @@ class VideoCompressor {
 
     func manualCompressionHelper(url: URL, options: [String: Any], onProgress: @escaping (Float) -> Void,  onCompletion: @escaping (URL) -> Void, onFailure: @escaping (Error) -> Void){
         let uuid:String = options["uuid"] as! String
-        var bitRate = (options["bitrate"] as? NSNumber)?.floatValue;
+        let bitRate = (options["bitrate"] as? NSNumber)?.intValue
         let progressDivider=options["progressDivider"] as? Int ?? 0
         let asset = AVAsset(url: url)
-        guard asset.tracks.count >= 1 else {
+        guard let track = getVideoTrack(asset: asset) else {
           let error = CompressionError(message: "Invalid video URL, no track found")
           onFailure(error)
           return
         }
-        let track = getVideoTrack(asset: asset);
+        let maxSize = (options["maxSize"] as? NSNumber)?.floatValue ?? Float(1920)
+        let profile = createCompressionProfile(track: track, maxSize: CGFloat(maxSize), requestedBitrate: bitRate)
 
-        let videoSize = track.naturalSize.applying(track.preferredTransform);
-        var width = Float(abs(videoSize.width))
-        var height = Float(abs(videoSize.height))
-        let isPortrait = height > width
-        let maxSize = (options["maxSize"] as! Float?) ?? Float(1920);
-        if(isPortrait && height > maxSize){
-          width = (maxSize/height)*width
-          height = maxSize
-        }else if(width > maxSize){
-          height = (maxSize/width)*height
-          width = maxSize
-        }
-        else
-        {
-            bitRate=bitRate ?? Float(abs(track.estimatedDataRate))*0.8
-        }
-
-        let videoBitRate = bitRate ?? height*width*1.5
-
-        exportVideoHelper(url: url, asset: asset, bitRate: Int(videoBitRate), resultWidth: width, resultHeight: height,uuid: uuid,progressDivider: progressDivider) { progress in
+        exportVideoHelper(url: url, asset: asset, bitRate: profile.bitrate, frameRate: profile.frameRate, resultWidth: profile.width, resultHeight: profile.height,uuid: uuid,progressDivider: progressDivider) { progress in
             onProgress(progress)
         } onCompletion: { outputURL in
             onCompletion(outputURL)
@@ -243,7 +298,7 @@ class VideoCompressor {
         }
       }
 
-    func exportVideoHelper(url: URL,asset: AVAsset, bitRate: Int,resultWidth:Float,resultHeight:Float,uuid:String,progressDivider: Int, onProgress: @escaping (Float) -> Void,  onCompletion: @escaping (URL) -> Void, onFailure: @escaping (Error) -> Void){
+    func exportVideoHelper(url: URL,asset: AVAsset, bitRate: Int, frameRate: Int, resultWidth:Int,resultHeight:Int,uuid:String,progressDivider: Int, onProgress: @escaping (Float) -> Void,  onCompletion: @escaping (URL) -> Void, onFailure: @escaping (Error) -> Void){
         var currentVideoCompression:Int=0
 
         var tmpURL = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
@@ -258,13 +313,15 @@ class VideoCompressor {
         let compressionDict: [String: Any] = [
           AVVideoAverageBitRateKey: bitRate,
           AVVideoProfileLevelKey: AVVideoProfileLevelH264HighAutoLevel,
+          AVVideoExpectedSourceFrameRateKey: frameRate,
+          AVVideoAverageNonDroppableFrameRateKey: frameRate,
         ]
         exporter.optimizeForNetworkUse = true;
         exporter.videoOutputConfiguration = [
           AVVideoCodecKey: AVVideoCodecType.h264,
           AVVideoWidthKey:  resultWidth,
           AVVideoHeightKey:  resultHeight,
-          AVVideoScalingModeKey: AVVideoScalingModeResizeAspectFill,
+          AVVideoScalingModeKey: AVVideoScalingModeResizeAspect,
           AVVideoCompressionPropertiesKey: compressionDict
         ]
         exporter.audioOutputConfiguration = [
@@ -284,6 +341,7 @@ class VideoCompressor {
             }
         }, completionHandler: { result in
             currentVideoCompression=0;
+            self.compressorExports[uuid] = nil
             switch exporter.status {
             case .completed:
               onCompletion(exporter.outputURL!)
@@ -293,14 +351,17 @@ class VideoCompressor {
                 onFailure(error)
                 break
             default:
-                onCompletion(url)
+                onFailure(exporter.error ?? CompressionError(message: "Compression failed"))
               break
           }
         })
     }
 
-    func getVideoTrack(asset: AVAsset) -> AVAssetTrack {
+    func getVideoTrack(asset: AVAsset) -> AVAssetTrack? {
         let tracks = asset.tracks(withMediaType: AVMediaType.video)
+        guard tracks.count >= 1 else {
+            return nil
+        }
         return tracks[0];
         }
 

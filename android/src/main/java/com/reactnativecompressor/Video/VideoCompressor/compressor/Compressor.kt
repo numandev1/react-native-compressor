@@ -54,6 +54,7 @@ object Compressor {
     outputWidth: Int,
     outputHeight: Int,
     outputBitrate: Int,
+    outputFrameRate: Int,
     listener: CompressionProgressListener,
   ): Result = withContext(Dispatchers.Default) {
 
@@ -123,6 +124,7 @@ object Compressor {
       newHeight!!,
       destination,
       newBitrate,
+      outputFrameRate,
       streamableFile,
       false,
       extractor,
@@ -140,6 +142,7 @@ object Compressor {
     newHeight: Int,
     destination: String,
     newBitrate: Int,
+    outputFrameRate: Int,
     streamableFile: String?,
     disableAudio: Boolean,
     extractor: MediaExtractor,
@@ -178,6 +181,7 @@ object Compressor {
           inputFormat,
           outputFormat,
           newBitrate,
+          outputFrameRate,
         )
 
         val decoder: MediaCodec
@@ -374,7 +378,7 @@ object Compressor {
                         }
           }
 
-        } catch (exception: Exception) {
+        } catch (exception: Throwable) {
           printException(exception)
           return Result(id, success = false, failureMessage = exception.message)
         }
@@ -400,12 +404,14 @@ object Compressor {
         extractor.release()
         try {
           mediaMuxer.finishMovie()
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
           printException(e)
+          return Result(id, success = false, failureMessage = e.message ?: "Failed to finalize compressed video")
         }
 
-      } catch (exception: Exception) {
+      } catch (exception: Throwable) {
         printException(exception)
+        return Result(id, success = false, failureMessage = exception.message)
       }
 
       var resultFile = cacheFile
@@ -422,6 +428,13 @@ object Compressor {
         } catch (e: Exception) {
           printException(e)
         }
+      }
+      if (!resultFile.exists() || resultFile.length() <= 32) {
+        return Result(
+          id,
+          success = false,
+          failureMessage = "Compressed video output is invalid"
+        )
       }
       return Result(
         id,

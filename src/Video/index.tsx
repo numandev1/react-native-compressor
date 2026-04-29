@@ -15,6 +15,11 @@ type videoCompresssionType = {
    * Default:0, we uses it when we use downloadProgress/onProgress
    */
   progressDivider?: number;
+  /***
+   * When true, the audio track is removed entirely from the output video.
+   * Default: false
+   */
+  stripAudio?: boolean;
 };
 
 export type VideoCompressorType = {
@@ -63,6 +68,7 @@ const Video: VideoCompressorType = {
         maxSize?: number;
         minimumFileSizeForCompress?: number;
         progressDivider?: number;
+        stripAudio?: boolean;
       } = { uuid };
       if (options?.progressDivider) modifiedOptions.progressDivider = options?.progressDivider;
       if (options?.bitrate) modifiedOptions.bitrate = options?.bitrate;
@@ -78,6 +84,9 @@ const Video: VideoCompressorType = {
       }
       if (options?.minimumFileSizeForCompress !== undefined) {
         modifiedOptions.minimumFileSizeForCompress = options?.minimumFileSizeForCompress;
+      }
+      if (options?.stripAudio) {
+        modifiedOptions.stripAudio = options.stripAudio;
       }
       if (options?.getCancellationId) {
         options?.getCancellationId(uuid);

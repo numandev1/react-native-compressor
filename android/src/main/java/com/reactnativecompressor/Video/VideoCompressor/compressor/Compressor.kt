@@ -55,6 +55,7 @@ object Compressor {
     outputHeight: Int,
     outputBitrate: Int,
     outputFrameRate: Int,
+    disableAudio: Boolean = false,
     listener: CompressionProgressListener,
   ): Result = withContext(Dispatchers.Default) {
 
@@ -126,7 +127,7 @@ object Compressor {
       newBitrate,
       outputFrameRate,
       streamableFile,
-      false,
+      disableAudio,
       extractor,
       listener,
       duration,

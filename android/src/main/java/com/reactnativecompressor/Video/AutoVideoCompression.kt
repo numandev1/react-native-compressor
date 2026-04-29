@@ -45,6 +45,7 @@ object AutoVideoCompression {
                     profile.frameRate,
                     options.uuid!!,
                     options.progressDivider!!,
+                    options.stripAudio,
                     promise,
                     reactContext,
                 )

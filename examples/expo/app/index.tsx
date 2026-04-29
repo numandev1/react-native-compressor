@@ -6,6 +6,7 @@ const SCREENS = [
   { key: 'image', title: 'Image Screen' },
   { key: 'audio', title: 'Audio Screen' },
   { key: 'video', title: 'Video Screen' },
+  { key: 'strip-audio', title: 'Strip Audio Screen' },
   { key: 'util', title: 'Util Screen' },
 ] as const;
 

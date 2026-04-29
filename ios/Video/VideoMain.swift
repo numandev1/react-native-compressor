@@ -236,7 +236,7 @@ class VideoCompressor {
         let dimensions = scaledDimensions(width: actualWidth, height: actualHeight, maxSize: maxSize)
         let frameRate = normalizeFrameRate(for: track)
         let sourceFrameRate = Int(track.nominalFrameRate.rounded())
-        let bitrate = requestedBitrate ?? estimateBitrate(
+        let bitrate = (requestedBitrate != nil && requestedBitrate! > 0) ? requestedBitrate! : estimateBitrate(
             originalWidth: normalizeDimension(actualWidth),
             originalHeight: normalizeDimension(actualHeight),
             originalBitrate: Int(abs(track.estimatedDataRate.rounded())),

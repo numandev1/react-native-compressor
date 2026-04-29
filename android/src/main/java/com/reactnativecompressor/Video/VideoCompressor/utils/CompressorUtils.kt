@@ -70,8 +70,9 @@ object CompressorUtils {
     inputFormat: MediaFormat,
     outputFormat: MediaFormat,
     newBitrate: Int,
+    targetFrameRate: Int,
   ) {
-    val newFrameRate = getFrameRate(inputFormat)
+    val newFrameRate = targetFrameRate.coerceAtLeast(1)
     val iFrameInterval = getIFrameIntervalRate(inputFormat)
     outputFormat.apply {
       setInteger(
@@ -105,12 +106,6 @@ object CompressorUtils {
         "videoFormat: $this"
       )
     }
-  }
-
-  // Get the frame rate from the input format or use a default value
-  private fun getFrameRate(format: MediaFormat): Int {
-    return if (format.containsKey(MediaFormat.KEY_FRAME_RATE)) format.getInteger(MediaFormat.KEY_FRAME_RATE)
-    else 30
   }
 
   // Get the I-frame (keyframe) interval from the input format or use a default value
@@ -172,7 +167,7 @@ object CompressorUtils {
   /**
    * Log an exception with a meaningful message.
    */
-  fun printException(exception: Exception) {
+  fun printException(exception: Throwable) {
     var message = "An error has occurred!"
     exception.localizedMessage?.let {
       message = it

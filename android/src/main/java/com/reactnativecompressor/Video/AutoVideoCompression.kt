@@ -10,7 +10,6 @@ import java.io.File
 
 object AutoVideoCompression {
     fun createCompressionSettings(fileUrl: String?, options: VideoCompressorHelper, promise: Promise, reactContext: ReactApplicationContext?) {
-        val maxSize = options.maxSize
         val minimumFileSizeForCompress = options.minimumFileSizeForCompress
         try {
             val uri = Uri.parse(fileUrl)
@@ -22,42 +21,39 @@ object AutoVideoCompression {
             val sizeInMb = sizeInBytes / (1024 * 1024)
             if (sizeInMb > minimumFileSizeForCompress) {
                 val destinationPath = generateCacheFilePath("mp4", reactContext!!)
-                val actualHeight = metaRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)!!.toInt()
-                val actualWidth = metaRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)!!.toInt()
-                val bitrate = metaRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_BITRATE)!!.toInt()
-                val scale = if (actualWidth > actualHeight) maxSize / actualWidth else maxSize / actualHeight
-                val resultWidth = Math.round(actualWidth * Math.min(scale, 1f) / 2) * 2
-                val resultHeight = Math.round(actualHeight * Math.min(scale, 1f) / 2) * 2
-                val videoBitRate = makeVideoBitrate(
-                  actualHeight, actualWidth,
-                  bitrate,
-                  resultHeight, resultWidth
-                ).toFloat()
-                compressVideo(srcPath!!, destinationPath, resultWidth, resultHeight, videoBitRate, options.uuid!!,options.progressDivider!!, options.stripAudio, promise, reactContext)
+                val actualHeight = VideoCompressorHelper.getMetadataInt(metaRetriever, MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)
+                val actualWidth = VideoCompressorHelper.getMetadataInt(metaRetriever, MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)
+                val bitrate = VideoCompressorHelper.getMetadataInt(metaRetriever, MediaMetadataRetriever.METADATA_KEY_BITRATE)
+                val frameRate = VideoCompressorHelper.getMetadataInt(metaRetriever, MediaMetadataRetriever.METADATA_KEY_CAPTURE_FRAMERATE)
+                if (actualHeight <= 0 || actualWidth <= 0) {
+                    promise.reject(Throwable("Failed to read the input video dimensions"))
+                    return
+                }
+                val profile = VideoCompressionProfileFactory.createAuto(
+                    sourceWidth = actualWidth,
+                    sourceHeight = actualHeight,
+                    sourceBitrate = bitrate,
+                    sourceFrameRate = frameRate,
+                    maxSize = options.maxSize,
+                )
+                compressVideo(
+                    srcPath!!,
+                    destinationPath,
+                    profile.width,
+                    profile.height,
+                    profile.bitrate.toFloat(),
+                    profile.frameRate,
+                    options.uuid!!,
+                    options.progressDivider!!,
+                    options.stripAudio,
+                    promise,
+                    reactContext,
+                )
             } else {
                 promise.resolve(fileUrl)
             }
         } catch (ex: Exception) {
             promise.reject(ex)
         }
-    }
-
-    fun makeVideoBitrate(originalHeight: Int, originalWidth: Int, originalBitrate: Int, height: Int, width: Int): Int {
-        val compressFactor = 0.8f
-        val minCompressFactor = 0.8f
-        val maxBitrate = 1669000
-        var remeasuredBitrate = (originalBitrate / Math.min(originalHeight / height.toFloat(), originalWidth / width.toFloat())).toInt()
-        remeasuredBitrate = (remeasuredBitrate * compressFactor).toInt()
-        val minBitrate = (getVideoBitrateWithFactor(minCompressFactor) / (1280f * 720f / (width * height))).toInt()
-        if (originalBitrate < minBitrate) {
-            return remeasuredBitrate
-        }
-        return if (remeasuredBitrate > maxBitrate) {
-            maxBitrate
-        } else Math.max(remeasuredBitrate, minBitrate)
-    }
-
-    private fun getVideoBitrateWithFactor(f: Float): Int {
-        return (f * 2000f * 1000f * 1.13f).toInt()
     }
 }

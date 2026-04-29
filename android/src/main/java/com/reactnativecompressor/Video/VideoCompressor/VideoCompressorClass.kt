@@ -24,6 +24,7 @@ class VideoCompressorClass(private val context: ReactApplicationContext) {
     outputWidth: Int,
     outputHeight: Int,
     bitrate: Int,
+    frameRate: Int,
     listener: CompressionListener,
   ) {
     val uris = mutableListOf<Uri>()
@@ -36,6 +37,7 @@ class VideoCompressorClass(private val context: ReactApplicationContext) {
       outputWidth,
       outputHeight,
       bitrate,
+      frameRate,
       listener,
       destPath
     )
@@ -52,6 +54,7 @@ class VideoCompressorClass(private val context: ReactApplicationContext) {
     outputWidth: Int,
     outputHeight: Int,
     bitrate: Int,
+    frameRate: Int,
     listener: CompressionListener,
     destPath: String
   ) {
@@ -74,6 +77,7 @@ class VideoCompressorClass(private val context: ReactApplicationContext) {
             outputWidth,
             outputHeight,
             bitrate,
+            frameRate,
             listener,
           )
 
@@ -96,6 +100,7 @@ class VideoCompressorClass(private val context: ReactApplicationContext) {
     outputWidth: Int,
     outputHeight: Int,
     bitrate: Int,
+    frameRate: Int,
     listener: CompressionListener,
   ): Result = withContext(Dispatchers.Default) {
     return@withContext compressVideo(
@@ -107,6 +112,7 @@ class VideoCompressorClass(private val context: ReactApplicationContext) {
       outputWidth,
       outputHeight,
       bitrate,
+      frameRate,
       object : CompressionProgressListener {
         override fun onProgressChanged(index: Int, percent: Float) {
           listener.onProgress(index, percent)

@@ -29,12 +29,12 @@ object Utils {
     }
 
     @JvmStatic
-    fun compressVideo(srcPath: String, destinationPath: String, resultWidth: Int, resultHeight: Int, videoBitRate: Float, uuid: String,progressDivider:Int, promise: Promise, reactContext: ReactApplicationContext) {
+    fun compressVideo(srcPath: String, destinationPath: String, resultWidth: Int, resultHeight: Int, videoBitRate: Float, frameRate: Int, uuid: String,progressDivider:Int, promise: Promise, reactContext: ReactApplicationContext) {
       val currentVideoCompression = intArrayOf(0)
       val videoCompressorClass: VideoCompressorClass? = VideoCompressorClass(reactContext);
       compressorExports[uuid] = videoCompressorClass
       videoCompressorClass?.start(
-        srcPath, destinationPath, resultWidth, resultHeight, videoBitRate.toInt(),
+        srcPath, destinationPath, resultWidth, resultHeight, videoBitRate.toInt(), frameRate,
         listener = object : CompressionListener {
           override fun onProgress(index: Int, percent: Float) {
             if (percent <= 100) {

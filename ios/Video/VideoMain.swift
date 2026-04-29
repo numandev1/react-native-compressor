@@ -347,18 +347,22 @@ class VideoCompressor {
         }, completionHandler: { result in
             currentVideoCompression=0;
             self.compressorExports[uuid] = nil
-            switch exporter.status {
-            case .completed:
-              onCompletion(exporter.outputURL!)
+            switch result {
+            case .success:
+              if let outputURL = exporter.outputURL {
+                onCompletion(outputURL)
+              } else {
+                onFailure(CompressionError(message: "Compression succeeded but output URL is unavailable"))
+              }
               break
-            case .cancelled:
-                let error = CompressionError(message: "Compression has canncelled")
+            case .failure(let error):
+              if let nexterError = error as? NextLevelSessionExporterError, case .cancelled = nexterError {
+                onFailure(CompressionError(message: "Compression has cancelled"))
+              } else {
                 onFailure(error)
-                break
-            default:
-                onFailure(exporter.error ?? CompressionError(message: "Compression failed"))
+              }
               break
-          }
+            }
         })
     }
 
@@ -373,58 +377,54 @@ class VideoCompressor {
 
 
     func getVideoMetaData(_ filePath: String, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
-        do {
-            VideoCompressor.getAbsoluteVideoPath(filePath, options: [:]) { absoluteImagePath in
-                if absoluteImagePath.hasPrefix("file://") {
+        VideoCompressor.getAbsoluteVideoPath(filePath, options: [:]) { absoluteImagePath in
+            if absoluteImagePath.hasPrefix("file://") {
 
-                    let absoluteImagePath = URL(string: absoluteImagePath)!.path
-                    let fileManager = FileManager.default
-                    var isDir: ObjCBool = false
+                let absoluteImagePath = URL(string: absoluteImagePath)!.path
+                let fileManager = FileManager.default
+                var isDir: ObjCBool = false
 
-                    if !fileManager.fileExists(atPath: absoluteImagePath, isDirectory: &isDir) || isDir.boolValue {
-                        let err = NSError(domain: "file not found", code: -15, userInfo: nil)
-                        reject(String(err.code), err.localizedDescription, err)
-                        return
-                    }
+                if !fileManager.fileExists(atPath: absoluteImagePath, isDirectory: &isDir) || isDir.boolValue {
+                    let err = NSError(domain: "file not found", code: -15, userInfo: nil)
+                    reject(String(err.code), err.localizedDescription, err)
+                    return
+                }
 
-                    let attrs = try? fileManager.attributesOfItem(atPath: absoluteImagePath)
-                    if let fileSize = attrs?[FileAttributeKey.size] as? UInt64 {
-                        let fileSizeString = fileSize
+                let attrs = try? fileManager.attributesOfItem(atPath: absoluteImagePath)
+                if let fileSize = attrs?[FileAttributeKey.size] as? UInt64 {
+                    let fileSizeString = fileSize
 
-                        var result: [String: Any] = [:]
-                        let assetOptions: [String: Any] = [AVURLAssetPreferPreciseDurationAndTimingKey: true]
-                        let asset = AVURLAsset(url: URL(fileURLWithPath: absoluteImagePath), options: assetOptions)
-                        if let avAsset = asset.tracks(withMediaType: .video).first {
-                            let size = avAsset.naturalSize
-                            let _extension = (absoluteImagePath as NSString).pathExtension
-                            let time = asset.duration
-                            let seconds = Double(time.value) / Double(time.timescale)
+                    var result: [String: Any] = [:]
+                    let assetOptions: [String: Any] = [AVURLAssetPreferPreciseDurationAndTimingKey: true]
+                    let asset = AVURLAsset(url: URL(fileURLWithPath: absoluteImagePath), options: assetOptions)
+                    if let avAsset = asset.tracks(withMediaType: .video).first {
+                        let size = avAsset.naturalSize
+                        let _extension = (absoluteImagePath as NSString).pathExtension
+                        let time = asset.duration
+                        let seconds = Double(time.value) / Double(time.timescale)
 
-                            result["width"] = size.width
-                            result["height"] = size.height
-                            result["extension"] = _extension
-                            result["size"] = fileSizeString
-                            result["duration"] = seconds
+                        result["width"] = size.width
+                        result["height"] = size.height
+                        result["extension"] = _extension
+                        result["size"] = fileSizeString
+                        result["duration"] = seconds
 
-                            var commonMetadata: [AVMetadataItem] = []
-                            for key in self.metadatas {
-                                let items = AVMetadataItem.metadataItems(from: asset.commonMetadata, withKey: key, keySpace: AVMetadataKeySpace.common)
-                                commonMetadata.append(contentsOf: items)
-                            }
-
-                            for item in commonMetadata {
-                                if let value = item.value {
-                                    result[item.commonKey!.rawValue] = value
-                                }
-                            }
-
-                            resolve(result)
+                        var commonMetadata: [AVMetadataItem] = []
+                        for key in self.metadatas {
+                            let items = AVMetadataItem.metadataItems(from: asset.commonMetadata, withKey: key, keySpace: AVMetadataKeySpace.common)
+                            commonMetadata.append(contentsOf: items)
                         }
+
+                        for item in commonMetadata {
+                            if let value = item.value {
+                                result[item.commonKey!.rawValue] = value
+                            }
+                        }
+
+                        resolve(result)
                     }
                 }
             }
-        } catch {
-            reject(error.localizedDescription, error.localizedDescription, nil)
         }
     }
 

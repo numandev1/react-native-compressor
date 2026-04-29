@@ -5,6 +5,7 @@ import ImageScreen from './Image';
 import AudioScreen from './Audio';
 import VideoScreen from './Video';
 import UtilScreen from './Util';
+import StripAudioScreen from './StripAudio';
 export type Screens = Record<string, { screen: ComponentType; title?: string }>;
 
 export const SCREENS: Screens = {
@@ -19,6 +20,10 @@ export const SCREENS: Screens = {
   video_screen: {
     screen: VideoScreen,
     title: 'Video Screen',
+  },
+  strip_audio_screen: {
+    screen: StripAudioScreen,
+    title: 'Strip Audio Screen',
   },
   util_screen: {
     screen: UtilScreen,

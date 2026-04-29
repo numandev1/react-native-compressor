@@ -70,6 +70,9 @@ open class NextLevelSessionExporter: NSObject {
     
     /// Audio output configuration dictionary, using keys defined in `<AVFoundation/AVAudioSettings.h>`
     public var audioOutputConfiguration: [String : Any]?
+
+    /// When true, audio tracks are excluded from the export entirely.
+    public var stripAudio: Bool = false
     
     /// Export session status state.
     public var status: AVAssetExportSession.Status {
@@ -247,8 +250,10 @@ extension NextLevelSessionExporter {
         }
         
         self.setupVideoOutput(withAsset: asset)
-        self.setupAudioOutput(withAsset: asset)
-        self.setupAudioInput()
+        if !self.stripAudio {
+            self.setupAudioOutput(withAsset: asset)
+            self.setupAudioInput()
+        }
         
         // export
         

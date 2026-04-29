@@ -352,7 +352,7 @@ class VideoCompressor {
               break
             case .failure(let error):
               if case NextLevelSessionExporterError.cancelled = error {
-                let error = CompressionError(message: "Compression has canncelled")
+                let error = CompressionError(message: "Compression has cancelled")
                 onFailure(error)
               } else {
                 onFailure(error)

@@ -347,7 +347,7 @@ class VideoCompressor {
               if let outputURL = exporter.outputURL {
                 onCompletion(outputURL)
               } else {
-                onFailure(CompressionError(message: "Compression failed"))
+                onFailure(CompressionError(message: "Compression succeeded but output URL is unavailable"))
               }
               break
             case .failure(let error):

@@ -2,11 +2,11 @@ pre-commit:
   parallel: true
   commands:
     lint:
-      files: git diff --name-only @{push}
+      files: git diff --name-only --cached --diff-filter=ACMR
       glob: "*.{js,ts,jsx,tsx}"
       run: npx eslint {files}
     types:
-      files: git diff --name-only @{push}
+      files: git diff --name-only --cached --diff-filter=ACMR
       glob: "*.{js,ts, jsx, tsx}"
       run: npx tsc --noEmit
 commit-msg:

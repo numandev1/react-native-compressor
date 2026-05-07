@@ -80,7 +80,7 @@ class CreateVideoThumbnailClass(private val reactContext: ReactApplicationContex
 
             val map = Arguments.createMap()
             map.putString("path", "file://" + file.absolutePath)
-            map.putDouble("size", file.length().toDouble())
+            map.putDouble("size", image.byteCount.toDouble())
             map.putString("mime", "image/$format")
             map.putDouble("width", image.width.toDouble())
             map.putDouble("height", image.height.toDouble())
@@ -135,7 +135,7 @@ class CreateVideoThumbnailClass(private val reactContext: ReactApplicationContex
         }
 
         private fun getBitmapAtTime(context: Context?, filePath: String?, time: Int, headers: Map<String, String>): Bitmap {
-            check(!filePath.isNullOrEmpty()) { "Video file path is null or empty" }
+            check(!filePath.isNullOrEmpty()) { "Video file path cannot be null or empty" }
             val retriever = MediaMetadataRetriever()
             try {
                 if (URLUtil.isFileUrl(filePath)) {

@@ -49,7 +49,7 @@ object Compressor {
   var isRunning = true
 
   private fun getStreamableOutputFile(cacheFile: File): File =
-    File(cacheFile.parentFile, "${cacheFile.nameWithoutExtension}-streamable.${cacheFile.extension.ifEmpty { "mp4" }}")
+    File(cacheFile.parentFile ?: File("."), "${cacheFile.nameWithoutExtension}-streamable.${cacheFile.extension.ifEmpty { "mp4" }}")
 
   suspend fun compressVideo(
     index: Int,

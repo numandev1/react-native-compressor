@@ -57,20 +57,18 @@ class CreateVideoThumbnail: NSObject {
       let asset = AVURLAsset(url: vidURL, options: ["AVURLAssetHTTPHeaderFieldsKey": headers])
       generateThumbImage(asset: asset, atTime: 0, completion: { thumbnail in
         // Generate thumbnail
-        let data: Data? = thumbnail.jpegData(compressionQuality: quality)
-
-        if let data = data {
-          try? data.write(to: URL(fileURLWithPath: fullPath))
-          resolve([
-            "path": fullPath,
-            "size": Float(data.count),
-            "mime": "image/\(format)",
-            "width": Float(thumbnail.size.width),
-            "height": Float(thumbnail.size.height)
-          ] as [String : Any])
-        } else {
+        guard let data = thumbnail.jpegData(compressionQuality: quality) else {
           reject("CreateVideoThumbnail", "Unable to encode video thumbnail", nil)
+          return
         }
+        try? data.write(to: URL(fileURLWithPath: fullPath))
+        resolve([
+          "path": fullPath,
+          "size": Float(data.count),
+          "mime": "image/\(format)",
+          "width": Float(thumbnail.size.width),
+          "height": Float(thumbnail.size.height)
+        ] as [String : Any])
       }, failure: { error in
           reject(error._domain, error.localizedDescription, nil)
       })

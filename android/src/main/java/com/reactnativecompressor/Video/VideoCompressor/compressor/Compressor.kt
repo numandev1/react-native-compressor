@@ -424,6 +424,7 @@ object Compressor {
       var resultFile = cacheFile
 
       try {
+        // Keep default outputs browser-compatible by moving the MP4 metadata before media data.
         val targetFile = streamableFile?.let { File(it) } ?: getStreamableOutputFile(cacheFile)
         val outputFile = if (targetFile.absolutePath == cacheFile.absolutePath) {
           getStreamableOutputFile(cacheFile)

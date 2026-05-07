@@ -62,6 +62,7 @@ class CreateVideoThumbnailClass(private val reactContext: ReactApplicationContex
         }
 
         val headers: Map<String, String> = if (options.hasKey("headers")) options.getMap("headers")!!.toHashMap() as Map<String, String> else HashMap<String, String>()
+        val quality = if (options.hasKey("quality")) (options.getDouble("quality") * 100).toInt().coerceIn(0, 100) else DEFAULT_THUMBNAIL_QUALITY
         val fileName = if (TextUtils.isEmpty(cacheName)) "thumb-" + UUID.randomUUID().toString() else "$cacheName.$format"
         var fOut: OutputStream? = null
 
@@ -73,7 +74,7 @@ class CreateVideoThumbnailClass(private val reactContext: ReactApplicationContex
             fOut = FileOutputStream(file)
 
             // 100 means no compression, the lower you go, the stronger the compression
-            image.compress(Bitmap.CompressFormat.JPEG, 90, fOut)
+            image.compress(Bitmap.CompressFormat.JPEG, quality, fOut)
             fOut.flush()
             fOut.close()
 
@@ -96,6 +97,8 @@ class CreateVideoThumbnailClass(private val reactContext: ReactApplicationContex
     }
 
     companion object {
+        private const val DEFAULT_THUMBNAIL_QUALITY = 90
+
         // delete previously added files one by one untill requred space is available
         fun clearCache(cacheDir: String?,promise:Promise, reactContext: ReactApplicationContext) {
           val cacheDirectory=cacheDir?.takeIf { it.isNotEmpty() } ?:"/thumbnails"
@@ -134,29 +137,47 @@ class CreateVideoThumbnailClass(private val reactContext: ReactApplicationContex
         }
 
         private fun getBitmapAtTime(context: Context?, filePath: String?, time: Int, headers: Map<String, String>): Bitmap {
+            check(!filePath.isNullOrEmpty()) { "Video file path cannot be null or empty" }
             val retriever = MediaMetadataRetriever()
-            if (URLUtil.isFileUrl(filePath)) {
-                val decodedPath: String?
-                decodedPath = try {
-                    URLDecoder.decode(filePath, "UTF-8")
-                } catch (e: UnsupportedEncodingException) {
-                    filePath
-                }
-                retriever.setDataSource(decodedPath!!.replace("file://", ""))
-            } else if (filePath!!.contains("content://")) {
-                retriever.setDataSource(context, Uri.parse(filePath))
-            } else {
-                check(Build.VERSION.SDK_INT >= 14) { "Remote videos aren't supported on sdk_version < 14" }
-                retriever.setDataSource(filePath, headers)
-            }
-            val image = retriever.getFrameAtTime((time * 1000).toLong(), MediaMetadataRetriever.OPTION_CLOSEST_SYNC)
             try {
-                retriever.release()
-            } catch (e: IOException) {
-                throw RuntimeException(e)
+                if (URLUtil.isFileUrl(filePath)) {
+                    val decodedPath: String? = try {
+                        URLDecoder.decode(filePath, "UTF-8")
+                    } catch (e: UnsupportedEncodingException) {
+                        filePath
+                    }
+                    retriever.setDataSource(decodedPath!!.replace("file://", ""))
+                } else if (filePath.contains("content://")) {
+                    retriever.setDataSource(context, Uri.parse(filePath))
+                } else {
+                    check(Build.VERSION.SDK_INT >= 14) { "Remote videos aren't supported on sdk_version < 14" }
+                    retriever.setDataSource(filePath, headers)
+                }
+
+                val requestedTimeUs = (time * 1000).toLong()
+                val frameAttempts = arrayOf(
+                    Pair(requestedTimeUs, MediaMetadataRetriever.OPTION_CLOSEST_SYNC),
+                    Pair(requestedTimeUs, MediaMetadataRetriever.OPTION_CLOSEST),
+                    Pair(1_000_000L, MediaMetadataRetriever.OPTION_CLOSEST_SYNC),
+                )
+                for ((timeUs, option) in frameAttempts) {
+                    val image = try {
+                        retriever.getFrameAtTime(timeUs, option)
+                    } catch (e: RuntimeException) {
+                        null
+                    }
+                    if (image != null) {
+                        return image
+                    }
+                }
+                error("Unable to extract video frame from file")
+            } finally {
+                try {
+                    retriever.release()
+                } catch (e: IOException) {
+                    // Ignore
+                }
             }
-            checkNotNull(image) { "File doesn't exist or not supported" }
-            return image
         }
     }
 }

@@ -167,13 +167,14 @@ class ImageCompressor {
     static func writeImage(_ image: UIImage, output: Int, quality: Float, outputExtension: String, isBase64: Bool, disablePngTransparency: Bool, isEnableAutoCompress: Bool, actualImagePath: String?)-> String {
         var data: Data
         var exception: NSException?
+        let normalizedQuality = CGFloat(min(max(quality, 0), 1))
         
         switch OutputType(rawValue: output)! {
         case .jpg:
-            data = image.jpegData(compressionQuality: CGFloat(quality))!
+            data = image.jpegData(compressionQuality: normalizedQuality)!
         case .png:
             if disablePngTransparency {
-                data = image.jpegData(compressionQuality: CGFloat(quality))!
+                data = image.jpegData(compressionQuality: normalizedQuality)!
                 let compressedImage = UIImage(data: data)
                 data = compressedImage!.pngData()!
             } else {

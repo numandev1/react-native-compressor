@@ -113,16 +113,17 @@ object ImageCompressor {
 
     fun compress(image: Bitmap?, output: ImageCompressorOptions.OutputType, quality: Float,disablePngTransparency:Boolean): ByteArrayOutputStream {
       var stream = ByteArrayOutputStream()
+      val normalizedQuality = Math.round(100 * quality.coerceIn(0f, 1f))
       if (output === ImageCompressorOptions.OutputType.jpg)
       {
-        image!!.compress(CompressFormat.JPEG, Math.round(100 * quality), stream)
+        image!!.compress(CompressFormat.JPEG, normalizedQuality, stream)
       }
       else
       {
         var bitmap = image
         if(disablePngTransparency)
         {
-          image!!.compress(CompressFormat.JPEG, Math.round(100 * quality), stream)
+          image!!.compress(CompressFormat.JPEG, normalizedQuality, stream)
           val byteArray: ByteArray = stream.toByteArray()
           stream=ByteArrayOutputStream()
           bitmap = BitmapFactory.decodeByteArray(byteArray, 0, byteArray.size)

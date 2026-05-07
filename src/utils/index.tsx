@@ -29,6 +29,7 @@ type createVideoThumbnailType = (
   fileUrl: string,
   options?: {
     headers?: { [key: string]: string };
+    quality?: number;
   },
 ) => Promise<{
   path: string;

@@ -48,7 +48,7 @@ object Compressor {
   // Flag to check if compression is running
   var isRunning = true
 
-  private fun createStreamableOutputFile(cacheFile: File): File =
+  private fun getStreamableOutputFile(cacheFile: File): File =
     File(cacheFile.parentFile, "${cacheFile.nameWithoutExtension}-streamable.${cacheFile.extension.ifEmpty { "mp4" }}")
 
   suspend fun compressVideo(
@@ -424,9 +424,9 @@ object Compressor {
       var resultFile = cacheFile
 
       try {
-        val targetFile = streamableFile?.let { File(it) } ?: createStreamableOutputFile(cacheFile)
+        val targetFile = streamableFile?.let { File(it) } ?: getStreamableOutputFile(cacheFile)
         val outputFile = if (targetFile.absolutePath == cacheFile.absolutePath) {
-          createStreamableOutputFile(cacheFile)
+          getStreamableOutputFile(cacheFile)
         } else {
           targetFile
         }

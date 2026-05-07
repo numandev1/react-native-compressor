@@ -50,7 +50,7 @@ class CreateVideoThumbnail: NSObject {
       }
 
       guard let vidURL = vidURL else {
-        reject("Error", "Invalid video URL", nil)
+        reject("CreateVideoThumbnail", "Unable to create a URL from the provided video path", nil)
         return
       }
       let quality = Self.normalizedQuality(options["quality"])
@@ -69,7 +69,7 @@ class CreateVideoThumbnail: NSObject {
             "height": Float(thumbnail.size.height)
           ] as [String : Any])
         } else {
-          reject("Error", "Unable to encode video thumbnail", nil)
+          reject("CreateVideoThumbnail", "Unable to encode video thumbnail", nil)
         }
       }, failure: { error in
           reject(error._domain, error.localizedDescription, nil)

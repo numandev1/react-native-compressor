@@ -157,6 +157,7 @@ class CreateVideoThumbnailClass(private val reactContext: ReactApplicationContex
                     Pair(requestedTimeUs, MediaMetadataRetriever.OPTION_CLOSEST_SYNC),
                     Pair(requestedTimeUs, MediaMetadataRetriever.OPTION_CLOSEST),
                     Pair(1_000_000L, MediaMetadataRetriever.OPTION_CLOSEST_SYNC),
+                    // -1 asks MediaMetadataRetriever for any representative frame.
                     Pair(-1L, MediaMetadataRetriever.OPTION_CLOSEST),
                 )
                 for ((timeUs, option) in frameAttempts) {

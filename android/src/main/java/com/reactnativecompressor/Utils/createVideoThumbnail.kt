@@ -62,7 +62,7 @@ class CreateVideoThumbnailClass(private val reactContext: ReactApplicationContex
         }
 
         val headers: Map<String, String> = if (options.hasKey("headers")) options.getMap("headers")!!.toHashMap() as Map<String, String> else HashMap<String, String>()
-        val quality = if (options.hasKey("quality")) (options.getDouble("quality") * 100).toInt().coerceIn(0, 100) else 90
+        val quality = if (options.hasKey("quality")) (options.getDouble("quality") * 100).toInt().coerceIn(0, 100) else DEFAULT_THUMBNAIL_QUALITY
         val fileName = if (TextUtils.isEmpty(cacheName)) "thumb-" + UUID.randomUUID().toString() else "$cacheName.$format"
         var fOut: OutputStream? = null
 
@@ -97,6 +97,8 @@ class CreateVideoThumbnailClass(private val reactContext: ReactApplicationContex
     }
 
     companion object {
+        private const val DEFAULT_THUMBNAIL_QUALITY = 90
+
         // delete previously added files one by one untill requred space is available
         fun clearCache(cacheDir: String?,promise:Promise, reactContext: ReactApplicationContext) {
           val cacheDirectory=cacheDir?.takeIf { it.isNotEmpty() } ?:"/thumbnails"

@@ -10,6 +10,7 @@ import AVFoundation
 import UIKit
 
 class CreateVideoThumbnail: NSObject {
+  private static let defaultQuality = 0.9
 
     func create(_ fileUrl:String, options: NSDictionary, resolve: @escaping RCTPromiseResolveBlock, rejecter reject: @escaping RCTPromiseRejectBlock) {
     let headers = options["headers"] as? [String: Any] ?? [:]
@@ -104,7 +105,7 @@ class CreateVideoThumbnail: NSObject {
     }
 
   private static func normalizedQuality(_ value: Any?) -> CGFloat {
-    let rawValue = (value as? NSNumber)?.doubleValue ?? 0.9
+    let rawValue = (value as? NSNumber)?.doubleValue ?? defaultQuality
     return CGFloat(min(max(rawValue, 0), 1))
   }
 

@@ -44,12 +44,17 @@ object Compressor {
   private val SUPPORTED_AUDIO_SAMPLE_RATES = setOf(
     8000, 11025, 12000, 16000, 22050, 24000, 32000, 44100, 48000, 64000
   )
+  private const val STREAMABLE_SUFFIX = "-streamable"
+  private const val DEFAULT_OUTPUT_EXTENSION = "mp4"
 
   // Flag to check if compression is running
   var isRunning = true
 
   private fun getStreamableOutputFile(cacheFile: File): File =
-    File(cacheFile.parentFile ?: File("."), "${cacheFile.nameWithoutExtension}-streamable.${cacheFile.extension.ifEmpty { "mp4" }}")
+    File(
+      cacheFile.parentFile ?: File("."),
+      "${cacheFile.nameWithoutExtension}$STREAMABLE_SUFFIX.${cacheFile.extension.ifEmpty { DEFAULT_OUTPUT_EXTENSION }}"
+    )
 
   suspend fun compressVideo(
     index: Int,

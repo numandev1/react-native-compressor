@@ -41,6 +41,9 @@ object Compressor {
   private const val INVALID_BITRATE =
     "The provided bitrate is smaller than what is needed for compression, " +
       "try to set isMinBitRateEnabled to false"
+  private val SUPPORTED_AUDIO_SAMPLE_RATES = setOf(
+    8000, 11025, 12000, 16000, 22050, 24000, 32000, 44100, 48000, 64000
+  )
 
   // Flag to check if compression is running
   var isRunning = true
@@ -417,18 +420,29 @@ object Compressor {
 
       var resultFile = cacheFile
 
-      // Process the result and create a streamable video if requested
-      streamableFile?.let {
-        try {
-          val result = StreamableVideo.start(`in` = cacheFile, out = File(it))
-          resultFile = File(it)
-          if (result && cacheFile.exists()) {
+      try {
+        val targetFile = streamableFile?.let { File(it) } ?: File(
+          cacheFile.parentFile,
+          "${cacheFile.nameWithoutExtension}-streamable.${cacheFile.extension.ifEmpty { "mp4" }}"
+        )
+        val outputFile = if (targetFile.absolutePath == cacheFile.absolutePath) {
+          File(cacheFile.parentFile, "${cacheFile.nameWithoutExtension}-streamable.${cacheFile.extension.ifEmpty { "mp4" }}")
+        } else {
+          targetFile
+        }
+        val result = StreamableVideo.start(`in` = cacheFile, out = outputFile)
+        if (result) {
+          if (streamableFile == null || targetFile.absolutePath == cacheFile.absolutePath) {
+            cacheFile.delete()
+            outputFile.renameTo(cacheFile)
+            resultFile = cacheFile
+          } else {
+            resultFile = outputFile
             cacheFile.delete()
           }
-
-        } catch (e: Exception) {
-          printException(e)
         }
+      } catch (e: Exception) {
+        printException(e)
       }
       if (!resultFile.exists() || resultFile.length() <= 32) {
         return Result(
@@ -464,8 +478,16 @@ object Compressor {
         if (audioIndex >= 0 && !disableAudio) {
             extractor.selectTrack(audioIndex)
             val audioFormat = extractor.getTrackFormat(audioIndex)
+            if (!isSupportedAudioFormat(audioFormat)) {
+                extractor.unselectTrack(audioIndex)
+                return
+            }
             val muxerTrackIndex = mediaMuxer.addTrack(audioFormat, true)
-            var maxBufferSize = audioFormat.getInteger(MediaFormat.KEY_MAX_INPUT_SIZE)
+            var maxBufferSize = if (audioFormat.containsKey(MediaFormat.KEY_MAX_INPUT_SIZE)) {
+                audioFormat.getInteger(MediaFormat.KEY_MAX_INPUT_SIZE)
+            } else {
+                64 * 1024
+            }
 
             if (maxBufferSize <= 0) {
                 maxBufferSize = 64 * 1024
@@ -506,6 +528,16 @@ object Compressor {
             }
             extractor.unselectTrack(audioIndex)
         }
+    }
+
+    private fun isSupportedAudioFormat(audioFormat: MediaFormat): Boolean {
+        if (!audioFormat.containsKey(MediaFormat.KEY_SAMPLE_RATE) ||
+            !audioFormat.containsKey(MediaFormat.KEY_CHANNEL_COUNT)) {
+            return false
+        }
+        val sampleRate = audioFormat.getInteger(MediaFormat.KEY_SAMPLE_RATE)
+        val channelCount = audioFormat.getInteger(MediaFormat.KEY_CHANNEL_COUNT)
+        return channelCount > 0 && sampleRate in SUPPORTED_AUDIO_SAMPLE_RATES
     }
 
   // Function to prepare the video encoder

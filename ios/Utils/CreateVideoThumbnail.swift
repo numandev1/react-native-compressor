@@ -49,10 +49,15 @@ class CreateVideoThumbnail: NSObject {
         vidURL = URL(fileURLWithPath: fileUrl)
       }
 
-      let asset = AVURLAsset(url: vidURL!, options: ["AVURLAssetHTTPHeaderFieldsKey": headers])
+      guard let vidURL = vidURL else {
+        reject("Error", "Invalid video URL", nil)
+        return
+      }
+      let quality = CreateVideoThumbnail.normalizedQuality(options["quality"])
+      let asset = AVURLAsset(url: vidURL, options: ["AVURLAssetHTTPHeaderFieldsKey": headers])
       generateThumbImage(asset: asset, atTime: 0, completion: { thumbnail in
         // Generate thumbnail
-        var data: Data? = thumbnail.jpegData(compressionQuality: 1.0)
+        let data: Data? = thumbnail.jpegData(compressionQuality: quality)
 
         if let data = data {
           try? data.write(to: URL(fileURLWithPath: fullPath))
@@ -63,6 +68,8 @@ class CreateVideoThumbnail: NSObject {
             "width": Float(thumbnail.size.width),
             "height": Float(thumbnail.size.height)
           ] as [String : Any])
+        } else {
+          reject("Error", "Unable to encode video thumbnail", nil)
         }
       }, failure: { error in
           reject(error._domain, error.localizedDescription, nil)
@@ -98,20 +105,33 @@ class CreateVideoThumbnail: NSObject {
         }
     }
 
+  private static func normalizedQuality(_ value: Any?) -> CGFloat {
+    let rawValue = (value as? NSNumber)?.doubleValue ?? 0.9
+    return CGFloat(min(max(rawValue, 0), 1))
+  }
+
   func generateThumbImage(asset: AVURLAsset, atTime timeStamp: Int, completion: @escaping (UIImage) -> Void, failure: @escaping (Error) -> Void) {
     let generator = AVAssetImageGenerator(asset: asset)
     generator.appliesPreferredTrackTransform = true
     generator.maximumSize = CGSize(width: 512, height: 512)
-    generator.requestedTimeToleranceBefore = CMTimeMake(value: 0, timescale: 1000)
-    generator.requestedTimeToleranceAfter = CMTimeMake(value: 0, timescale: 1000)
-    let time = CMTimeMake(value: Int64(timeStamp), timescale: 1000)
-    generator.generateCGImagesAsynchronously(forTimes: [NSValue(time: time)]) { _, image, _, result, error in
-      if result == .succeeded, let cgImage = image {
-        let thumbnail = UIImage(cgImage: cgImage)
-        completion(thumbnail)
-      } else if let error = error {
-        failure(error)
+    generator.requestedTimeToleranceBefore = .positiveInfinity
+    generator.requestedTimeToleranceAfter = .positiveInfinity
+    let times = [
+      CMTimeMake(value: Int64(timeStamp), timescale: 1000),
+      CMTimeMake(value: 1000, timescale: 1000)
+    ]
+    var lastError: Error?
+
+    for time in times {
+      do {
+        let cgImage = try generator.copyCGImage(at: time, actualTime: nil)
+        completion(UIImage(cgImage: cgImage))
+        return
+      } catch {
+        lastError = error
       }
     }
+
+    failure(lastError ?? NSError(domain: "CreateVideoThumbnail", code: -1, userInfo: [NSLocalizedDescriptionKey: "Unable to create thumbnail"]))
   }
 }

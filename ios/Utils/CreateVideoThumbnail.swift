@@ -53,7 +53,7 @@ class CreateVideoThumbnail: NSObject {
         reject("Error", "Invalid video URL", nil)
         return
       }
-      let quality = CreateVideoThumbnail.normalizedQuality(options["quality"])
+      let quality = Self.normalizedQuality(options["quality"])
       let asset = AVURLAsset(url: vidURL, options: ["AVURLAssetHTTPHeaderFieldsKey": headers])
       generateThumbImage(asset: asset, atTime: 0, completion: { thumbnail in
         // Generate thumbnail

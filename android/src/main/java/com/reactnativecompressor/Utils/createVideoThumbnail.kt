@@ -135,7 +135,7 @@ class CreateVideoThumbnailClass(private val reactContext: ReactApplicationContex
         }
 
         private fun getBitmapAtTime(context: Context?, filePath: String?, time: Int, headers: Map<String, String>): Bitmap {
-            check(!filePath.isNullOrEmpty()) { "File path is empty" }
+            check(!filePath.isNullOrEmpty()) { "File path is null or empty" }
             val retriever = MediaMetadataRetriever()
             try {
                 if (URLUtil.isFileUrl(filePath)) {
@@ -169,7 +169,7 @@ class CreateVideoThumbnailClass(private val reactContext: ReactApplicationContex
                         return image
                     }
                 }
-                error("File doesn't exist or does not contain a supported video frame")
+                error("Unable to extract video frame from file")
             } finally {
                 try {
                     retriever.release()

@@ -421,12 +421,9 @@ object Compressor {
       var resultFile = cacheFile
 
       try {
-        val targetFile = streamableFile?.let { File(it) } ?: File(
-          cacheFile.parentFile,
-          "${cacheFile.nameWithoutExtension}-streamable.${cacheFile.extension.ifEmpty { "mp4" }}"
-        )
+        val targetFile = streamableFile?.let { File(it) } ?: createStreamableOutputFile(cacheFile)
         val outputFile = if (targetFile.absolutePath == cacheFile.absolutePath) {
-          File(cacheFile.parentFile, "${cacheFile.nameWithoutExtension}-streamable.${cacheFile.extension.ifEmpty { "mp4" }}")
+          createStreamableOutputFile(cacheFile)
         } else {
           targetFile
         }
@@ -468,6 +465,9 @@ object Compressor {
   }
 
   // Function to process audio
+    private fun createStreamableOutputFile(cacheFile: File): File =
+        File(cacheFile.parentFile, "${cacheFile.nameWithoutExtension}-streamable.${cacheFile.extension.ifEmpty { "mp4" }}")
+
     private fun processAudio(
         mediaMuxer: MP4Builder,
         bufferInfo: MediaCodec.BufferInfo,

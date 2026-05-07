@@ -135,7 +135,7 @@ class CreateVideoThumbnailClass(private val reactContext: ReactApplicationContex
         }
 
         private fun getBitmapAtTime(context: Context?, filePath: String?, time: Int, headers: Map<String, String>): Bitmap {
-            check(!filePath.isNullOrEmpty()) { "File path is null or empty" }
+            check(!filePath.isNullOrEmpty()) { "Video file path is null or empty" }
             val retriever = MediaMetadataRetriever()
             try {
                 if (URLUtil.isFileUrl(filePath)) {

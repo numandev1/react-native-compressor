@@ -26,7 +26,7 @@ struct UploadError: Error {
   }
 }
 
-class Uploader: NSObject, URLSessionDataDelegate{
+class Uploader: NSObject, URLSessionDataDelegate {
     var uploadResolvers: [String: RCTPromiseResolveBlock] = [:]
     var uploadRejectors: [String: RCTPromiseRejectBlock] = [:]
     var currentTask: URLSessionDataTask?

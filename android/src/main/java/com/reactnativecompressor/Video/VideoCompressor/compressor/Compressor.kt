@@ -48,6 +48,9 @@ object Compressor {
   // Flag to check if compression is running
   var isRunning = true
 
+  private fun createStreamableOutputFile(cacheFile: File): File =
+    File(cacheFile.parentFile, "${cacheFile.nameWithoutExtension}-streamable.${cacheFile.extension.ifEmpty { "mp4" }}")
+
   suspend fun compressVideo(
     index: Int,
     context: Context,
@@ -465,9 +468,6 @@ object Compressor {
   }
 
   // Function to process audio
-    private fun createStreamableOutputFile(cacheFile: File): File =
-        File(cacheFile.parentFile, "${cacheFile.nameWithoutExtension}-streamable.${cacheFile.extension.ifEmpty { "mp4" }}")
-
     private fun processAudio(
         mediaMuxer: MP4Builder,
         bufferInfo: MediaCodec.BufferInfo,

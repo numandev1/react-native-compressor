@@ -26,7 +26,7 @@ struct UploadError: Error {
   }
 }
 
-class Uploader : NSObject, URLSessionTaskDelegate{
+class Uploader: NSObject, URLSessionDataDelegate, URLSessionTaskDelegate {
     var uploadResolvers: [String: RCTPromiseResolveBlock] = [:]
     var uploadRejectors: [String: RCTPromiseRejectBlock] = [:]
     var currentTask: URLSessionDataTask?
@@ -124,11 +124,11 @@ class Uploader : NSObject, URLSessionTaskDelegate{
       guard let uuid = session.configuration.identifier else {return}
       guard let reject = uploadRejectors[uuid] else{return}
       guard let resolve = uploadResolvers[uuid] else{return}
-      guard let data = self.storage[task.taskIdentifier],
-            let json = try? JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] else {return}
       guard error == nil else {
         reject("failed", "Upload Failed", error)
         uploadRejectors[uuid] = nil
+        uploadResolvers[uuid] = nil
+        self.storage[task.taskIdentifier] = nil
         return;
       }
 
@@ -136,19 +136,26 @@ class Uploader : NSObject, URLSessionTaskDelegate{
         let uploadError = UploadError(message: "Response is not defined")
         reject("failed", "Upload Failed", uploadError)
         uploadRejectors[uuid] = nil
+        uploadResolvers[uuid] = nil
+        self.storage[task.taskIdentifier] = nil
         return;
       }
 
-      let result: [String : Any] = ["status": response.statusCode, "headers": response.allHeaderFields, "body": json]
-      
+      let data = self.storage[task.taskIdentifier] ?? Data()
+      let body = String(data: data, encoding: .utf8) ?? ""
+      let result: [String : Any] = ["status": response.statusCode, "headers": response.allHeaderFields, "body": body]
+
       resolve(result)
       uploadResolvers[uuid] = nil
+      uploadRejectors[uuid] = nil
       self.storage[task.taskIdentifier] = nil
     }
-      
+
 
     public func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
-        self.storage[dataTask.taskIdentifier] = data
+        var responseData = self.storage[dataTask.taskIdentifier] ?? Data()
+        responseData.append(data)
+        self.storage[dataTask.taskIdentifier] = responseData
     }
 
     func urlSession(_ session: URLSession, task: URLSessionTask, didSendBodyData bytesSent: Int64, totalBytesSent: Int64, totalBytesExpectedToSend: Int64)

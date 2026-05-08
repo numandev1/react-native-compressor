@@ -24,6 +24,6 @@ export default defineConfig([
     },
   },
   {
-    ignores: ['node_modules/', 'lib/', 'examples/'],
+    ignores: ['node_modules/', 'lib/', 'examples/', '.harness/'],
   },
 ]);

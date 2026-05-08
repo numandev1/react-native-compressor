@@ -52,6 +52,7 @@ export default {
   getImageMetaData,
   getFileSize,
   backgroundUpload,
+  cancelUpload,
   createVideoThumbnail,
   clearCache,
   download,

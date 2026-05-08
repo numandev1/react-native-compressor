@@ -29,6 +29,9 @@
   ],
   "scripts": {
     "test": "jest",
+    "test:pr": "yarn test --runInBand && yarn typecheck && yarn lint",
+    "test:harness:android": "cd examples/bare && react-native-harness --config ./jest.harness.config.mjs --harnessRunner android --verbose",
+    "test:harness:ios": "cd examples/bare && react-native-harness --config ./jest.harness.config.mjs --harnessRunner ios --verbose",
     "typecheck": "tsc --noEmit",
     "lint": "eslint \"**/*.{js,ts,tsx}\"",
     "prepack": "bob build",
@@ -88,6 +91,8 @@
     "@eslint/js": "^10.0.1",
     "@expo/config-plugins": "^55.0.8",
     "@jest/globals": "^30.0.0",
+    "@react-native-harness/platform-android": "1.1.0",
+    "@react-native-harness/platform-apple": "1.1.0",
     "@react-native/babel-preset": "0.85.0",
     "@react-native/eslint-config": "0.85.0",
     "@react-native/jest-preset": "0.85.0",
@@ -105,6 +110,7 @@
     "react": "19.2.3",
     "react-native": "0.85.0",
     "react-native-builder-bob": "^0.41.0",
+    "react-native-harness": "1.1.0",
     "release-it": "^19.2.4",
     "turbo": "^2.8.21",
     "typescript": "^6.0.2"

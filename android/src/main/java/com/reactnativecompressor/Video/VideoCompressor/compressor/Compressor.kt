@@ -99,6 +99,7 @@ object Compressor {
     val rotationData = mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_ROTATION)
     val bitrateData = mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_BITRATE)
     val durationData = mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
+    val locationData = mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_LOCATION)
 
     // Check if any metadata is missing
     if (rotationData.isNullOrEmpty() || bitrateData.isNullOrEmpty() || durationData.isNullOrEmpty()) {
@@ -144,7 +145,8 @@ object Compressor {
       extractor,
       listener,
       duration,
-      rotation
+      rotation,
+      locationData
     )
   }
 
@@ -162,7 +164,8 @@ object Compressor {
     extractor: MediaExtractor,
     compressionProgressListener: CompressionProgressListener,
     duration: Long,
-    rotation: Int
+    rotation: Int,
+    location: String? = null
   ): Result {
     // Check if newWidth and newHeight are valid
     if (newWidth != 0 && newHeight != 0) {
@@ -175,7 +178,7 @@ object Compressor {
         val bufferInfo = MediaCodec.BufferInfo()
 
         // Setup mp4 movie
-        val movie = setUpMP4Movie(rotation, cacheFile)
+        val movie = setUpMP4Movie(rotation, cacheFile, location)
 
         // MediaMuxer outputs MP4 in this app
         val mediaMuxer = MP4Builder().createMovie(movie)

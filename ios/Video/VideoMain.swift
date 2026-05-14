@@ -336,6 +336,14 @@ class VideoCompressor {
             ]
         }
 
+        // Preserve source metadata (location, creation date, etc.) by forwarding
+        // every available metadata format to the writer.
+        var preservedMetadata: [AVMetadataItem] = asset.metadata
+        for format in asset.availableMetadataFormats {
+            preservedMetadata.append(contentsOf: asset.metadata(forFormat: format))
+        }
+        exporter.metadata = preservedMetadata
+
         compressorExports[uuid] = exporter
         exporter.export(progressHandler: { (progress) in
             let roundProgress:Int=Int((progress*100).rounded());

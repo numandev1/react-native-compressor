@@ -54,11 +54,13 @@ object CompressorUtils {
   fun setUpMP4Movie(
     rotation: Int,
     cacheFile: File,
+    location: String? = null,
   ): Mp4Movie {
     val movie = Mp4Movie()
     movie.apply {
       setCacheFile(cacheFile)
       setRotation(rotation)
+      setLocation(location)
     }
     return movie
   }

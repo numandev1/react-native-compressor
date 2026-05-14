@@ -2,6 +2,8 @@ package com.reactnativecompressor.Video.VideoCompressor.compressor
 
 import android.content.Context
 import android.media.MediaCodec
+import android.media.MediaCodecInfo
+import android.media.MediaCodecList
 import android.media.MediaExtractor
 import android.media.MediaFormat
 import android.media.MediaMetadataRetriever
@@ -213,6 +215,14 @@ object Compressor {
 
           var videoTrackIndex = -5
 
+          // Frame dropping: when source fps is higher than target output fps,
+          // skip decoded frames whose PTS falls before the next target slot.
+          // Saves GL render + encoder work proportional to the drop ratio
+          // (e.g. 60fps → 30fps cuts pipeline work roughly in half).
+          val targetFrameIntervalUs: Long =
+            if (outputFrameRate > 0) 1_000_000L / outputFrameRate else 0L
+          var nextTargetPtsUs: Long = 0L
+
           inputSurface = InputSurface(encoder.createInputSurface())
           inputSurface.makeCurrent()
           // Move to executing state
@@ -227,18 +237,21 @@ object Compressor {
 
           while (!outputDone) {
             if (!inputDone) {
+                            // Feed the decoder until it has no free input slots or the
+                            // extractor is empty. HW codecs typically have 4-8 input
+                            // slots; queuing only one sample per outer iteration starves
+                            // the pipeline and forces serial decode-render-encode.
+                            feedLoop@ while (!inputDone) {
+                                val index = extractor.sampleTrackIndex
 
-                            val index = extractor.sampleTrackIndex
-
-                            if (index == videoIndex) {
-                                val inputBufferIndex =
-                                    decoder.dequeueInputBuffer(MEDIACODEC_TIMEOUT_DEFAULT)
-                                if (inputBufferIndex >= 0) {
+                                if (index == videoIndex) {
+                                    val inputBufferIndex =
+                                        decoder.dequeueInputBuffer(0L)
+                                    if (inputBufferIndex < 0) break@feedLoop
                                     val inputBuffer = decoder.getInputBuffer(inputBufferIndex)
                                     val chunkSize = extractor.readSampleData(inputBuffer!!, 0)
                                     when {
                                         chunkSize < 0 -> {
-
                                             decoder.queueInputBuffer(
                                                 inputBufferIndex,
                                                 0,
@@ -249,7 +262,6 @@ object Compressor {
                                             inputDone = true
                                         }
                                         else -> {
-
                                             decoder.queueInputBuffer(
                                                 inputBufferIndex,
                                                 0,
@@ -258,15 +270,12 @@ object Compressor {
                                                 0
                                             )
                                             extractor.advance()
-
                                         }
                                     }
-                                }
-
-                            } else if (index == -1) { //end of file
-                                val inputBufferIndex =
-                                    decoder.dequeueInputBuffer(MEDIACODEC_TIMEOUT_DEFAULT)
-                                if (inputBufferIndex >= 0) {
+                                } else if (index == -1) { //end of file
+                                    val inputBufferIndex =
+                                        decoder.dequeueInputBuffer(0L)
+                                    if (inputBufferIndex < 0) break@feedLoop
                                     decoder.queueInputBuffer(
                                         inputBufferIndex,
                                         0,
@@ -275,6 +284,9 @@ object Compressor {
                                         MediaCodec.BUFFER_FLAG_END_OF_STREAM
                                     )
                                     inputDone = true
+                                } else {
+                                    // Different track type at head of extractor (audio etc.).
+                                    break@feedLoop
                                 }
                             }
                         }
@@ -353,7 +365,19 @@ object Compressor {
                                 }
                                 decoderStatus < 0 -> throw RuntimeException("unexpected result from decoder.dequeueOutputBuffer: $decoderStatus")
                                 else -> {
-                                    val doRender = bufferInfo.size != 0
+                                    val isEos = (bufferInfo.flags and MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0
+                                    var doRender = bufferInfo.size != 0 && !isEos
+
+                                    // Drop frames whose PTS falls before the next target slot.
+                                    // Only kicks in when targetFrameIntervalUs > 0 and the source
+                                    // is producing faster than the target frame rate.
+                                    if (doRender && targetFrameIntervalUs > 0L) {
+                                        if (bufferInfo.presentationTimeUs < nextTargetPtsUs) {
+                                            doRender = false
+                                        } else {
+                                            nextTargetPtsUs = bufferInfo.presentationTimeUs + targetFrameIntervalUs
+                                        }
+                                    }
 
                                     decoder.releaseOutputBuffer(decoderStatus, doRender)
                                     if (doRender) {
@@ -428,27 +452,31 @@ object Compressor {
 
       var resultFile = cacheFile
 
-      try {
-        // Keep default outputs browser-compatible by moving the MP4 metadata before media data.
-        val targetFile = streamableFile?.let { File(it) } ?: getStreamableOutputFile(cacheFile)
-        val outputFile = if (targetFile.absolutePath == cacheFile.absolutePath) {
-          getStreamableOutputFile(cacheFile)
-        } else {
-          targetFile
-        }
-        val result = StreamableVideo.start(`in` = cacheFile, out = outputFile)
-        if (result) {
-          if (streamableFile == null || targetFile.absolutePath == cacheFile.absolutePath) {
-            cacheFile.delete()
-            outputFile.renameTo(cacheFile)
-            resultFile = cacheFile
+      // StreamableVideo rewrites the whole MP4 to move the moov atom to the front,
+      // which doubles disk I/O. Only run it when the caller explicitly requested a
+      // streamable copy (non-null streamableFile). Chat uploads do not need it.
+      if (streamableFile != null) {
+        try {
+          val targetFile = File(streamableFile)
+          val outputFile = if (targetFile.absolutePath == cacheFile.absolutePath) {
+            getStreamableOutputFile(cacheFile)
           } else {
-            resultFile = outputFile
-            cacheFile.delete()
+            targetFile
           }
+          val result = StreamableVideo.start(`in` = cacheFile, out = outputFile)
+          if (result) {
+            if (targetFile.absolutePath == cacheFile.absolutePath) {
+              cacheFile.delete()
+              outputFile.renameTo(cacheFile)
+              resultFile = cacheFile
+            } else {
+              resultFile = outputFile
+              cacheFile.delete()
+            }
+          }
+        } catch (e: Exception) {
+          printException(e)
         }
-      } catch (e: Exception) {
-        printException(e)
       }
       if (!resultFile.exists() || resultFile.length() <= 32) {
         return Result(
@@ -548,24 +576,61 @@ object Compressor {
 
   // Function to prepare the video encoder
     private fun prepareEncoder(outputFormat: MediaFormat, hasQTI: Boolean): MediaCodec {
-
-        // This seems to cause an issue with certain phones
-        // val encoderName = MediaCodecList(REGULAR_CODECS).findEncoderForFormat(outputFormat)
-        // val encoder: MediaCodec = MediaCodec.createByCodecName(encoderName)
-        // Log.i("encoderName", encoder.name)
-        // c2.qti.avc.encoder results in a corrupted .mp4 video that does not play in
-        // Mac and iphones
-        val encoder = if (hasQTI) {
-            MediaCodec.createByCodecName("c2.android.avc.encoder")
-        } else {
-            MediaCodec.createEncoderByType(MIME_TYPE)
-        }
+        // Prefer hardware AVC encoder while skipping known-broken QTI codec that
+        // produces files unplayable on Mac/iOS (c2.qti.avc.encoder).
+        val encoder = pickAvcEncoder(outputFormat, hasQTI)
         encoder.configure(
             outputFormat, null, null,
             MediaCodec.CONFIGURE_FLAG_ENCODE
         )
 
+        Log.i("Compressor", "encoder selected: ${encoder.name}")
+
         return encoder
+    }
+
+    private fun pickAvcEncoder(outputFormat: MediaFormat, hasQTI: Boolean): MediaCodec {
+        // ALL_CODECS surfaces vendor codecs that REGULAR_CODECS hides (e.g. some
+        // Exynos / MTK HW encoders). We still filter blacklisted / SW codecs below.
+        val codecList = MediaCodecList(MediaCodecList.ALL_CODECS)
+        val candidates = codecList.codecInfos.filter { info ->
+            info.isEncoder && info.supportedTypes.any { it.equals(MIME_TYPE, ignoreCase = true) }
+        }
+
+        fun isBlacklisted(name: String): Boolean {
+            val lower = name.lowercase()
+            return lower.contains("c2.qti.avc.encoder") || lower.contains("omx.qcom.video.encoder.avc.secure")
+        }
+
+        fun isSoftware(info: MediaCodecInfo): Boolean {
+            val name = info.name.lowercase()
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                if (info.isSoftwareOnly) return true
+            }
+            return name.startsWith("omx.google.") ||
+                name.startsWith("c2.android.") ||
+                name.contains(".sw.")
+        }
+
+        val supportsFormat = candidates.filter { info ->
+            runCatching {
+                info.getCapabilitiesForType(MIME_TYPE).isFormatSupported(outputFormat)
+            }.getOrDefault(false) && !isBlacklisted(info.name)
+        }
+
+        val hardwareFirst = supportsFormat.firstOrNull { !isSoftware(it) }
+        val chosen = hardwareFirst ?: supportsFormat.firstOrNull()
+
+        if (chosen != null) {
+            return MediaCodec.createByCodecName(chosen.name)
+        }
+
+        // Fallback: keep historical QTI-safe path when format probing fails.
+        return if (hasQTI) {
+            MediaCodec.createByCodecName("c2.android.avc.encoder")
+        } else {
+            MediaCodec.createEncoderByType(MIME_TYPE)
+        }
     }
 
   // Function to prepare the video decoder
@@ -573,20 +638,33 @@ object Compressor {
         inputFormat: MediaFormat,
         outputSurface: OutputSurface,
     ): MediaCodec {
-        // This seems to cause an issue with certain phones
-        // val decoderName =
-        //    MediaCodecList(REGULAR_CODECS).findDecoderForFormat(inputFormat)
-        // val decoder = MediaCodec.createByCodecName(decoderName)
-        // Log.i("decoderName", decoder.name)
+        val originalMime = inputFormat.getString(MediaFormat.KEY_MIME)!!
 
-        // val decoder = if (hasQTI) {
-        // MediaCodec.createByCodecName("c2.android.avc.decoder")
-        //} else {
+        // Dolby Vision (video/dolby-vision) has no standalone decoder on most Android
+        // devices and throws NAME_NOT_FOUND. Profiles 8.1/8.4 carry an HEVC base layer
+        // that the standard HEVC decoder can render. Profile 5 has no compatible base
+        // layer and must be rejected upstream.
+        val resolvedMime = if (originalMime.equals("video/dolby-vision", ignoreCase = true)) {
+            val profile = if (inputFormat.containsKey(MediaFormat.KEY_PROFILE)) {
+                inputFormat.getInteger(MediaFormat.KEY_PROFILE)
+            } else {
+                -1
+            }
+            // DV profile 5 = 0x20, no HEVC fallback. Profiles 8.x carry HEVC base layer.
+            if (profile == 0x20) {
+                throw IllegalStateException("Dolby Vision profile 5 has no HEVC base layer; cannot transcode")
+            }
+            inputFormat.setString(MediaFormat.KEY_MIME, MediaFormat.MIMETYPE_VIDEO_HEVC)
+            MediaFormat.MIMETYPE_VIDEO_HEVC
+        } else {
+            originalMime
+        }
 
-        val decoder = MediaCodec.createDecoderByType(inputFormat.getString(MediaFormat.KEY_MIME)!!)
-        //}
+        val decoder = MediaCodec.createDecoderByType(resolvedMime)
 
         decoder.configure(inputFormat, outputSurface.getSurface(), null, 0)
+
+        Log.i("Compressor", "decoder selected: ${decoder.name} mime=$resolvedMime")
 
         return decoder
     }

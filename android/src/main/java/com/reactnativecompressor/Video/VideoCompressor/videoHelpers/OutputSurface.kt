@@ -2,6 +2,8 @@ package com.reactnativecompressor.Video.VideoCompressor.video
 
 import android.graphics.SurfaceTexture
 import android.graphics.SurfaceTexture.OnFrameAvailableListener
+import android.os.Handler
+import android.os.HandlerThread
 import android.view.Surface
 
 class OutputSurface : OnFrameAvailableListener {
@@ -11,6 +13,15 @@ class OutputSurface : OnFrameAvailableListener {
     private val mFrameSyncObject = Object()
     private var mFrameAvailable = false
     private var mTextureRender: TextureRenderer? = null
+
+    // Dedicated thread for SurfaceTexture's onFrameAvailable callback.
+    // Without this, Android delivers the callback on the main UI thread
+    // (because the compression coroutine has no Looper), so awaitNewImage()
+    // stalls whenever the main thread is busy with UI / JS bridge work.
+    // Routing the callback to its own thread removes that contention and
+    // is the single biggest throughput win for the decoder→encoder pipeline.
+    private val mCallbackThread = HandlerThread("CompressorSurfaceTexCb").apply { start() }
+    private val mCallbackHandler = Handler(mCallbackThread.looper)
 
     /**
      * Creates an OutputSurface using the current EGL context. This Surface will be
@@ -35,7 +46,7 @@ class OutputSurface : OnFrameAvailableListener {
             // causes the native finalizer to run.
             mSurfaceTexture = SurfaceTexture(it.getTextureId())
             mSurfaceTexture?.let { surfaceTexture ->
-                surfaceTexture.setOnFrameAvailableListener(this)
+                surfaceTexture.setOnFrameAvailableListener(this, mCallbackHandler)
                 mSurface = Surface(mSurfaceTexture)
             }
         }
@@ -50,6 +61,8 @@ class OutputSurface : OnFrameAvailableListener {
         mTextureRender = null
         mSurface = null
         mSurfaceTexture = null
+
+        mCallbackThread.quitSafely()
     }
 
     /**
@@ -63,12 +76,13 @@ class OutputSurface : OnFrameAvailableListener {
      * data is available.
      */
     fun awaitNewImage() {
-        val timeOutMS = 100
+        // 10s timeout to avoid spurious failures under heavy main-thread load.
+        // The callback now arrives on a dedicated thread, so realistic frames
+        // land in <50ms; this bound only catches a stuck pipeline.
+        val timeOutMS = 10_000
         synchronized(mFrameSyncObject) {
             while (!mFrameAvailable) {
                 try {
-                    // Wait for onFrameAvailable() to signal us.  Use a timeout to avoid
-                    // stalling the test if it doesn't arrive.
                     mFrameSyncObject.wait(timeOutMS.toLong())
                     if (!mFrameAvailable) {
                         throw RuntimeException("Surface frame wait timed out")

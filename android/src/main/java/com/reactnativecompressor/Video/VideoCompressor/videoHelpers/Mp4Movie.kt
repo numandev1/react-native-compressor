@@ -19,8 +19,8 @@ class Mp4Movie {
         cacheFile = file
     }
 
-    fun setLocation(loc: String?) {
-        location = loc
+    fun setLocation(value: String?) {
+        location = value
     }
 
     fun getLocation(): String? = location

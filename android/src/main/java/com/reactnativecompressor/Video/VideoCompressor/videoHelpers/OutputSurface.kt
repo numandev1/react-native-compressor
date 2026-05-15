@@ -54,6 +54,13 @@ class OutputSurface : OnFrameAvailableListener {
 
     /**
      * Discards all resources held by this class, notably the EGL context.
+     *
+     * quitSafely() returns immediately; the HandlerThread's native pthread
+     * may still be terminating when callers proceed to tear down MediaCodec.
+     * If the ART sampling profiler walks threads during that window it can
+     * dereference a stale pthread_t and SIGABRT. join(500) blocks until the
+     * thread is fully exited (pthread_join) so the pthread_t is no longer
+     * tracked. Bounded at 500ms to avoid hanging on a pathological looper.
      */
     fun release() {
         mSurface?.release()
@@ -63,6 +70,11 @@ class OutputSurface : OnFrameAvailableListener {
         mSurfaceTexture = null
 
         mCallbackThread.quitSafely()
+        try {
+            mCallbackThread.join(500)
+        } catch (ignored: InterruptedException) {
+            Thread.currentThread().interrupt()
+        }
     }
 
     /**

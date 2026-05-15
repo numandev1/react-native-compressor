@@ -18,6 +18,7 @@ import com.reactnativecompressor.Video.VideoCompressor.utils.CompressorUtils.pre
 import com.reactnativecompressor.Video.VideoCompressor.utils.CompressorUtils.printException
 import com.reactnativecompressor.Video.VideoCompressor.utils.CompressorUtils.setOutputFileParameters
 import com.reactnativecompressor.Video.VideoCompressor.utils.CompressorUtils.setUpMP4Movie
+import com.reactnativecompressor.Video.VideoCompressor.utils.LocationExtractor
 import com.reactnativecompressor.Video.VideoCompressor.utils.StreamableVideo
 import com.reactnativecompressor.Video.VideoCompressor.video.InputSurface
 import com.reactnativecompressor.Video.VideoCompressor.video.MP4Builder
@@ -99,7 +100,22 @@ object Compressor {
     val rotationData = mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_ROTATION)
     val bitrateData = mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_BITRATE)
     val durationData = mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
-    val locationData = mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_LOCATION)
+    // ISO 6709 string (e.g. "+37.4220-122.0840/"). Forwarded into the
+    // output udta/©xyz box so GPS metadata survives the rewrite.
+    //
+    // Some Samsung firmwares (S10 / Android 12) place "©xyz" in the
+    // per-track udta, or use a 'loci' box, or iTunes-style meta/keys+ilst.
+    // MediaMetadataRetriever only reads moov/udta/©xyz — returning null
+    // (or empty) and dropping GPS. Fall back to a raw MP4 walker that
+    // scans the whole file for every known location encoding.
+    val retrievedLocation =
+      mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_LOCATION)
+    val locationData = if (!retrievedLocation.isNullOrEmpty()) {
+      retrievedLocation
+    } else {
+      LocationExtractor.extract(context, srcUri)
+    }
+    Log.i("Compressor", "source location resolved: $locationData (retriever=$retrievedLocation)")
 
     // Check if any metadata is missing
     if (rotationData.isNullOrEmpty() || bitrateData.isNullOrEmpty() || durationData.isNullOrEmpty()) {
@@ -146,7 +162,7 @@ object Compressor {
       listener,
       duration,
       rotation,
-      locationData
+      locationData,
     )
   }
 
@@ -165,7 +181,7 @@ object Compressor {
     compressionProgressListener: CompressionProgressListener,
     duration: Long,
     rotation: Int,
-    location: String? = null
+    location: String?,
   ): Result {
     // Check if newWidth and newHeight are valid
     if (newWidth != 0 && newHeight != 0) {
@@ -222,8 +238,20 @@ object Compressor {
           // skip decoded frames whose PTS falls before the next target slot.
           // Saves GL render + encoder work proportional to the drop ratio
           // (e.g. 60fps → 30fps cuts pipeline work roughly in half).
+          //
+          // Only enable dropping when the source frame rate is reliably
+          // higher than the target. If the source advertises 30 fps and the
+          // target is 30 fps, even tiny PTS jitter can push a frame just
+          // before its slot, get it dropped, and turn 30 fps output into
+          // 20 fps — the choppy playback users reported.
+          val sourceFrameRate: Int = if (inputFormat.containsKey(MediaFormat.KEY_FRAME_RATE)) {
+            inputFormat.getInteger(MediaFormat.KEY_FRAME_RATE)
+          } else 0
+          val shouldDropFrames = outputFrameRate > 0 &&
+            sourceFrameRate > 0 &&
+            outputFrameRate < sourceFrameRate
           val targetFrameIntervalUs: Long =
-            if (outputFrameRate > 0) 1_000_000L / outputFrameRate else 0L
+            if (shouldDropFrames) 1_000_000L / outputFrameRate else 0L
           var nextTargetPtsUs: Long = 0L
 
           inputSurface = InputSurface(encoder.createInputSurface())
@@ -372,13 +400,21 @@ object Compressor {
                                     var doRender = bufferInfo.size != 0 && !isEos
 
                                     // Drop frames whose PTS falls before the next target slot.
-                                    // Only kicks in when targetFrameIntervalUs > 0 and the source
-                                    // is producing faster than the target frame rate.
+                                    // Anchor the next slot to the ideal grid (previous slot +
+                                    // interval) instead of to the actual PTS — anchoring to PTS
+                                    // lets source-side jitter compound into extra drops, which
+                                    // collapses the output frame rate well below the target.
                                     if (doRender && targetFrameIntervalUs > 0L) {
                                         if (bufferInfo.presentationTimeUs < nextTargetPtsUs) {
                                             doRender = false
                                         } else {
-                                            nextTargetPtsUs = bufferInfo.presentationTimeUs + targetFrameIntervalUs
+                                            nextTargetPtsUs += targetFrameIntervalUs
+                                            // Snap forward when the source skips past a slot
+                                            // (gap, seek, very low source fps) so the gate doesn't
+                                            // burst-emit every following frame.
+                                            if (bufferInfo.presentationTimeUs >= nextTargetPtsUs) {
+                                                nextTargetPtsUs = bufferInfo.presentationTimeUs + targetFrameIntervalUs
+                                            }
                                         }
                                     }
 
@@ -672,7 +708,13 @@ object Compressor {
         return decoder
     }
 
-  // Function to release resources
+  // Function to release resources.
+  // Every call is wrapped in runCatching so a failure in one teardown step
+  // does not skip the others (leaking codec handles + GL surfaces). Order:
+  // detach extractor → stop+release decoder → stop+release encoder →
+  // release input EGL surface → release output surface (joins its
+  // HandlerThread). Releasing surfaces last avoids the encoder asking a
+  // freed EGL surface for buffers during its own shutdown.
     private fun dispose(
         videoIndex: Int,
         decoder: MediaCodec,
@@ -681,15 +723,22 @@ object Compressor {
         outputSurface: OutputSurface,
         extractor: MediaExtractor
     ) {
-        extractor.unselectTrack(videoIndex)
+        runCatching { extractor.unselectTrack(videoIndex) }
+            .onFailure { Log.w("Compressor", "extractor.unselectTrack failed", it) }
 
-        decoder.stop()
-        decoder.release()
+        runCatching { decoder.stop() }
+            .onFailure { Log.w("Compressor", "decoder.stop failed", it) }
+        runCatching { decoder.release() }
+            .onFailure { Log.w("Compressor", "decoder.release failed", it) }
 
-        encoder.stop()
-        encoder.release()
+        runCatching { encoder.stop() }
+            .onFailure { Log.w("Compressor", "encoder.stop failed", it) }
+        runCatching { encoder.release() }
+            .onFailure { Log.w("Compressor", "encoder.release failed", it) }
 
-        inputSurface.release()
-        outputSurface.release()
+        runCatching { inputSurface.release() }
+            .onFailure { Log.w("Compressor", "inputSurface.release failed", it) }
+        runCatching { outputSurface.release() }
+            .onFailure { Log.w("Compressor", "outputSurface.release failed", it) }
     }
 }

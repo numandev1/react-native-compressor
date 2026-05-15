@@ -12,7 +12,12 @@ data class VideoCompressionProfile(
 )
 
 object VideoCompressionProfileFactory {
+    // Fallback when the source frame rate cannot be detected.
     private const val DEFAULT_FRAME_RATE = 30
+    // Hard upper bound. 60 fps covers every modern phone capture (24/25/30/
+    // 50/60). Capping at 30 — the previous behaviour — silently halved 60
+    // fps recordings and made the output look choppy.
+    private const val MAX_FRAME_RATE = 60
 
     fun createAuto(
         sourceWidth: Int,
@@ -99,7 +104,7 @@ object VideoCompressionProfileFactory {
             return DEFAULT_FRAME_RATE
         }
 
-        return sourceFrameRate.coerceIn(1, DEFAULT_FRAME_RATE)
+        return sourceFrameRate.coerceIn(1, MAX_FRAME_RATE)
     }
 
     private fun estimateBitrate(
@@ -111,20 +116,25 @@ object VideoCompressionProfileFactory {
         targetHeight: Int,
         targetFrameRate: Int,
     ): Int {
+        // WhatsApp-style bitrate envelope. The previous floors/ceilings
+        // were ~2-3x larger and produced "compressed" outputs that were
+        // still 20-40 MB for short clips. These bands target ~1.5 Mbps at
+        // 720p, which matches WhatsApp's typical output size while keeping
+        // visual quality acceptable for chat playback.
         val targetLongSide = max(targetWidth, targetHeight)
         val floor = when {
-            targetLongSide >= 1920 -> 4_000_000
-            targetLongSide >= 1280 -> 2_200_000
-            targetLongSide >= 960 -> 1_600_000
-            targetLongSide >= 720 -> 1_200_000
-            else -> 850_000
+            targetLongSide >= 1920 -> 2_000_000
+            targetLongSide >= 1280 -> 1_200_000
+            targetLongSide >= 960 -> 900_000
+            targetLongSide >= 720 -> 700_000
+            else -> 500_000
         }
         val ceiling = when {
-            targetLongSide >= 1920 -> 8_000_000
-            targetLongSide >= 1280 -> 5_000_000
-            targetLongSide >= 960 -> 3_500_000
-            targetLongSide >= 720 -> 2_500_000
-            else -> 1_500_000
+            targetLongSide >= 1920 -> 3_500_000
+            targetLongSide >= 1280 -> 2_000_000
+            targetLongSide >= 960 -> 1_500_000
+            targetLongSide >= 720 -> 1_200_000
+            else -> 900_000
         }
 
         if (sourceBitrate <= 0) {

@@ -4,7 +4,6 @@ import android.media.MediaCodec
 import android.media.MediaFormat
 import org.mp4parser.Box
 import org.mp4parser.boxes.iso14496.part12.*
-import org.mp4parser.support.AbstractBox
 
 import org.mp4parser.support.Matrix
 import java.io.FileOutputStream
@@ -191,33 +190,19 @@ class MP4Builder {
             movieBox.addBox(createTrackBox(track, movie))
         }
 
+        // Preserve source GPS metadata. MediaMetadataRetriever and most
+        // gallery apps read the Apple "©xyz" box inside moov/udta, so any
+        // ISO 6709 string passed in is written there verbatim.
         val location = movie.getLocation()
         if (!location.isNullOrEmpty()) {
             val udta = UserDataBox()
-            udta.addBox(XyzLocationBox(location))
+            val xyz = LocationBox()
+            xyz.location = location
+            udta.addBox(xyz)
             movieBox.addBox(udta)
         }
 
         return movieBox
-    }
-
-    // Apple-style "©xyz" geolocation atom inside udta.
-    // Payload: 2 bytes UTF-16 BE length, 2 bytes packed language ("eng" = 0x15C7),
-    // followed by ISO 6709 location string (e.g. "+12.3456-067.7890/").
-    private class XyzLocationBox(private val location: String) : AbstractBox("©xyz") {
-        override fun getContentSize(): Long {
-            val bytes = location.toByteArray(Charsets.UTF_8)
-            return (4 + bytes.size).toLong()
-        }
-
-        override fun _parseDetails(content: ByteBuffer?) {}
-
-        override fun getContent(byteBuffer: ByteBuffer) {
-            val bytes = location.toByteArray(Charsets.UTF_8)
-            byteBuffer.putShort(bytes.size.toShort())
-            byteBuffer.putShort(0x15C7.toShort())
-            byteBuffer.put(bytes)
-        }
     }
 
     private fun createTrackBox(track: Track, movie: Mp4Movie): TrackBox {

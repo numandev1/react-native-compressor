@@ -49,7 +49,8 @@ object CompressorUtils {
   }
 
   /**
-   * Set up an Mp4Movie with rotation and cache file.
+   * Set up an Mp4Movie with rotation, cache file and optional ISO 6709
+   * location string forwarded from the source video.
    */
   fun setUpMP4Movie(
     rotation: Int,

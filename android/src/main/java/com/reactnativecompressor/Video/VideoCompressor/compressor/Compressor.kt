@@ -115,7 +115,14 @@ object Compressor {
     } else {
       LocationExtractor.extract(context, srcUri)
     }
-    Log.i("Compressor", "source location resolved: $locationData (retriever=$retrievedLocation)")
+    // Never log the resolved ISO 6709 string — it is the user's exact GPS
+    // coordinates. Log only presence and which mechanism resolved it.
+    val locationSource = when {
+      !retrievedLocation.isNullOrEmpty() -> "retriever"
+      !locationData.isNullOrEmpty() -> "extractor"
+      else -> "none"
+    }
+    Log.i("Compressor", "source location resolved: hasLocation=${!locationData.isNullOrEmpty()} source=$locationSource")
 
     // Check if any metadata is missing
     if (rotationData.isNullOrEmpty() || bitrateData.isNullOrEmpty() || durationData.isNullOrEmpty()) {
@@ -193,18 +200,31 @@ object Compressor {
         // input to generate a compressed/smaller size video
         val bufferInfo = MediaCodec.BufferInfo()
 
-        // Setup mp4 movie
-        val movie = setUpMP4Movie(rotation, cacheFile, location)
-
-        // MediaMuxer outputs MP4 in this app
-        val mediaMuxer = MP4Builder().createMovie(movie)
-
-        // Start with the video track
+        // Resolve the source video track and its format BEFORE allocating the
+        // muxer, encoder or EGL surfaces. Dolby Vision profile 5 has no HEVC
+        // base layer and cannot be transcoded; rejecting it here — instead of
+        // inside prepareDecoder, after the muxer file stream, encoder and EGL
+        // surfaces are already live — avoids leaking those resources on bail-out.
         val videoIndex = findTrack(extractor, isVideo = true)
 
         extractor.selectTrack(videoIndex)
         extractor.seekTo(0, MediaExtractor.SEEK_TO_PREVIOUS_SYNC)
         val inputFormat = extractor.getTrackFormat(videoIndex)
+
+        if (isUnsupportedDolbyVision(inputFormat)) {
+          runCatching { extractor.release() }
+          return Result(
+            id,
+            success = false,
+            failureMessage = "Dolby Vision profile 5 has no HEVC base layer; cannot transcode"
+          )
+        }
+
+        // Setup mp4 movie
+        val movie = setUpMP4Movie(rotation, cacheFile, location)
+
+        // MediaMuxer outputs MP4 in this app
+        val mediaMuxer = MP4Builder().createMovie(movie)
 
         val outputFormat: MediaFormat =
           MediaFormat.createVideoFormat(MIME_TYPE, newWidth, newHeight)
@@ -217,16 +237,31 @@ object Compressor {
           outputFrameRate,
         )
 
-        val decoder: MediaCodec
-
         // Check if QTI hardware acceleration is available
         val hasQTI = hasQTI()
 
-        // Prepare the video encoder
-        val encoder = prepareEncoder(outputFormat, hasQTI)
+        // Prepare the video encoder. If the encoder rejects the throughput-tuned
+        // format at configure() time, prepareEncoder reconfigures using this
+        // baseline format (same params, no VBR/priority/operating-rate keys).
+        val encoder = prepareEncoder(outputFormat, hasQTI) {
+          MediaFormat.createVideoFormat(MIME_TYPE, newWidth, newHeight).also {
+            setOutputFileParameters(
+              inputFormat,
+              it,
+              newBitrate,
+              outputFrameRate,
+              applyThroughputTuning = false,
+            )
+          }
+        }
 
-        val inputSurface: InputSurface
-        val outputSurface: OutputSurface
+        // Track pipeline handles as they come up so a failure mid-setup
+        // (EGL/GL init, decoder configure, encoder.start) releases whatever was
+        // already created instead of leaking it. The encoder above is always
+        // non-null by this point.
+        var decoderRef: MediaCodec? = null
+        var inputSurfaceRef: InputSurface? = null
+        var outputSurfaceRef: OutputSurface? = null
 
         try {
           var inputDone = false
@@ -254,14 +289,17 @@ object Compressor {
             if (shouldDropFrames) 1_000_000L / outputFrameRate else 0L
           var nextTargetPtsUs: Long = 0L
 
-          inputSurface = InputSurface(encoder.createInputSurface())
+          val inputSurface = InputSurface(encoder.createInputSurface())
+          inputSurfaceRef = inputSurface
           inputSurface.makeCurrent()
           // Move to executing state
           encoder.start()
 
-          outputSurface = OutputSurface()
+          val outputSurface = OutputSurface()
+          outputSurfaceRef = outputSurface
 
-          decoder = prepareDecoder(inputFormat, outputSurface)
+          val decoder = prepareDecoder(inputFormat, outputSurface)
+          decoderRef = decoder
 
           // Move to executing state
           decoder.start()
@@ -455,16 +493,29 @@ object Compressor {
 
         } catch (exception: Throwable) {
           printException(exception)
+          // Release whatever was initialized before the failure. Setup errors
+          // (EGL/GL init, decoder configure, encoder.start) and in-loop throws
+          // land here; without this the encoder + EGL surfaces would leak and
+          // break the next compression. dispose() tolerates the null handles
+          // that occur when the failure happens mid-setup.
+          dispose(
+            videoIndex,
+            decoderRef,
+            encoder,
+            inputSurfaceRef,
+            outputSurfaceRef,
+            extractor
+          )
           return Result(id, success = false, failureMessage = exception.message)
         }
 
         // Release resources
         dispose(
           videoIndex,
-          decoder,
+          decoderRef,
           encoder,
-          inputSurface,
-          outputSurface,
+          inputSurfaceRef,
+          outputSurfaceRef,
           extractor
         )
 
@@ -491,31 +542,29 @@ object Compressor {
 
       var resultFile = cacheFile
 
-      // StreamableVideo rewrites the whole MP4 to move the moov atom to the front,
-      // which doubles disk I/O. Only run it when the caller explicitly requested a
-      // streamable copy (non-null streamableFile). Chat uploads do not need it.
-      if (streamableFile != null) {
-        try {
-          val targetFile = File(streamableFile)
-          val outputFile = if (targetFile.absolutePath == cacheFile.absolutePath) {
-            getStreamableOutputFile(cacheFile)
-          } else {
-            targetFile
-          }
-          val result = StreamableVideo.start(`in` = cacheFile, out = outputFile)
-          if (result) {
-            if (targetFile.absolutePath == cacheFile.absolutePath) {
-              cacheFile.delete()
-              outputFile.renameTo(cacheFile)
-              resultFile = cacheFile
-            } else {
-              resultFile = outputFile
-              cacheFile.delete()
-            }
-          }
-        } catch (e: Exception) {
-          printException(e)
+      try {
+        // Keep default outputs browser/progressive-playback compatible by moving the
+        // MP4 moov atom in front of the media data. This runs for every output; when
+        // no explicit streamableFile is requested, the rewritten copy replaces cacheFile.
+        val targetFile = streamableFile?.let { File(it) } ?: getStreamableOutputFile(cacheFile)
+        val outputFile = if (targetFile.absolutePath == cacheFile.absolutePath) {
+          getStreamableOutputFile(cacheFile)
+        } else {
+          targetFile
         }
+        val result = StreamableVideo.start(`in` = cacheFile, out = outputFile)
+        if (result) {
+          if (streamableFile == null || targetFile.absolutePath == cacheFile.absolutePath) {
+            cacheFile.delete()
+            outputFile.renameTo(cacheFile)
+            resultFile = cacheFile
+          } else {
+            resultFile = outputFile
+            cacheFile.delete()
+          }
+        }
+      } catch (e: Exception) {
+        printException(e)
       }
       if (!resultFile.exists() || resultFile.length() <= 32) {
         return Result(
@@ -614,18 +663,50 @@ object Compressor {
     }
 
   // Function to prepare the video encoder
-    private fun prepareEncoder(outputFormat: MediaFormat, hasQTI: Boolean): MediaCodec {
+    private fun prepareEncoder(
+        outputFormat: MediaFormat,
+        hasQTI: Boolean,
+        baselineFormatProvider: () -> MediaFormat,
+    ): MediaCodec {
         // Prefer hardware AVC encoder while skipping known-broken QTI codec that
         // produces files unplayable on Mac/iOS (c2.qti.avc.encoder).
         val encoder = pickAvcEncoder(outputFormat, hasQTI)
-        encoder.configure(
-            outputFormat, null, null,
-            MediaCodec.CONFIGURE_FLAG_ENCODE
-        )
+        try {
+            encoder.configure(
+                outputFormat, null, null,
+                MediaCodec.CONFIGURE_FLAG_ENCODE
+            )
+            Log.i("Compressor", "encoder selected: ${encoder.name}")
+            return encoder
+        } catch (e: Exception) {
+            // Some encoders reject the throughput-tuning keys (VBR bitrate mode,
+            // priority, operating rate) at configure() time. A codec that throws
+            // from configure() is unusable, so release it and retry on a fresh
+            // codec with a baseline format (default rate control) rather than
+            // failing the whole compression.
+            Log.w(
+                "Compressor",
+                "encoder.configure rejected tuned format; retrying with default settings",
+                e
+            )
+            runCatching { encoder.release() }
+        }
 
-        Log.i("Compressor", "encoder selected: ${encoder.name}")
-
-        return encoder
+        val baseline = baselineFormatProvider()
+        val fallback = pickAvcEncoder(baseline, hasQTI)
+        try {
+            fallback.configure(
+                baseline, null, null,
+                MediaCodec.CONFIGURE_FLAG_ENCODE
+            )
+        } catch (e: Exception) {
+            // Even the baseline format was rejected; release the codec so it
+            // doesn't leak, then let start()'s outer catch report the failure.
+            runCatching { fallback.release() }
+            throw e
+        }
+        Log.i("Compressor", "encoder selected (fallback, default rate control): ${fallback.name}")
+        return fallback
     }
 
     private fun pickAvcEncoder(outputFormat: MediaFormat, hasQTI: Boolean): MediaCodec {
@@ -672,6 +753,21 @@ object Compressor {
         }
     }
 
+  // Dolby Vision profile 5 (0x20) carries no HEVC base layer, so no standard
+  // Android decoder can render it. Detect it up front so start() can reject the
+  // input before allocating the muxer/encoder/EGL surfaces. Profiles 8.x do carry
+  // an HEVC base layer and are remapped to HEVC in prepareDecoder.
+    private fun isUnsupportedDolbyVision(inputFormat: MediaFormat): Boolean {
+        val mime = inputFormat.getString(MediaFormat.KEY_MIME) ?: return false
+        if (!mime.equals("video/dolby-vision", ignoreCase = true)) return false
+        val profile = if (inputFormat.containsKey(MediaFormat.KEY_PROFILE)) {
+            inputFormat.getInteger(MediaFormat.KEY_PROFILE)
+        } else {
+            -1
+        }
+        return profile == 0x20
+    }
+
   // Function to prepare the video decoder
     private fun prepareDecoder(
         inputFormat: MediaFormat,
@@ -681,18 +777,10 @@ object Compressor {
 
         // Dolby Vision (video/dolby-vision) has no standalone decoder on most Android
         // devices and throws NAME_NOT_FOUND. Profiles 8.1/8.4 carry an HEVC base layer
-        // that the standard HEVC decoder can render. Profile 5 has no compatible base
-        // layer and must be rejected upstream.
+        // that the standard HEVC decoder can render, so we remap them to HEVC. Profile 5
+        // has no compatible base layer; it is rejected by isUnsupportedDolbyVision() in
+        // start() before any codec/surface is created, so it never reaches here.
         val resolvedMime = if (originalMime.equals("video/dolby-vision", ignoreCase = true)) {
-            val profile = if (inputFormat.containsKey(MediaFormat.KEY_PROFILE)) {
-                inputFormat.getInteger(MediaFormat.KEY_PROFILE)
-            } else {
-                -1
-            }
-            // DV profile 5 = 0x20, no HEVC fallback. Profiles 8.x carry HEVC base layer.
-            if (profile == 0x20) {
-                throw IllegalStateException("Dolby Vision profile 5 has no HEVC base layer; cannot transcode")
-            }
             inputFormat.setString(MediaFormat.KEY_MIME, MediaFormat.MIMETYPE_VIDEO_HEVC)
             MediaFormat.MIMETYPE_VIDEO_HEVC
         } else {
@@ -701,7 +789,14 @@ object Compressor {
 
         val decoder = MediaCodec.createDecoderByType(resolvedMime)
 
-        decoder.configure(inputFormat, outputSurface.getSurface(), null, 0)
+        try {
+            decoder.configure(inputFormat, outputSurface.getSurface(), null, 0)
+        } catch (e: Exception) {
+            // A codec that throws from configure() is unusable; release it so a
+            // configure failure here doesn't leak the decoder handle.
+            runCatching { decoder.release() }
+            throw e
+        }
 
         Log.i("Compressor", "decoder selected: ${decoder.name} mime=$resolvedMime")
 
@@ -715,20 +810,24 @@ object Compressor {
   // release input EGL surface → release output surface (joins its
   // HandlerThread). Releasing surfaces last avoids the encoder asking a
   // freed EGL surface for buffers during its own shutdown.
+  //
+  // decoder / inputSurface / outputSurface are nullable so this also serves the
+  // partial-init cleanup path, where a setup failure leaves some handles
+  // uncreated. The encoder is always created before teardown is reachable.
     private fun dispose(
         videoIndex: Int,
-        decoder: MediaCodec,
+        decoder: MediaCodec?,
         encoder: MediaCodec,
-        inputSurface: InputSurface,
-        outputSurface: OutputSurface,
+        inputSurface: InputSurface?,
+        outputSurface: OutputSurface?,
         extractor: MediaExtractor
     ) {
         runCatching { extractor.unselectTrack(videoIndex) }
             .onFailure { Log.w("Compressor", "extractor.unselectTrack failed", it) }
 
-        runCatching { decoder.stop() }
+        runCatching { decoder?.stop() }
             .onFailure { Log.w("Compressor", "decoder.stop failed", it) }
-        runCatching { decoder.release() }
+        runCatching { decoder?.release() }
             .onFailure { Log.w("Compressor", "decoder.release failed", it) }
 
         runCatching { encoder.stop() }
@@ -736,9 +835,9 @@ object Compressor {
         runCatching { encoder.release() }
             .onFailure { Log.w("Compressor", "encoder.release failed", it) }
 
-        runCatching { inputSurface.release() }
+        runCatching { inputSurface?.release() }
             .onFailure { Log.w("Compressor", "inputSurface.release failed", it) }
-        runCatching { outputSurface.release() }
+        runCatching { outputSurface?.release() }
             .onFailure { Log.w("Compressor", "outputSurface.release failed", it) }
     }
 }

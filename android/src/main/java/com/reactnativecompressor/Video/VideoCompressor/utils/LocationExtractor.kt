@@ -43,9 +43,11 @@ object LocationExtractor {
         val state = WalkState()
         walk(channel, 0L, channel.size(), state, depth = 0)
         val viaBox = chooseBest(state)
+        // Log only presence, never the coordinate strings — these are the
+        // user's exact GPS values and must not land in production logcat.
         Log.i(
           TAG,
-          "LocationExtractor box scan: xyz=${state.xyz} itunes=${state.itunesLocation} loci=${state.loci} chosen=$viaBox"
+          "LocationExtractor box scan: hasXyz=${!state.xyz.isNullOrEmpty()} hasItunesLocation=${!state.itunesLocation.isNullOrEmpty()} hasLoci=${!state.loci.isNullOrEmpty()} hasChosenLocation=${!viaBox.isNullOrEmpty()}"
         )
         // Samsung phones (Galaxy S10 / Android 12 verified) write GPS into
         // an SEF (Samsung Extended Format) trailer that sits after mdat,
@@ -111,7 +113,7 @@ object LocationExtractor {
     buf.get(bytes)
     val text = String(bytes, StandardCharsets.ISO_8859_1)
     val match = ISO6709_REGEX.find(text)
-    Log.i(TAG, "LocationExtractor SEF trailer scan match=${match?.value}")
+    Log.i(TAG, "LocationExtractor SEF trailer scan matched=${match != null}")
     return match?.value
   }
 
@@ -183,7 +185,7 @@ object LocationExtractor {
           val parsed = readXyz(channel, childStart, childEnd)
           if (!parsed.isNullOrEmpty() && state.xyz == null) {
             state.xyz = parsed
-            Log.i(TAG, "found ©xyz: $parsed")
+            Log.i(TAG, "found ©xyz")
           }
         }
 
@@ -192,7 +194,7 @@ object LocationExtractor {
           val parsed = readLoci(channel, childStart, childEnd)
           if (!parsed.isNullOrEmpty() && state.loci == null) {
             state.loci = parsed
-            Log.i(TAG, "found loci: $parsed")
+            Log.i(TAG, "found loci")
           }
         }
 
@@ -352,7 +354,7 @@ object LocationExtractor {
         val payload = findItunesData(channel, pos + 8, itemEnd)
         if (!payload.isNullOrEmpty() && state.itunesLocation == null) {
           state.itunesLocation = payload
-          Log.i(TAG, "found itunes location: $payload")
+          Log.i(TAG, "found itunes location")
         }
       }
       pos = itemEnd

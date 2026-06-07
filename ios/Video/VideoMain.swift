@@ -312,11 +312,15 @@ class VideoCompressor {
         exporter.outputURL = tmpURL
         exporter.outputFileType = AVFileType.mp4
 
+        // NOTE: Do not add AVVideoExpectedSourceFrameRateKey or
+        // AVVideoAverageNonDroppableFrameRateKey here. They are not documented
+        // H.264 (avc1) compression properties on iOS and, while AVFoundation's
+        // `canApply(...)` check still returns true, the iOS encoder silently
+        // drops the video track, producing an audio-only MP4 that still reports
+        // success. See issue #400.
         let compressionDict: [String: Any] = [
           AVVideoAverageBitRateKey: bitRate,
           AVVideoProfileLevelKey: AVVideoProfileLevelH264HighAutoLevel,
-          AVVideoExpectedSourceFrameRateKey: frameRate,
-          AVVideoAverageNonDroppableFrameRateKey: frameRate,
         ]
         exporter.optimizeForNetworkUse = true;
         exporter.videoOutputConfiguration = [
@@ -350,7 +354,16 @@ class VideoCompressor {
             switch result {
             case .success:
               if let outputURL = exporter.outputURL {
-                onCompletion(outputURL)
+                // Guard against the iOS encoder silently dropping the video track
+                // and producing an audio-only file that still reports success.
+                // See issue #400.
+                let outputAsset = AVAsset(url: outputURL)
+                if outputAsset.tracks(withMediaType: AVMediaType.video).isEmpty {
+                  try? FileManager.default.removeItem(at: outputURL)
+                  onFailure(CompressionError(message: "Compression produced a file with no video track"))
+                } else {
+                  onCompletion(outputURL)
+                }
               } else {
                 onFailure(CompressionError(message: "Compression succeeded but output URL is unavailable"))
               }

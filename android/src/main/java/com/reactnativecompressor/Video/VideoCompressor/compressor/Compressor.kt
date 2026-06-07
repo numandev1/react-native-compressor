@@ -9,6 +9,7 @@ import android.net.Uri
 import android.os.Build
 import android.util.Log
 import com.reactnativecompressor.Video.VideoCompressor.CompressionProgressListener
+import com.reactnativecompressor.Video.VideoCompressor.utils.CompressorUtils.ensureDecodableVideoFormat
 import com.reactnativecompressor.Video.VideoCompressor.utils.CompressorUtils.findTrack
 import com.reactnativecompressor.Video.VideoCompressor.utils.CompressorUtils.hasQTI
 import com.reactnativecompressor.Video.VideoCompressor.utils.CompressorUtils.prepareVideoHeight
@@ -582,6 +583,11 @@ object Compressor {
         // val decoder = if (hasQTI) {
         // MediaCodec.createByCodecName("c2.android.avc.decoder")
         //} else {
+
+        // Some inputs (e.g. iPhone .MOV files) report a "video/dolby-vision" MIME
+        // type that many devices cannot decode. Remap to a decodable base-layer
+        // codec, or fail with a clear error, before creating the decoder (#398).
+        ensureDecodableVideoFormat(inputFormat)
 
         val decoder = MediaCodec.createDecoderByType(inputFormat.getString(MediaFormat.KEY_MIME)!!)
         //}

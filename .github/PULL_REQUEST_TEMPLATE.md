@@ -12,4 +12,7 @@
 
 ## Test Plan
 
-<!-- Demonstrate the code is solid. Example: The exact commands you ran and their output, screenshots / videos if the pull request changes the user interface. -->
+<!-- Demonstrate the code is solid. Include the exact commands you ran and their output. -->
+
+- [ ] Ran local JS PR gate: `yarn test:pr`
+- [ ] If this changes compression/upload/download native behavior, ran the Harness tests on a simulator/device: `yarn test:harness:android` or `yarn test:harness:ios`.

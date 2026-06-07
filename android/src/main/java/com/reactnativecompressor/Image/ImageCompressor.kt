@@ -9,6 +9,7 @@ import android.graphics.Paint
 import android.media.ExifInterface
 import android.net.Uri
 import android.util.Base64
+import android.util.Log
 import com.facebook.react.bridge.ReactApplicationContext
 import com.reactnativecompressor.Utils.MediaCache
 import com.reactnativecompressor.Utils.Utils.exifAttributes
@@ -21,6 +22,8 @@ import java.io.IOException
 import java.net.MalformedURLException
 
 object ImageCompressor {
+    private const val TAG = "ImageCompressor"
+
     fun getRNFileUrl(filePath: String?): String? {
         var filePath = filePath
         val returnAbleFile = File(filePath)
@@ -56,25 +59,38 @@ object ImageCompressor {
         return BitmapFactory.decodeFile(filePath)
     }
 
-    fun copyExifInfo(imagePath:String, outputUri:String){
-      try {
-        // for copy exif info
-        val sourceExif = ExifInterface(imagePath)
-        val compressedExif = ExifInterface(outputUri)
-        for (tag in exifAttributes) {
-          val compressedValue = compressedExif.getAttribute(tag)
-          if(compressedValue==null)
-          {
-            val sourceValue = sourceExif.getAttribute(tag)
-            if (sourceValue != null) {
-              compressedExif.setAttribute(tag, sourceValue)
-            }
-          }
+    /**
+     * Strip "file://" / "content://" scheme so legacy ExifInterface can open
+     * the underlying JPEG. ExifInterface(String) only accepts raw filesystem
+     * paths — passing a URI string makes it fail silently inside the
+     * try/catch and drops every EXIF tag, including GPS.
+     */
+    private fun normalizeToFilePath(input: String): String {
+        if (input.startsWith("file://") || input.startsWith("content://")) {
+            return Uri.parse(input).path ?: input
         }
-        compressedExif.saveAttributes()
-      } catch (e: Exception) {
-        e.printStackTrace()
-      }
+        return input
+    }
+
+    fun copyExifInfo(imagePath: String, outputUri: String) {
+        try {
+            val sourcePath = normalizeToFilePath(imagePath)
+            val outPath = normalizeToFilePath(outputUri)
+            val sourceExif = ExifInterface(sourcePath)
+            val compressedExif = ExifInterface(outPath)
+            var copied = 0
+            for (tag in exifAttributes) {
+                val sourceValue = sourceExif.getAttribute(tag) ?: continue
+                if (compressedExif.getAttribute(tag) == null) {
+                    compressedExif.setAttribute(tag, sourceValue)
+                    copied++
+                }
+            }
+            compressedExif.saveAttributes()
+            Log.i(TAG, "copyExifInfo copied $copied tags from $sourcePath -> $outPath")
+        } catch (e: Exception) {
+            Log.w(TAG, "copyExifInfo failed for $imagePath", e)
+        }
     }
 
     fun encodeImage(imageDataByteArrayOutputStream: ByteArrayOutputStream, isBase64: Boolean, outputExtension: String?,imagePath: String?, reactContext: ReactApplicationContext?): String? {
@@ -84,10 +100,14 @@ object ImageCompressor {
         } else {
             val outputUri = generateCacheFilePath(outputExtension!!, reactContext!!)
             try {
-                val fos = FileOutputStream(outputUri)
-                imageDataByteArrayOutputStream.writeTo(fos)
+                // Close the stream before ExifInterface re-opens the file so
+                // the JPEG bytes are fully flushed; otherwise saveAttributes()
+                // may truncate the in-flight write.
+                FileOutputStream(outputUri).use { fos ->
+                    imageDataByteArrayOutputStream.writeTo(fos)
+                }
 
-              copyExifInfo(imagePath!!, outputUri)
+                copyExifInfo(imagePath!!, outputUri)
 
                 return getRNFileUrl(outputUri)
             } catch (e: Exception) {
@@ -262,7 +282,7 @@ object ImageCompressor {
         if (bitmap == null || imagePath == null) return bitmap
 
         return try {
-            val exif = ExifInterface(imagePath)
+            val exif = ExifInterface(normalizeToFilePath(imagePath))
             val orientation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)
             val matrix = Matrix()
 

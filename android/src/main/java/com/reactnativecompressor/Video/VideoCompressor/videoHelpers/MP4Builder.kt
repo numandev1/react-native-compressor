@@ -30,13 +30,20 @@ class MP4Builder {
         fos = FileOutputStream(mp4Movie.getCacheFile())
         fc = fos.channel
 
-        val fileTypeBox: FileTypeBox = createFileTypeBox()
-        fileTypeBox.getBox(fc)
-        dataOffset += fileTypeBox.size
-        wroteSinceLastMdat = dataOffset
+        // Streams are open now; if header writing throws, the caller never gets
+        // a reference to close, so release them here before rethrowing.
+        try {
+            val fileTypeBox: FileTypeBox = createFileTypeBox()
+            fileTypeBox.getBox(fc)
+            dataOffset += fileTypeBox.size
+            wroteSinceLastMdat = dataOffset
 
-        mdat = Mdat()
-        sizeBuffer = ByteBuffer.allocateDirect(4)
+            mdat = Mdat()
+            sizeBuffer = ByteBuffer.allocateDirect(4)
+        } catch (e: Exception) {
+            close()
+            throw e
+        }
 
         return this
     }
@@ -131,6 +138,19 @@ class MP4Builder {
         fos.close()
     }
 
+    // Close the underlying file streams without finalizing the movie. Used on
+    // failure paths where finishMovie() never runs, so the FileOutputStream and
+    // its FileChannel opened in createMovie() don't leak. Safe to call when
+    // createMovie() failed early (streams not yet initialized) and idempotent.
+    fun close() {
+        if (::fc.isInitialized) {
+            runCatching { fc.close() }
+        }
+        if (::fos.isInitialized) {
+            runCatching { fos.close() }
+        }
+    }
+
     private fun createFileTypeBox(): FileTypeBox {
         // completed list can be found at https://www.ftyps.com/
         val minorBrands = listOf(
@@ -188,6 +208,18 @@ class MP4Builder {
 
         for (track in movie.getTracks()) {
             movieBox.addBox(createTrackBox(track, movie))
+        }
+
+        // Preserve source GPS metadata. MediaMetadataRetriever and most
+        // gallery apps read the Apple "©xyz" box inside moov/udta, so any
+        // ISO 6709 string passed in is written there verbatim.
+        val location = movie.getLocation()
+        if (!location.isNullOrEmpty()) {
+            val udta = UserDataBox()
+            val xyz = LocationBox()
+            xyz.location = location
+            udta.addBox(xyz)
+            movieBox.addBox(udta)
         }
 
         return movieBox

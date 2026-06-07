@@ -24,7 +24,7 @@ object AutoVideoCompression {
                 val actualHeight = VideoCompressorHelper.getMetadataInt(metaRetriever, MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)
                 val actualWidth = VideoCompressorHelper.getMetadataInt(metaRetriever, MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)
                 val bitrate = VideoCompressorHelper.getMetadataInt(metaRetriever, MediaMetadataRetriever.METADATA_KEY_BITRATE)
-                val frameRate = VideoCompressorHelper.getMetadataInt(metaRetriever, MediaMetadataRetriever.METADATA_KEY_CAPTURE_FRAMERATE)
+                val frameRate = VideoCompressorHelper.getSourceFrameRate(metaRetriever)
                 if (actualHeight <= 0 || actualWidth <= 0) {
                     promise.reject(Throwable("Failed to read the input video dimensions"))
                     return

@@ -195,6 +195,10 @@ object Compressor {
       // Create a cache file for the compressed video
       val cacheFile = File(destination)
 
+      // Hoisted so the outer catch can close the muxer even though the val
+      // below is scoped to the try. Stays null until createMovie() succeeds.
+      var muxer: MP4Builder? = null
+
       try {
         // MediaCodec accesses encoder and decoder components and processes the new video
         // input to generate a compressed/smaller size video
@@ -225,6 +229,7 @@ object Compressor {
 
         // MediaMuxer outputs MP4 in this app
         val mediaMuxer = MP4Builder().createMovie(movie)
+        muxer = mediaMuxer
 
         val outputFormat: MediaFormat =
           MediaFormat.createVideoFormat(MIME_TYPE, newWidth, newHeight)
@@ -506,6 +511,9 @@ object Compressor {
             outputSurfaceRef,
             extractor
           )
+          // finishMovie() never runs on this path, so close the MP4Builder
+          // streams explicitly or the output file handle leaks.
+          mediaMuxer.close()
           return Result(id, success = false, failureMessage = exception.message)
         }
 
@@ -532,11 +540,18 @@ object Compressor {
           mediaMuxer.finishMovie()
         } catch (e: Throwable) {
           printException(e)
+          // finishMovie() may throw before it closes its own streams; close
+          // them here so a finalize failure doesn't leak the file handle.
+          mediaMuxer.close()
           return Result(id, success = false, failureMessage = e.message ?: "Failed to finalize compressed video")
         }
 
       } catch (exception: Throwable) {
         printException(exception)
+        // Covers throws after the inner pipeline closed (e.g. processAudio,
+        // extractor.release) where the MP4Builder is still open. close() is
+        // idempotent, so calling it after a successful finishMovie() is a no-op.
+        muxer?.close()
         return Result(id, success = false, failureMessage = exception.message)
       }
 

@@ -105,6 +105,15 @@ android {
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
         }
     }
+
+    lint {
+        // The example app merges manifests from third-party deps (react-native-video's
+        // VideoPlaybackService, media/camera permissions from the image & video pickers),
+        // which trip these checks. They are not our library's code; silence just these so
+        // the "Validate Android" lint job isn't blocked by dependency manifests.
+        disable.add("NotificationPermission")
+        disable.add("PermissionImpliesUnsupportedChromeOsHardware")
+    }
 }
 
 dependencies {

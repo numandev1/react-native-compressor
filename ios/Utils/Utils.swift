@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import React
 
 class Utils {
     static func generateCacheFilePath(_ extension: String) -> String {

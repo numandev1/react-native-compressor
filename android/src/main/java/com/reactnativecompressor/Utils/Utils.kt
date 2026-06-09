@@ -134,7 +134,7 @@ object Utils {
       if (fileSize >= 0) {
         promise.resolve(fileSize.toString())
       } else {
-        promise.resolve("")
+        promise.reject("FILE_SIZE_ERROR", "Failed to get file size for path: $filePath")
       }
     }
   }

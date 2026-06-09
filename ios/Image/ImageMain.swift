@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import React
 class ImageMain {
     static func image_compress(_ value: String, optionMap: NSDictionary, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
         do {

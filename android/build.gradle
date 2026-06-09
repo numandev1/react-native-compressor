@@ -1,5 +1,5 @@
 buildscript {
-   // Buildscript is evaluated before everything else so we can't use getExtOrDefault
+  // Buildscript is evaluated before everything else so we can't use getExtOrDefault
   def kotlin_version = rootProject.ext.has("kotlinVersion") ? rootProject.ext.get("kotlinVersion") : project.properties["Compressor_kotlinVersion"]
 
   repositories {
@@ -8,25 +8,21 @@ buildscript {
   }
 
   dependencies {
-    classpath "com.android.tools.build:gradle:7.2.1"
+    classpath "com.android.tools.build:gradle:9.2.1"
     // noinspection DifferentKotlinGradleVersion
     classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
   }
 }
 
-def isNewArchitectureEnabled() {
-  return rootProject.hasProperty("newArchEnabled") && rootProject.getProperty("newArchEnabled") == "true"
+def reactNativeArchitectures() {
+  def value = rootProject.getProperties().get("reactNativeArchitectures")
+  return value ? value.split(",") : ["armeabi-v7a", "x86", "x86_64", "arm64-v8a"]
 }
 
 apply plugin: "com.android.library"
 apply plugin: "kotlin-android"
-
-
-def appProject = rootProject.allprojects.find { it.plugins.hasPlugin('com.android.application') }
-
-if (isNewArchitectureEnabled()) {
-  apply plugin: "com.facebook.react"
-}
+// Nitrogen: registers the generated Kotlin sources with this Gradle project.
+apply from: '../nitrogen/generated/android/NitroCompressor+autolinking.gradle'
 
 def getExtOrDefault(name) {
   return rootProject.ext.has(name) ? rootProject.ext.get(name) : project.properties["Compressor_" + name]
@@ -36,40 +32,62 @@ def getExtOrIntegerDefault(name) {
   return rootProject.ext.has(name) ? rootProject.ext.get(name) : (project.properties["Compressor_" + name]).toInteger()
 }
 
-def supportsNamespace() {
-  def parsed = com.android.Version.ANDROID_GRADLE_PLUGIN_VERSION.tokenize('.')
-  def major = parsed[0].toInteger()
-  def minor = parsed[1].toInteger()
-
-  // Namespace support was added in 7.3.0
-  if (major == 7 && minor >= 3) {
-    return true
-  }
-
-  return major >= 8
-}
-
 android {
-  if (supportsNamespace()) {
-    namespace "com.reactnativecompressor"
+  namespace "com.reactnativecompressor"
 
-    sourceSets {
-      main {
-        manifest.srcFile "src/main/AndroidManifestNew.xml"
-      }
+  ndkVersion getExtOrDefault("ndkVersion")
+  compileSdkVersion getExtOrIntegerDefault("compileSdkVersion")
+
+  sourceSets {
+    main {
+      manifest.srcFile "src/main/AndroidManifestNew.xml"
     }
   }
-
-  compileSdkVersion getExtOrIntegerDefault("compileSdkVersion")
 
   defaultConfig {
     minSdkVersion getExtOrIntegerDefault("minSdkVersion")
     targetSdkVersion getExtOrIntegerDefault("targetSdkVersion")
-    buildConfigField "boolean", "IS_NEW_ARCHITECTURE_ENABLED", isNewArchitectureEnabled().toString()
+
+    externalNativeBuild {
+      cmake {
+        cppFlags "-frtti -fexceptions -Wall -Wextra -fstack-protector-all -std=c++20"
+        arguments "-DANDROID_STL=c++_shared", "-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON"
+        abiFilters(*reactNativeArchitectures())
+      }
+    }
   }
+
+  externalNativeBuild {
+    cmake {
+      path "CMakeLists.txt"
+    }
+  }
+
   buildFeatures {
-    buildConfig true
+    prefab true
   }
+
+  packagingOptions {
+    excludes = [
+      "META-INF",
+      "META-INF/**",
+      "**/libc++_shared.so",
+      "**/libfbjni.so",
+      "**/libjsi.so",
+      "**/libfolly_json.so",
+      "**/libfolly_runtime.so",
+      "**/libglog.so",
+      "**/libhermes.so",
+      "**/libhermes-executor-debug.so",
+      "**/libhermes_executor.so",
+      "**/libreactnative.so",
+      "**/libreactnativejni.so",
+      "**/libturbomodulejsijni.so",
+      "**/libreact_nativemodule_core.so",
+      "**/libjscexecutor.so"
+    ]
+  }
+
   buildTypes {
     release {
       minifyEnabled false
@@ -81,22 +99,8 @@ android {
   }
 
   compileOptions {
-    sourceCompatibility JavaVersion.VERSION_11
-    targetCompatibility JavaVersion.VERSION_11
-  }
-
-  sourceSets {
-    main {
-      if (isNewArchitectureEnabled()) {
-        java.srcDirs += [
-          "src/newarch",
-          // This is needed to build Kotlin project with NewArch enabled
-          "${project.buildDir}/generated/source/codegen/java"
-        ]
-      } else {
-        java.srcDirs += ["src/oldarch"]
-      }
-    }
+    sourceCompatibility JavaVersion.VERSION_17
+    targetCompatibility JavaVersion.VERSION_17
   }
 }
 
@@ -114,18 +118,12 @@ dependencies {
   //noinspection GradleDynamicVersion
   implementation "com.facebook.react:react-native:+"
   implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
+  // Nitro core (provided as a Gradle subproject by autolinking).
+  implementation project(":react-native-nitro-modules")
 
   implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4"
   implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.4"
   implementation 'org.mp4parser:isoparser:1.9.56'
   implementation 'com.github.kaushik-naik:TAndroidLame:277c2ab4b0'
   implementation 'javazoom:jlayer:1.0.1'
-}
-
-if (isNewArchitectureEnabled()) {
-  react {
-    jsRootDir = file("../src/")
-    libraryName = "Compressor"
-    codegenJavaPackageName = "com.reactnativecompressor"
-  }
 }

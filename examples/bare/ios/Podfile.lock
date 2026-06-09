@@ -3,6 +3,29 @@ PODS:
   - hermes-engine (250829098.0.10):
     - hermes-engine/Pre-built (= 250829098.0.10)
   - hermes-engine/Pre-built (250829098.0.10)
+  - NitroModules (0.35.9):
+    - hermes-engine
+    - RCTRequired
+    - RCTTypeSafety
+    - React-callinvoker
+    - React-Core
+    - React-Core-prebuilt
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - ReactNativeDependencies
+    - Yoga
   - RCTDeprecation (0.85.2)
   - RCTRequired (0.85.2)
   - RCTSwiftUI (0.85.2)
@@ -1384,8 +1407,9 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
-  - react-native-compressor (1.18.1):
+  - react-native-compressor (1.19.0):
     - hermes-engine
+    - NitroModules
     - RCTRequired
     - RCTTypeSafety
     - React-Core
@@ -2280,6 +2304,7 @@ PODS:
 DEPENDENCIES:
   - FBLazyVector (from `../node_modules/react-native/Libraries/FBLazyVector`)
   - hermes-engine (from `../node_modules/react-native/sdks/hermes-engine/hermes-engine.podspec`)
+  - NitroModules (from `../node_modules/react-native-nitro-modules`)
   - RCTDeprecation (from `../node_modules/react-native/ReactApple/Libraries/RCTFoundation/RCTDeprecation`)
   - RCTRequired (from `../node_modules/react-native/Libraries/Required`)
   - RCTSwiftUI (from `../node_modules/react-native/ReactApple/RCTSwiftUI`)
@@ -2372,6 +2397,8 @@ EXTERNAL SOURCES:
   hermes-engine:
     :podspec: "../node_modules/react-native/sdks/hermes-engine/hermes-engine.podspec"
     :tag: hermes-v250829098.0.10
+  NitroModules:
+    :path: "../node_modules/react-native-nitro-modules"
   RCTDeprecation:
     :path: "../node_modules/react-native/ReactApple/Libraries/RCTFoundation/RCTDeprecation"
   RCTRequired:
@@ -2543,7 +2570,8 @@ EXTERNAL SOURCES:
 
 SPEC CHECKSUMS:
   FBLazyVector: 26fd21c75314e101f280d401e97f27d54f3f7064
-  hermes-engine: eaa65d42895b52c6d680c0aebfccfa50baccce3d
+  hermes-engine: 0b984fdb4f1be8bb5220ab64fb47ccd0f65ee20d
+  NitroModules: 16bc17a076b12304d608f7c915b9d321f56dfc19
   RCTDeprecation: c7a2768f905d76ca6d2cfefb26e4349eacbdfca3
   RCTRequired: 5e502c3553cfbed090a991c444448da452fb752e
   RCTSwiftUI: 5ce3ccbdc58b78cc4ebbaace01709ec22d58e131
@@ -2552,7 +2580,7 @@ SPEC CHECKSUMS:
   React: 13cf8451582adb1bb324306e1893b91d1cba28c6
   React-callinvoker: 91e6a605826b684ad2e623811253b4d0c4196bef
   React-Core: 46818de5f211b2a2759ac823b591af8a0a95c2c1
-  React-Core-prebuilt: 7393118ba8d9419fbaf6e4083c2ede4837d5d29c
+  React-Core-prebuilt: 4c2f625ecba9bf71d16289246364b3b05af8fff7
   React-CoreModules: a6a37afee48d4a31ab398640b0795462647d5c67
   React-cxxreact: 2ec3e2f7a8ae9303460d4ba94cde183ea90d64cd
   React-debug: 0d21117b897ce0359c9d2c9dfe952f237476a14a
@@ -2581,7 +2609,7 @@ SPEC CHECKSUMS:
   React-Mapbuffer: 1fc10d873f00aa895836c316a9737ce7d43875ce
   React-microtasksnativemodule: 85ac7286ff84e8fc8e1956233748b8d4b2a6dcea
   react-native-cameraroll: 4d4fcff8a057235ce7a9f57d4566409207216a86
-  react-native-compressor: baa9ad85164b535ecbb2a930e89fb8172cd19575
+  react-native-compressor: de8424f653a4d0ff70ebf0a74dc718a277c7b103
   react-native-document-picker: 15cca2d1a6bfb6d0d3ff0283bd9b903e57cb028b
   react-native-get-random-values: 68792987aef40e8aa72dc448d97e009d1f440c88
   react-native-image-picker: 23540feacc79c63c60857f318fdfa8477c26e70a
@@ -2620,7 +2648,7 @@ SPEC CHECKSUMS:
   ReactAppDependencyProvider: 22e2265d86a4e871e5e858f4e7ef1c8d01103680
   ReactCodegen: 5bd23df5c8ad6c87df0bc8ccd391bd37bf6c92d5
   ReactCommon: a804bb8d1dcf3ecdec3a77eb8bba19b7863bbbdb
-  ReactNativeDependencies: a17cceda80e02709ea6124c4abae3917dc3aa06b
+  ReactNativeDependencies: 8f281fcd80f3731161fae0a4c851c09bb2a5e79a
   ReactNativeFs: 21026144ac71a65acf6855c52b1a8eb31012bb5d
   RNCMaskedView: eb2b2e538afa907f05a5848a1a1ac26092e6fec9
   RNReanimated: c4e6659e58b793885ae6da476cb514fc913e7b85

@@ -7,6 +7,7 @@
 
 import Foundation
 import MobileCoreServices
+import React
 
 enum UploaderUploadType: Int {
     case UploaderInvalidType = -1

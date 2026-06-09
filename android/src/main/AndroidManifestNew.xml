@@ -1,2 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- activateBackgroundTask acquires a PARTIAL_WAKE_LOCK; declare it here so it
+         merges into consuming apps (otherwise wakeLock.acquire() throws SecurityException). -->
+    <uses-permission android:name="android.permission.WAKE_LOCK"/>
 </manifest>

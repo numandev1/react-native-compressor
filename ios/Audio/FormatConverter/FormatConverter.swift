@@ -19,7 +19,9 @@ import AVFoundation
  }
  ```
  */
-public class FormatConverter {
+// `internal` (not `public`): keeps these types out of the Swift↔C++ interop surface
+// that Nitro enables module-wide, which otherwise fails to link the nested `Options` type.
+class FormatConverter {
     // MARK: - properties
 
     /// The source audio file
@@ -122,7 +124,7 @@ public class FormatConverter {
 
 // MARK: - Definitions
 
-public enum AudioFileFormat: String {
+enum AudioFileFormat: String {
     case aac
     case aif
     case aifc
@@ -141,7 +143,7 @@ public enum AudioFileFormat: String {
     case wav
 }
 
-public extension FormatConverter {
+extension FormatConverter {
 
     /// FormatConverterCallback is the callback format for start()
     /// - Parameter: error This will contain one parameter of type Error which is nil if the conversion was successful.

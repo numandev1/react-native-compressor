@@ -4,3 +4,15 @@ extensions.configure(com.facebook.react.ReactSettingsExtension){ ex -> ex.autoli
 rootProject.name = 'BareExample'
 include ':app'
 includeBuild('../node_modules/@react-native/gradle-plugin')
+
+// The "Validate Android" CI job runs `./gradlew lint`, which lints every
+// autolinked subproject — including third-party deps. react-native-video trips
+// the `WrongThread` check (ReactExoplayerView.getVideoTrackInfoFromManifest),
+// which is not our code and aborts the lint build. Disable just that one check
+// on Android library subprojects. Registered here (before any project is
+// evaluated) so AGP hasn't locked the lint DSL by the time we add to it.
+gradle.beforeProject { project ->
+    project.plugins.withId("com.android.library") {
+        project.android.lint.disable.add("WrongThread")
+    }
+}

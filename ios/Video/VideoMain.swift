@@ -3,7 +3,6 @@ import AVFoundation
 import Photos
 import MobileCoreServices
 import UIKit
-import React
 
 struct CompressionError: Error {
   private let message: String

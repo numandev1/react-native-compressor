@@ -12,7 +12,14 @@
 
 import Foundation
 import NitroModules
-import React
+
+// Previously imported from React. We define them locally so this Swift module no
+// longer needs to `import React`: under Nitro's Swift↔C++ interop, importing
+// React pulls move-only C++ types (e.g. jsinspector's RuntimeSamplingProfile)
+// into Swift's importer and fails to compile. These blocks are created here and
+// consumed by the domain layer entirely in Swift, so plain closures suffice.
+typealias RCTPromiseResolveBlock = (Any?) -> Void
+typealias RCTPromiseRejectBlock = (String?, String?, (any Error)?) -> Void
 
 private let videoCompressor = VideoCompressor()
 private let uploader = Uploader()

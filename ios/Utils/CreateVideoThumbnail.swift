@@ -8,7 +8,6 @@
 import Foundation
 import AVFoundation
 import UIKit
-import React
 
 class CreateVideoThumbnail: NSObject {
   private static let defaultQuality = 0.9

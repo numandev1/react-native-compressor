@@ -49,16 +49,19 @@ object CompressorUtils {
   }
 
   /**
-   * Set up an Mp4Movie with rotation and cache file.
+   * Set up an Mp4Movie with rotation, cache file and optional ISO 6709
+   * location string forwarded from the source video.
    */
   fun setUpMP4Movie(
     rotation: Int,
     cacheFile: File,
+    location: String? = null,
   ): Mp4Movie {
     val movie = Mp4Movie()
     movie.apply {
       setCacheFile(cacheFile)
       setRotation(rotation)
+      setLocation(location)
     }
     return movie
   }
@@ -71,6 +74,7 @@ object CompressorUtils {
     outputFormat: MediaFormat,
     newBitrate: Int,
     targetFrameRate: Int,
+    applyThroughputTuning: Boolean = true,
   ) {
     val newFrameRate = targetFrameRate.coerceAtLeast(1)
     val iFrameInterval = getIFrameIntervalRate(inputFormat)
@@ -84,10 +88,25 @@ object CompressorUtils {
       setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, iFrameInterval)
       // Bitrate in bits per second
       setInteger(MediaFormat.KEY_BIT_RATE, newBitrate)
-      setInteger(
-        MediaFormat.KEY_BITRATE_MODE,
-        MediaCodecInfo.EncoderCapabilities.BITRATE_MODE_CBR
-      )
+
+      // Throughput tuning. Some encoders reject these keys at configure() time,
+      // so the caller drops them (applyThroughputTuning = false) and reconfigures
+      // with default rate control on a fallback pass — see Compressor.prepareEncoder.
+      if (applyThroughputTuning) {
+        // VBR transcodes ~10-20% faster than CBR by skipping rate-control overhead
+        // on low-motion frames; quality stays equivalent for short-form video.
+        setInteger(
+          MediaFormat.KEY_BITRATE_MODE,
+          MediaCodecInfo.EncoderCapabilities.BITRATE_MODE_VBR
+        )
+        // Hint the hardware codec to run as fast as it can (not throttled to
+        // realtime playback) and at the highest scheduling priority. These keys
+        // unlock full throughput on Qualcomm / Exynos / MTK SoCs that accept them.
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+          setInteger(MediaFormat.KEY_PRIORITY, 0)
+          setInteger(MediaFormat.KEY_OPERATING_RATE, Short.MAX_VALUE.toInt())
+        }
+      }
 
       getColorStandard(inputFormat)?.let {
         setInteger(MediaFormat.KEY_COLOR_STANDARD, it)

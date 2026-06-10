@@ -100,6 +100,29 @@ class VideoCompressorHelper {
                 ?: 0
         }
 
+        /**
+         * Derive the source video frame rate. METADATA_KEY_CAPTURE_FRAMERATE
+         * is only populated for slow-motion captures, so most regular videos
+         * return 0 and downstream code falls back to a hard-coded 30 fps —
+         * which silently halves the frame count of any 60 fps source and
+         * produces visibly choppy output.
+         *
+         * Strategy: trust CAPTURE_FRAMERATE when present, otherwise compute
+         * fps from frame count / duration (API 28+ exposes the frame count
+         * via METADATA_KEY_VIDEO_FRAME_COUNT). Returns 0 if neither path
+         * yields a usable value.
+         */
+        fun getSourceFrameRate(metaRetriever: MediaMetadataRetriever): Int {
+            val capture = getMetadataInt(metaRetriever, MediaMetadataRetriever.METADATA_KEY_CAPTURE_FRAMERATE)
+            if (capture > 0) return capture
+
+            val frameCount = getMetadataInt(metaRetriever, MediaMetadataRetriever.METADATA_KEY_VIDEO_FRAME_COUNT)
+            val durationMs = getMetadataInt(metaRetriever, MediaMetadataRetriever.METADATA_KEY_DURATION)
+            if (frameCount <= 0 || durationMs <= 0) return 0
+            val fps = (frameCount.toLong() * 1000L / durationMs.toLong()).toInt()
+            return fps.coerceIn(0, 240)
+        }
+
         fun VideoCompressManual(fileUrl: String?, options: VideoCompressorHelper, promise: Promise, reactContext: ReactApplicationContext?) {
             try {
                 val uri = Uri.parse(fileUrl)
@@ -110,7 +133,7 @@ class VideoCompressorHelper {
                 val height = getMetadataInt(metaRetriever, MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)
                 val width = getMetadataInt(metaRetriever, MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)
                 val bitrate = getMetadataInt(metaRetriever, MediaMetadataRetriever.METADATA_KEY_BITRATE)
-                val frameRate = getMetadataInt(metaRetriever, MediaMetadataRetriever.METADATA_KEY_CAPTURE_FRAMERATE)
+                val frameRate = getSourceFrameRate(metaRetriever)
                 if (height <= 0 || width <= 0) {
                     promise.reject(Throwable("Failed to read the input video dimensions"))
                     return

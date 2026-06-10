@@ -11,12 +11,19 @@ class Mp4Movie {
     private var matrix = Matrix.ROTATE_0
     private val tracks = ArrayList<Track>()
     private var cacheFile: File? = null
+    private var location: String? = null
 
     fun getMatrix(): Matrix? = matrix
 
     fun setCacheFile(file: File) {
         cacheFile = file
     }
+
+    fun setLocation(value: String?) {
+        location = value
+    }
+
+    fun getLocation(): String? = location
 
     fun setRotation(angle: Int) {
         when (angle) {

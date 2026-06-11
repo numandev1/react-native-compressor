@@ -13,7 +13,9 @@ public enum NextLevelSessionExporterError: Error, CustomStringConvertible {
     case readingFailure
     case writingFailure
     case cancelled
-    
+    case unsupportedVideoOutputConfiguration
+    case missingVideoTrackInOutput
+
     public var description: String {
         get {
             switch self {
@@ -25,6 +27,10 @@ public enum NextLevelSessionExporterError: Error, CustomStringConvertible {
                 return "Writing failure"
             case .cancelled:
                 return "Cancelled"
+            case .unsupportedVideoOutputConfiguration:
+                return "The writer rejected the video output configuration"
+            case .missingVideoTrackInOutput:
+                return "Export finished without a video track in the output"
             }
         }
     }
@@ -249,7 +255,16 @@ extension NextLevelSessionExporter {
             }
         }
         
-        self.setupVideoOutput(withAsset: asset)
+        // Fail loudly when the writer rejects the video output configuration.
+        // Continuing here used to export only the audio track and still resolve
+        // as a success (issue #400).
+        guard self.setupVideoOutput(withAsset: asset) else {
+            DispatchQueue.main.async {
+                self._completionHandler?(.failure(NextLevelSessionExporterError.unsupportedVideoOutputConfiguration))
+                self._completionHandler = nil
+            }
+            return
+        }
         if !self.stripAudio {
             self.setupAudioOutput(withAsset: asset)
             self.setupAudioInput()
@@ -316,11 +331,14 @@ extension NextLevelSessionExporter {
 
 extension NextLevelSessionExporter {
     
-    private func setupVideoOutput(withAsset asset: AVAsset) {
+    /// Returns `false` when the asset has video tracks but a video writer input
+    /// could not be created — exporting would silently produce an audio-only
+    /// file (see numandev1/react-native-compressor#400).
+    private func setupVideoOutput(withAsset asset: AVAsset) -> Bool {
         let videoTracks = asset.tracks(withMediaType: AVMediaType.video)
-        
+
         guard videoTracks.count > 0 else {
-            return
+            return true
         }
         
         self._videoOutput = AVAssetReaderVideoCompositionOutput(videoTracks: videoTracks, videoSettings: self.videoInputConfiguration)
@@ -344,8 +362,8 @@ extension NextLevelSessionExporter {
             self._videoInput = AVAssetWriterInput(mediaType: AVMediaType.video, outputSettings: self.videoOutputConfiguration)
             self._videoInput?.expectsMediaDataInRealTime = self.expectsMediaDataInRealTime
         } else {
-            print("Unsupported output configuration")
-            return
+            print("NextLevelSessionExporter, unsupported video output configuration, failing export instead of writing an audio-only file")
+            return false
         }
         
         if let writer = self._writer,
@@ -367,8 +385,9 @@ extension NextLevelSessionExporter {
             
             self._pixelBufferAdaptor = AVAssetWriterInputPixelBufferAdaptor(assetWriterInput: videoInput, sourcePixelBufferAttributes: pixelBufferAttrib)
         }
+        return true
     }
-    
+
     private func setupAudioOutput(withAsset asset: AVAsset) {
         let audioTracks = asset.tracks(withMediaType: AVMediaType.audio)
         var audioTracksToUse: [AVAssetTrack] = []
@@ -630,6 +649,22 @@ extension NextLevelSessionExporter {
         default:
             // do nothing
             break
+        }
+
+        // Guard against silently returning an audio-only file: when the source
+        // has a video track and a video output was configured, the exported file
+        // must contain a video track as well. A configuration the encoder rejects
+        // at write time can still end with `.completed` while the video track is
+        // dropped (issue #400) — surface that as an error instead of a success.
+        if self.videoOutputConfiguration != nil,
+           let asset = self.asset,
+           let outputURL = self.outputURL,
+           asset.tracks(withMediaType: AVMediaType.video).count > 0,
+           AVAsset(url: outputURL).tracks(withMediaType: AVMediaType.video).count == 0 {
+            try? FileManager.default.removeItem(at: outputURL)
+            self._completionHandler?(.failure(NextLevelSessionExporterError.missingVideoTrackInOutput))
+            self._completionHandler = nil
+            return
         }
 
         self._completionHandler?(.success(self.status))

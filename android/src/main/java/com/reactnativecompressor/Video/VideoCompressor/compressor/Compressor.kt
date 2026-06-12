@@ -788,32 +788,21 @@ object Compressor {
         inputFormat: MediaFormat,
         outputSurface: OutputSurface,
     ): MediaCodec {
-        val originalMime = inputFormat.getString(MediaFormat.KEY_MIME)!!
+        // Some inputs (e.g. iPhone .MOV files) report a "video/dolby-vision" MIME
+        // type that many devices cannot decode. Remap to a decodable base-layer
+        // codec, or fail with a clear error, before creating the decoder (#398).
+        ensureDecodableVideoFormat(inputFormat)
 
-        // Dolby Vision (video/dolby-vision) has no standalone decoder on most Android
-        // devices and throws NAME_NOT_FOUND. Profiles 8.1/8.4 carry an HEVC base layer
-        // that the standard HEVC decoder can render, so we remap them to HEVC. Profile 5
-        // has no compatible base layer; it is rejected by isUnsupportedDolbyVision() in
-        // start() before any codec/surface is created, so it never reaches here.
-        val resolvedMime = if (originalMime.equals("video/dolby-vision", ignoreCase = true)) {
-            inputFormat.setString(MediaFormat.KEY_MIME, MediaFormat.MIMETYPE_VIDEO_HEVC)
-            MediaFormat.MIMETYPE_VIDEO_HEVC
-        } else {
-            originalMime
+        // Clear Dolby Vision specific profile and level to prevent configuration failures
+        // when the MIME type has been remapped to AVC/HEVC.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            inputFormat.removeKey(MediaFormat.KEY_PROFILE)
+            inputFormat.removeKey(MediaFormat.KEY_LEVEL)
         }
 
-        val decoder = MediaCodec.createDecoderByType(resolvedMime)
+        val decoder = MediaCodec.createDecoderByType(inputFormat.getString(MediaFormat.KEY_MIME)!!)
 
-        try {
-            decoder.configure(inputFormat, outputSurface.getSurface(), null, 0)
-        } catch (e: Exception) {
-            // A codec that throws from configure() is unusable; release it so a
-            // configure failure here doesn't leak the decoder handle.
-            runCatching { decoder.release() }
-            throw e
-        }
-
-        Log.i("Compressor", "decoder selected: ${decoder.name} mime=$resolvedMime")
+        decoder.configure(inputFormat, outputSurface.getSurface(), null, 0)
 
         return decoder
     }

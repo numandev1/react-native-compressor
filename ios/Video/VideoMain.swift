@@ -2,6 +2,7 @@ import Foundation
 import AVFoundation
 import Photos
 import MobileCoreServices
+import UIKit
 
 struct CompressionError: Error {
   private let message: String

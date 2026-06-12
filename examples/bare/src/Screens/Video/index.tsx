@@ -48,7 +48,7 @@ export default function App() {
     (async () => {
       const detail: any = await getFileInfo(sourceVideo);
       setSourceSize(prettyBytes(parseInt(detail.size, 10)));
-    })();
+    })().catch((error) => console.log({ sourceSizeError: error }));
   }, [sourceVideo]);
 
   useEffect(() => {

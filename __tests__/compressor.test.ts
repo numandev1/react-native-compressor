@@ -1,6 +1,3 @@
-const mockListeners: Record<string, Array<(event: unknown) => void>> = {};
-const mockSubscriptions: Array<{ remove: jest.Mock }> = [];
-
 // These unit tests validate the JavaScript wrapper contract. The native
 // Compressor module is mocked, so real media decoding must be smoke-tested
 // in an example app on a simulator or device.
@@ -27,30 +24,19 @@ const localVideoUri = 'file:///tmp/react-native-compressor/input-video.mp4';
 const localImageUri = 'file:///tmp/react-native-compressor/input-image.jpg';
 const localAudioUri = 'file:///tmp/react-native-compressor/input-audio.wav';
 
-jest.mock('react-native', () => ({
-  NativeModules: {
-    Compressor: mockCompressor,
+// The wrapper resolves the native module through Nitro instead of NativeModules.
+jest.mock('react-native-nitro-modules', () => ({
+  NitroModules: {
+    createHybridObject: jest.fn(() => mockCompressor),
   },
-  NativeEventEmitter: jest.fn().mockImplementation(() => ({
-    addListener: jest.fn((eventName: string, callback: (event: unknown) => void) => {
-      const subscription = { remove: jest.fn() };
-      mockListeners[eventName] = [...(mockListeners[eventName] ?? []), callback];
-      mockSubscriptions.push(subscription);
-      return subscription;
-    }),
-    removeAllListeners: jest.fn((eventName: string) => {
-      mockListeners[eventName] = [];
-    }),
-  })),
+}));
+
+jest.mock('react-native', () => ({
   Platform: {
     OS: 'ios',
     select: jest.fn((options: Record<string, string>) => options.ios ?? options.default),
   },
 }));
-
-const emitNativeEvent = (eventName: string, event: unknown) => {
-  (mockListeners[eventName] ?? []).forEach((callback) => callback(event));
-};
 
 describe('react-native-compressor JS wrapper API', () => {
   let api: typeof import('../src');
@@ -58,10 +44,6 @@ describe('react-native-compressor JS wrapper API', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    Object.keys(mockListeners).forEach((eventName) => {
-      mockListeners[eventName] = [];
-    });
-    mockSubscriptions.length = 0;
     reactNative = require('react-native');
     reactNative.Platform.OS = 'ios';
     api = require('../src');
@@ -96,16 +78,9 @@ describe('react-native-compressor JS wrapper API', () => {
     expect(api.UploaderHttpMethod.PATCH).toBe('PATCH');
   });
 
-  it('compresses images, strips base64 headers, forwards progress, and removes listeners', async () => {
-    mockCompressor.image_compress.mockImplementation(async (_value, options) => {
-      emitNativeEvent('downloadProgress', {
-        uuid: options.uuid,
-        data: { progress: 55 },
-      });
-      emitNativeEvent('downloadProgress', {
-        uuid: 'other-id',
-        data: { progress: 99 },
-      });
+  it('compresses images, strips base64 headers, and forwards download progress', async () => {
+    mockCompressor.image_compress.mockImplementation(async (_value, _options, onDownloadProgress) => {
+      onDownloadProgress?.(55);
       return 'file://compressed-image.jpg';
     });
     const downloadProgress = jest.fn();
@@ -117,16 +92,9 @@ describe('react-native-compressor JS wrapper API', () => {
       }),
     ).resolves.toBe('file://compressed-image.jpg');
 
-    expect(mockCompressor.image_compress).toHaveBeenCalledWith(
-      'abc123',
-      expect.objectContaining({
-        quality: 0.7,
-        uuid: expect.any(String),
-      }),
-    );
+    expect(mockCompressor.image_compress).toHaveBeenCalledWith('abc123', expect.objectContaining({ quality: 0.7 }), expect.any(Function));
     expect(downloadProgress).toHaveBeenCalledWith(55);
     expect(downloadProgress).toHaveBeenCalledTimes(1);
-    expect(mockSubscriptions.at(-1)?.remove).toHaveBeenCalledTimes(1);
   });
 
   it('rejects empty image compression input before calling native code', async () => {
@@ -134,16 +102,10 @@ describe('react-native-compressor JS wrapper API', () => {
     expect(mockCompressor.image_compress).not.toHaveBeenCalled();
   });
 
-  it('compresses videos with defaults, cancellation id, progress callbacks, and listener cleanup', async () => {
-    mockCompressor.compress.mockImplementation(async (_fileUrl, options) => {
-      emitNativeEvent('videoCompressProgress', {
-        uuid: options.uuid,
-        data: { progress: 22 },
-      });
-      emitNativeEvent('downloadProgress', {
-        uuid: options.uuid,
-        data: { progress: 33 },
-      });
+  it('compresses videos with defaults, cancellation id, and progress callbacks', async () => {
+    mockCompressor.compress.mockImplementation(async (_fileUrl, _options, onProgress, onDownloadProgress) => {
+      onProgress?.(22);
+      onDownloadProgress?.(33);
       return 'file://compressed-video.mp4';
     });
     const onProgress = jest.fn();
@@ -172,13 +134,12 @@ describe('react-native-compressor JS wrapper API', () => {
         maxSize: 640,
         stripAudio: true,
       }),
+      expect.any(Function),
+      expect.any(Function),
     );
     expect(getCancellationId).toHaveBeenCalledWith(expect.any(String));
     expect(onProgress).toHaveBeenCalledWith(22);
     expect(downloadProgress).toHaveBeenCalledWith(33);
-    mockSubscriptions.slice(-2).forEach((subscription) => {
-      expect(subscription.remove).toHaveBeenCalledTimes(1);
-    });
   });
 
   it('forwards manual video compression options and minimum file size', async () => {
@@ -199,12 +160,14 @@ describe('react-native-compressor JS wrapper API', () => {
         minimumFileSizeForCompress: 10,
         progressDivider: 5,
       }),
+      undefined,
+      undefined,
     );
   });
 
   it('proxies video cancellation and background task lifecycle', async () => {
-    mockCompressor.activateBackgroundTask.mockImplementation(async () => {
-      emitNativeEvent('backgroundTaskExpired', { expired: true });
+    mockCompressor.activateBackgroundTask.mockImplementation(async (_options, onExpired) => {
+      onExpired?.();
       return 'activated';
     });
     mockCompressor.deactivateBackgroundTask.mockResolvedValue('deactivated');
@@ -215,9 +178,9 @@ describe('react-native-compressor JS wrapper API', () => {
     await expect(api.Video.deactivateBackgroundTask()).resolves.toBe('deactivated');
 
     expect(mockCompressor.cancelCompression).toHaveBeenCalledWith('video-id');
-    expect(mockCompressor.activateBackgroundTask).toHaveBeenCalledWith({});
+    expect(mockCompressor.activateBackgroundTask).toHaveBeenCalledWith({}, expect.any(Function));
     expect(mockCompressor.deactivateBackgroundTask).toHaveBeenCalledWith({});
-    expect(onExpired).toHaveBeenCalledWith({ expired: true });
+    expect(onExpired).toHaveBeenCalledWith(undefined);
   });
 
   it('compresses audio with defaults and custom options', async () => {
@@ -291,34 +254,31 @@ describe('react-native-compressor JS wrapper API', () => {
     });
   });
 
-  it('downloads files, strips Android file prefixes, reports progress, and removes listeners', async () => {
+  it('downloads files, strips Android file prefixes, and reports progress', async () => {
     reactNative.Platform.OS = 'android';
-    mockCompressor.download.mockImplementation(async (_fileUrl, options) => {
-      emitNativeEvent('downloadProgress', {
-        uuid: options.uuid,
-        data: { progress: 88 },
-      });
+    mockCompressor.download.mockImplementation(async (_fileUrl, _options, onProgress) => {
+      onProgress?.(88);
       return '/downloads/file.mp4';
     });
     const downloadProgress = jest.fn();
 
     await expect(api.download('file:///storage/input.mp4', downloadProgress, 10)).resolves.toBe('/downloads/file.mp4');
 
-    expect(mockCompressor.download).toHaveBeenCalledWith('/storage/input.mp4', {
-      uuid: expect.any(String),
-      progressDivider: 10,
-    });
+    expect(mockCompressor.download).toHaveBeenCalledWith(
+      '/storage/input.mp4',
+      {
+        uuid: expect.any(String),
+        progressDivider: 10,
+      },
+      expect.any(Function),
+    );
     expect(downloadProgress).toHaveBeenCalledWith(88);
-    expect(mockSubscriptions.at(-1)?.remove).toHaveBeenCalledTimes(1);
   });
 
   it('uploads files with options, progress, cancellation id, abort handling, and Android path normalization', async () => {
     reactNative.Platform.OS = 'android';
-    mockCompressor.upload.mockImplementation(async (_fileUrl, options) => {
-      emitNativeEvent('uploadProgress', {
-        uuid: options.uuid,
-        data: { written: 4, total: 10 },
-      });
+    mockCompressor.upload.mockImplementation(async (_fileUrl, _options, onProgress) => {
+      onProgress?.(4, 10);
       return { status: 200 };
     });
     const onProgress = jest.fn();
@@ -356,11 +316,11 @@ describe('react-native-compressor JS wrapper API', () => {
         headers: { Authorization: 'token' },
         parameters: { album: 'demo' },
       }),
+      expect.any(Function),
     );
     expect(getCancellationId).toHaveBeenCalledWith(uploadOptions.uuid);
     expect(onProgress).toHaveBeenCalledWith(4, 10);
     expect(mockCompressor.cancelUpload).toHaveBeenCalledWith(uploadOptions.uuid, false);
-    expect(mockSubscriptions.at(-1)?.remove).toHaveBeenCalledTimes(1);
   });
 
   it('cancels one upload or all uploads through the native module', () => {

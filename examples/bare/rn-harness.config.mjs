@@ -1,7 +1,7 @@
 import { androidEmulator, androidPlatform } from '@react-native-harness/platform-android';
 import { applePlatform, appleSimulator } from '@react-native-harness/platform-apple';
 
-const androidDevice = process.env.RN_HARNESS_ANDROID_DEVICE ?? 'Pixel_8_API_35';
+const androidDevice = process.env.RN_HARNESS_ANDROID_DEVICE ?? 'Pixel_9a';
 const iosDevice = process.env.RN_HARNESS_IOS_DEVICE ?? 'iPhone 17 Pro';
 const iosVersion = process.env.RN_HARNESS_IOS_VERSION ?? '26.4';
 

@@ -3,10 +3,10 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "android": "react-native run-android",
+    "android": "react-native run-android --port 8082",
     "ios": "react-native run-ios --simulator \"${IOS_SIMULATOR:-iPhone 17 Pro}\"",
     "lint": "eslint .",
-    "start": "react-native start",
+    "start": "react-native start  --port 8082",
     "test": "jest"
   },
   "dependencies": {
@@ -22,6 +22,7 @@
     "react-native": "0.85.2",
     "react-native-get-random-values": "^2.0.0",
     "react-native-image-picker": "^8.2.1",
+    "react-native-nitro-modules": "^0.35.9",
     "react-native-progress": "^5.0.1",
     "react-native-reanimated": "^4.3.0",
     "react-native-safe-area-context": "^5.7.0",

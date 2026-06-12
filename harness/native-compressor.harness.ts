@@ -155,7 +155,9 @@ describe('react-native-compressor native harness', () => {
     expect(thumbnail.mime).toBe('image/jpeg');
     expect(thumbnail.width).toBeGreaterThan(0);
     expect(thumbnail.height).toBeGreaterThan(0);
-    await expectFileOutput(`file://${thumbnail.path}`);
+    // iOS returns a raw path; Android returns a `file://`-prefixed path. Normalize so the
+    // existence check receives a single `file://` scheme on both platforms.
+    await expectFileOutput(thumbnail.path.startsWith('file://') ? thumbnail.path : `file://${thumbnail.path}`);
 
     await expect(clearCache('thumbnails/')).resolves.toBe('done');
   });
@@ -169,10 +171,10 @@ describe('react-native-compressor native harness', () => {
 
   it('manages exported background task and cancellation APIs without crashing', async () => {
     const taskId = await Video.activateBackgroundTask();
-    expect(taskId === null || typeof taskId === 'number').toBe(true);
+    expect(typeof taskId).toBe('string');
 
     const deactivatedTask = await Video.deactivateBackgroundTask();
-    expect(deactivatedTask == null).toBe(true);
+    expect(typeof deactivatedTask).toBe('string');
     expect(() => Video.cancelCompression('missing-compression-id')).not.toThrow();
     expect(() => cancelUpload('', true)).not.toThrow();
   });

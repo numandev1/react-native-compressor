@@ -13,6 +13,7 @@
     "android",
     "ios",
     "cpp",
+    "nitrogen",
     "app.plugin.js",
     "*.podspec",
     "!lib/typescript/example",
@@ -34,7 +35,8 @@
     "test:harness:ios": "cd examples/bare && react-native-harness --config ./jest.harness.config.mjs --harnessRunner ios --verbose",
     "typecheck": "tsc --noEmit",
     "lint": "eslint \"**/*.{js,ts,tsx}\"",
-    "prepack": "bob build",
+    "nitrogen": "nitrogen",
+    "prepack": "nitrogen && bob build",
     "release": "release-it",
     "example:bare": "yarn workspace react-native-compressor-bare-example",
     "example:expo": "yarn workspace react-native-compressor-expo-example",
@@ -106,18 +108,21 @@
     "eslint-plugin-prettier": "^5.5.5",
     "jest": "^30.3.0",
     "lefthook": "^2.1.4",
+    "nitrogen": "^0.35.9",
     "prettier": "^3.8.1",
     "react": "19.2.3",
     "react-native": "0.85.0",
     "react-native-builder-bob": "^0.41.0",
     "react-native-harness": "1.1.0",
+    "react-native-nitro-modules": "^0.35.9",
     "release-it": "^19.2.4",
     "turbo": "^2.8.21",
     "typescript": "^6.0.2"
   },
   "peerDependencies": {
     "react": "*",
-    "react-native": "*"
+    "react-native": "*",
+    "react-native-nitro-modules": ">=0.35.0"
   },
   "engines": {
     "node": ">= 22.11.0"
@@ -134,15 +139,6 @@
           "project": "tsconfig.build.json"
         }
       ]
-    ]
-  },
-  "codegenConfig": {
-    "libraries": [
-      {
-        "name": "RNCompressorSpec",
-        "type": "modules",
-        "jsSrcsDir": "src"
-      }
     ]
   },
   "workspaces": [

@@ -64,6 +64,8 @@ yarn lint --fix            # auto-fix lint/prettier
 yarn test:pr               # full PR gate: test --runInBand + typecheck + lint
 yarn nitrogen              # regenerate Nitro native bindings into nitrogen/generated/ (run after editing the *.nitro.ts spec)
 yarn prepack               # nitrogen + build the publishable lib/ via react-native-builder-bob
+yarn build:android         # assemble the bare example (arm64-v8a) — native Android compile check
+yarn build:ios             # build the bare example for the iOS simulator — native iOS compile check
 yarn clean                 # delete android/ios build dirs
 ```
 
@@ -78,7 +80,7 @@ yarn example:expo start    # Expo example
 
 ### On-device integration tests (react-native-harness)
 
-The Jest unit tests mock the native module, so **real media decoding is only exercised by the harness tests**, which run inside the bare example app on a booted simulator/emulator:
+The Jest unit tests mock the native module, so they validate only the JS contract — **real media decoding/encoding is only exercised by the harness tests**, which run inside the bare example app on a booted simulator/emulator:
 
 ```sh
 yarn test:harness:android  # requires an Android emulator (default Pixel_8_API_35)
@@ -86,6 +88,39 @@ yarn test:harness:ios      # requires an iOS simulator (default iPhone 17 Pro, i
 ```
 
 Device/version overrides live in `examples/bare/rn-harness.config.mjs` (env vars `RN_HARNESS_ANDROID_DEVICE`, `RN_HARNESS_IOS_DEVICE`, `RN_HARNESS_IOS_VERSION`, etc.). The harness spec is `harness/native-compressor.harness.ts` (the copy under `examples/bare/harness/` re-exports it).
+
+When you change native Swift/Kotlin code and can't run it on a device/simulator, state clearly that it was not runtime-verified.
+
+---
+
+## Native video pipeline notes (high-signal, easy to get wrong)
+
+### iOS (`ios/Video/`)
+- `VideoMain.swift` builds the `videoOutputConfiguration` / `compressionDict`
+  and drives `NextLevelSessionExporter`.
+- `NextLevelSessionExporter.setupVideoOutput` only creates the video writer input
+  when `writer.canApply(outputSettings:forMediaType:) == true`; otherwise it logs
+  `"Unsupported output configuration"` and writes **audio only**, yet still ends
+  as `.completed`. That means a bad `videoOutputConfiguration` can silently yield
+  an **audio-only** MP4 reported as success.
+- Do **not** add undocumented H.264 (`avc1`) compression properties such as
+  `AVVideoExpectedSourceFrameRateKey` or `AVVideoAverageNonDroppableFrameRateKey`:
+  `canApply(...)` accepts them but the iOS encoder drops the video track
+  (regression in #392, fixed for #400). After export, verify the output asset
+  actually contains a video track before resolving success.
+
+### Android (`android/.../Video/VideoCompressor/`)
+- `Compressor.kt` runs an `MediaExtractor` → decoder (Surface) → encoder
+  (`video/avc`) → `MP4Builder` transcode loop.
+- The decoder is created from the **input** track's MIME. Some containers (notably
+  iPhone `.MOV`) report `video/dolby-vision`, which fails with `NAME_NOT_FOUND`
+  on devices lacking a Dolby Vision decoder. `CompressorUtils.ensureDecodableVideoFormat`
+  remaps such inputs to their backward-compatible HEVC/AVC base layer (profiles 8/4
+  → HEVC, profile 9 → AVC) or throws a clear error for non-compatible profiles
+  (5/7). See #398.
+- The encoder is intentionally `c2.android.avc.encoder` (when QTI codecs exist) or
+  `MediaCodec.createEncoderByType("video/avc")`; QTI AVC encoders can produce MP4s
+  that do not play on Mac/iPhone, so avoid switching this without testing.
 
 ---
 
@@ -97,9 +132,12 @@ Device/version overrides live in `examples/bare/rn-harness.config.mjs` (env vars
 - **AnyMap is strict:** option maps must contain only JSON-like values (no functions, no `undefined`) — use `toNativeOptions`. Numbers arrive natively as `Double`; the binding round-trips through `ReadableMap`/`NSNumber` so the domain parsers' `getInt`/`as? Int` keep working.
 - **Streamable:** `StreamableVideo.kt` moves `moov` atom to front by default — preserve.
 - **uuid threading:** keep `uuid` consistent across JS + both native sides for cancellation + progress-callback routing.
+- **Unsupported media:** prefer graceful, descriptive failures over cryptic native crashes — clear error messages that tell the user what happened.
 - **Commits follow Conventional Commits** (`fix:`, `feat:`, `refactor:`, `docs:`, `test:`, `chore:`). `commit-msg` hook runs commitlint; `pre-commit` hook (lefthook) runs eslint + `tsc --noEmit` on staged files. Don't bypass.
 - **Build output:** `lib/` and example workspaces excluded from lint/tsc/jest — don't edit `lib/` by hand.
 - **Releases:** cut with `yarn release` (release-it + conventional-changelog).
+
+`TRIAGE.md` tracks the running triage of GitHub issues and the fixes made for them — when fixing an issue, record it there (triage row + the "Minor fixes made in this branch" list) referencing the issue number.
 
 ## Coding Guidelines
 

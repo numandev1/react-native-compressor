@@ -11,6 +11,7 @@ import android.net.Uri
 import android.os.Build
 import android.util.Log
 import com.reactnativecompressor.Video.VideoCompressor.CompressionProgressListener
+import com.reactnativecompressor.Video.VideoCompressor.utils.CompressorUtils.ensureDecodableVideoFormat
 import com.reactnativecompressor.Video.VideoCompressor.utils.CompressorUtils.findTrack
 import com.reactnativecompressor.Video.VideoCompressor.utils.CompressorUtils.hasQTI
 import com.reactnativecompressor.Video.VideoCompressor.utils.CompressorUtils.prepareVideoHeight
@@ -790,6 +791,10 @@ object Compressor {
     ): MediaCodec {
         val originalMime = inputFormat.getString(MediaFormat.KEY_MIME)!!
 
+        // Some inputs (e.g. iPhone .MOV files) report a "video/dolby-vision" MIME
+        // type that many devices cannot decode. Remap to a decodable base-layer
+        // codec, or fail with a clear error, before creating the decoder (#398).
+        ensureDecodableVideoFormat(inputFormat)
         // Dolby Vision (video/dolby-vision) has no standalone decoder on most Android
         // devices and throws NAME_NOT_FOUND. Profiles 8.1/8.4 carry an HEVC base layer
         // that the standard HEVC decoder can render, so we remap them to HEVC. Profile 5

@@ -1,5 +1,6 @@
 import { Compressor } from '../Main';
 import { Platform } from 'react-native';
+import { toNativeOptions } from './helpers';
 type qualityType = 'low' | 'medium' | 'high';
 const INCORRECT_INPUT_PATH = 'Incorrect input path. Please provide a valid one';
 
@@ -72,7 +73,7 @@ export const getRealPath: getRealPathType = (path, type = 'video') => {
 };
 
 export const getVideoMetaData: getVideoMetaDataType = (path: string) => {
-  return Compressor.getVideoMetaData(path);
+  return Compressor.getVideoMetaData(path) as ReturnType<getVideoMetaDataType>;
 };
 
 const unifyMetaData = (exifResult: any) => {
@@ -96,7 +97,7 @@ export const getImageMetaData: getImageMetaDataType = async (path: string) => {
 };
 
 export const createVideoThumbnail: createVideoThumbnailType = (fileUrl, options = {}) => {
-  return Compressor.createVideoThumbnail(fileUrl, options);
+  return Compressor.createVideoThumbnail(fileUrl, toNativeOptions(options));
 };
 
 export const clearCache: clearCacheType = (cacheDir?: string) => {

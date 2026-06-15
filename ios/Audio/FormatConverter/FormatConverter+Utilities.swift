@@ -11,7 +11,7 @@ extension FormatConverter {
     }
 }
 
-public extension FormatConverter {
+extension FormatConverter {
     /// Is this file a PCM file?
     /// - Parameters:
     ///   - url: The URL to parse

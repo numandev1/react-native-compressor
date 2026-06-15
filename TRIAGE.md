@@ -13,6 +13,8 @@ Legend:
 
 | Issue | Triage | Notes |
 | --- | --- | --- |
+| #400 | real, fixed here | iOS regression from #392: H.264 `videoOutputConfiguration` added `AVVideoExpectedSourceFrameRateKey` / `AVVideoAverageNonDroppableFrameRateKey`, which `canApply(...)` accepts but the iOS encoder silently drops the video track for, yielding an audio-only MP4 reported as success. This branch removes those keys and verifies the exported file actually contains a video track. |
+| #398 | real, fixed here | Android could not compress Dolby Vision `.MOV` inputs (iPhone HDR): `MediaCodec.createDecoderByType("video/dolby-vision")` fails with `NAME_NOT_FOUND` on devices without a Dolby Vision decoder. This branch remaps the input to its backward-compatible HEVC/AVC base layer when possible, and otherwise fails with a clear, actionable error. |
 | #390 | not a bug | Reports `start` / `end` time behavior for video compression, but the current public video API does not expose trim parameters. |
 | #387 | needs info | Gradle binary store corruption looks environment-specific; report does not isolate a library code change. |
 | #384 | needs info | Performance question, not a reproducible defect report. |
@@ -86,7 +88,9 @@ These should be closed upstream unless a current repro still exists on the lates
 - Android: clamp metadata parsing and reject invalid transcode output
 - Android: adaptive video compression profile for high-resolution inputs
 - Android: fast-start compressed MP4 outputs and skip unsupported copied audio sample metadata
+- Android: decode the backward-compatible base layer of Dolby Vision `.MOV` inputs, or fail with a clear error (#398)
 - Android/iOS: clamp image and thumbnail JPEG quality values
 - Android/iOS: harden thumbnail frame extraction for difficult source videos
 - iOS: guard missing video tracks and use the same adaptive sizing/bitrate strategy
+- iOS: drop unsupported H.264 frame-rate keys and verify the output has a video track to prevent silent audio-only results (#400)
 - iOS: return background-upload response bodies consistently

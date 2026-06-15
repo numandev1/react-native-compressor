@@ -1,7 +1,5 @@
-import { NativeEventEmitter } from 'react-native';
-import type { NativeEventSubscription } from 'react-native';
 import { Compressor } from '../Main';
-import { uuidv4 } from '../utils';
+import { toNativeOptions, uuidv4 } from '../utils';
 
 export type compressionMethod = 'auto' | 'manual';
 type videoCompresssionType = {
@@ -29,8 +27,6 @@ export type VideoCompressorType = {
   deactivateBackgroundTask(): Promise<any>;
 };
 
-const VideoCompressEventEmitter = new NativeEventEmitter(Compressor);
-
 const NativeVideoCompressor = Compressor;
 
 export const cancelCompression = (cancellationId: string) => {
@@ -40,85 +36,37 @@ export const cancelCompression = (cancellationId: string) => {
 const Video: VideoCompressorType = {
   compress: async (fileUrl: string, options?: videoCompresssionType, onProgress?: (progress: number) => void) => {
     const uuid = uuidv4();
-    let subscription: NativeEventSubscription;
-    let subscription2: NativeEventSubscription;
 
-    try {
-      if (onProgress) {
-        subscription = VideoCompressEventEmitter.addListener('videoCompressProgress', (event: any) => {
-          if (event.uuid === uuid) {
-            onProgress(event.data.progress);
-          }
-        });
-      }
-
-      if (options?.downloadProgress) {
-        //@ts-ignore
-        subscription2 = VideoCompressEventEmitter.addListener('downloadProgress', (event: any) => {
-          if (event.uuid === uuid) {
-            options.downloadProgress && options.downloadProgress(event.data.progress);
-          }
-        });
-      }
-
-      const modifiedOptions: {
-        uuid: string;
-        bitrate?: number;
-        compressionMethod?: compressionMethod;
-        maxSize?: number;
-        minimumFileSizeForCompress?: number;
-        progressDivider?: number;
-        stripAudio?: boolean;
-      } = { uuid };
-      if (options?.progressDivider) modifiedOptions.progressDivider = options?.progressDivider;
-      if (options?.bitrate) modifiedOptions.bitrate = options?.bitrate;
-      if (options?.compressionMethod) {
-        modifiedOptions.compressionMethod = options?.compressionMethod;
-      } else {
-        modifiedOptions.compressionMethod = 'auto';
-      }
-      if (options?.maxSize) {
-        modifiedOptions.maxSize = options?.maxSize;
-      } else {
-        modifiedOptions.maxSize = 640;
-      }
-      if (options?.minimumFileSizeForCompress !== undefined) {
-        modifiedOptions.minimumFileSizeForCompress = options?.minimumFileSizeForCompress;
-      }
-      if (options?.stripAudio) {
-        modifiedOptions.stripAudio = options.stripAudio;
-      }
-      if (options?.getCancellationId) {
-        options?.getCancellationId(uuid);
-      }
-
-      const result = await NativeVideoCompressor.compress(fileUrl, modifiedOptions);
-      return result;
-    } finally {
-      // @ts-ignore
-      if (subscription) {
-        subscription.remove();
-      }
-      //@ts-ignore
-      if (subscription2) {
-        subscription2.remove();
-      }
+    const modifiedOptions: Record<string, unknown> = { uuid };
+    if (options?.progressDivider) modifiedOptions.progressDivider = options?.progressDivider;
+    if (options?.bitrate) modifiedOptions.bitrate = options?.bitrate;
+    if (options?.compressionMethod) {
+      modifiedOptions.compressionMethod = options?.compressionMethod;
+    } else {
+      modifiedOptions.compressionMethod = 'auto';
     }
+    if (options?.maxSize) {
+      modifiedOptions.maxSize = options?.maxSize;
+    } else {
+      modifiedOptions.maxSize = 640;
+    }
+    if (options?.minimumFileSizeForCompress !== undefined) {
+      modifiedOptions.minimumFileSizeForCompress = options?.minimumFileSizeForCompress;
+    }
+    if (options?.stripAudio) {
+      modifiedOptions.stripAudio = options.stripAudio;
+    }
+    if (options?.getCancellationId) {
+      options?.getCancellationId(uuid);
+    }
+
+    return NativeVideoCompressor.compress(fileUrl, toNativeOptions(modifiedOptions), onProgress, options?.downloadProgress);
   },
   cancelCompression,
   activateBackgroundTask(onExpired?) {
-    if (onExpired) {
-      const subscription: NativeEventSubscription = VideoCompressEventEmitter.addListener('backgroundTaskExpired', (event: any) => {
-        onExpired(event);
-        if (subscription) {
-          subscription.remove();
-        }
-      });
-    }
-    return NativeVideoCompressor.activateBackgroundTask({});
+    return NativeVideoCompressor.activateBackgroundTask({}, onExpired ? () => onExpired(undefined) : undefined);
   },
   deactivateBackgroundTask() {
-    VideoCompressEventEmitter.removeAllListeners('backgroundTaskExpired');
     return NativeVideoCompressor.deactivateBackgroundTask({});
   },
 } as VideoCompressorType;

@@ -5,7 +5,7 @@ import AVFoundation
 // MARK: - internal helper functions
 
 
-public extension AVURLAsset {
+extension AVURLAsset {
     /// Audio format for  the file in the URL asset
     var audioFormat: AVAudioFormat? {
         // pull the input format out of the audio file...

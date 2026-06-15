@@ -1,9 +1,15 @@
 import Accelerate
 import CoreGraphics
 import Photos
-import React
 import Foundation
 import MobileCoreServices
+
+
+// Local stand-in for the single `RCTResizeMode` case this file relies on, so the
+// module no longer needs to `import React` (see HybridCompressor for the reason).
+private enum CompressorResizeMode {
+    case contain
+}
 
 
 class ImageCompressor {
@@ -392,7 +398,7 @@ class ImageCompressor {
             let imageURL = URL(string: imagePath.replacingOccurrences(of: " ", with: "%20"))
             var size = CGSize.zero
             var scale: CGFloat = 1
-            var resizeMode = RCTResizeMode.contain
+            var resizeMode = CompressorResizeMode.contain
             let assetID = imagePath.replacingOccurrences(of: "ph://", with: "")
             let results = PHAsset.fetchAssets(withLocalIdentifiers: [assetID], options: nil)
             

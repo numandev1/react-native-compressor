@@ -5,6 +5,7 @@ import android.content.Context
 import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.os.Handler
+import android.os.Looper
 import android.os.PowerManager
 import android.os.PowerManager.WakeLock
 import com.facebook.react.bridge.LifecycleEventListener
@@ -58,7 +59,9 @@ class VideoCompressorHelper {
             if (!wakeLock!!.isHeld()) {
                 wakeLock!!.acquire()
             }
-            handler = Handler()
+            // Bind to the main Looper: under Nitro this runs on a background executor
+            // thread (no Looper), so the no-arg Handler() constructor would throw.
+            handler = Handler(Looper.getMainLooper())
             runnable = Runnable { }
             handler!!.post(runnable!!)
             return ""

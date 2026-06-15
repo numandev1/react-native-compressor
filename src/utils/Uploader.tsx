@@ -1,8 +1,6 @@
-import { NativeEventEmitter, Platform } from 'react-native';
-import type { NativeEventSubscription } from 'react-native';
+import { Platform } from 'react-native';
 import { Compressor } from '../Main';
-const CompressEventEmitter = new NativeEventEmitter(Compressor);
-import { uuidv4 } from './helpers';
+import { toNativeOptions, uuidv4 } from './helpers';
 export enum UploadType {
   BINARY_CONTENT = 0,
   MULTIPART = 1,
@@ -51,15 +49,7 @@ export const backgroundUpload = async (
   abortSignal?: AbortSignal,
 ): Promise<any> => {
   const uuid = uuidv4();
-  let subscription: NativeEventSubscription;
   try {
-    if (onProgress) {
-      subscription = CompressEventEmitter.addListener('uploadProgress', (event: any) => {
-        if (event.uuid === uuid) {
-          onProgress(event.data.written, event.data.total);
-        }
-      });
-    }
     if (Platform.OS === 'android' && fileUrl.includes('file://')) {
       fileUrl = fileUrl.replace('file://', '');
     }
@@ -70,20 +60,18 @@ export const backgroundUpload = async (
 
     abortSignal?.addEventListener('abort', () => cancelUpload(uuid));
 
-    const result = await Compressor.upload(fileUrl, {
-      uuid,
-      method: options.httpMethod,
-      headers: options.headers,
-      uploadType: options.uploadType,
-      ...options,
-      url,
-    });
+    const result = await Compressor.upload(
+      fileUrl,
+      toNativeOptions({
+        ...options,
+        uuid,
+        method: options.httpMethod,
+        url,
+      }),
+      onProgress,
+    );
     return result;
   } finally {
-    // @ts-ignore
-    if (subscription) {
-      subscription.remove();
-    }
     abortSignal?.removeEventListener('abort', () => cancelUpload(uuid));
   }
 };

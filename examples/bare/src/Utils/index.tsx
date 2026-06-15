@@ -12,4 +12,15 @@ export const getFullFilename = (path: string | null) => {
   return '';
 };
 
-export const getFileInfo = stat;
+// RNFS `stat` expects a plain filesystem path. Picker URIs arrive as
+// percent-encoded `file://` URLs (e.g. spaces become %20), which stat can't
+// resolve. Strip the scheme and decode before delegating.
+export const getFileInfo = (path: string) => {
+  let _path = path.startsWith('file://') ? path.replace('file://', '') : path;
+  try {
+    _path = decodeURIComponent(_path);
+  } catch {
+    // leave path as-is if it isn't valid percent-encoding
+  }
+  return stat(_path);
+};

@@ -17,6 +17,8 @@ import com.reactnativecompressor.Utils.Utils
 import com.reactnativecompressor.Video.VideoMain
 import java.util.UUID
 import java.util.concurrent.Executors
+import androidx.annotation.Keep
+import com.facebook.proguard.annotations.DoNotStrip
 import com.facebook.react.bridge.Promise as RNPromise
 
 /**
@@ -29,6 +31,8 @@ import com.facebook.react.bridge.Promise as RNPromise
  * with [EventEmitterHandler]. All heavy logic stays in the domain classes,
  * which run on a background executor so the JS thread is never blocked.
  */
+@DoNotStrip
+@Keep
 class HybridCompressor : HybridCompressorSpec() {
   private val reactContext
     get() = NitroModules.applicationContext

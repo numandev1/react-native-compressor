@@ -13,6 +13,8 @@ Legend:
 
 | Issue | Triage | Notes |
 | --- | --- | --- |
+| #406 | real, fixed here | Nitro module not linked in Android **release** builds (works in debug). R8 strips the `HybridCompressor` implementation, which is instantiated from C++/JNI by class name (`NitroCompressorOnLoad.cpp` `kJavaDescriptor`) and was the only Nitro class lacking keep protection — the generated spec has `@DoNotStrip @Keep`, but the hand-written impl didn't. This branch annotates `HybridCompressor` with `@DoNotStrip @Keep` (the same convention nitrogen and other Nitro modules like react-native-mmkv use), so no consumer ProGuard rules are needed. Verified with a minified release build: without the annotation R8 lists the class in `usage.txt` (removed); with it, the class + no-arg constructor are kept in `mapping.txt`. |
+| #404 | real, fixed here | Android Nitro module failed to compile on older React Native: the bridge `Promise.reject(...)` `code` parameter is non-null `String` on older RN but nullable `String?` on RN 0.85, and Kotlin's invariant override params can't satisfy both. This branch rewrites `NitroPromiseAdapter` in Java (nullability-erased override matching) so one implementation compiles across all RN versions. |
 | #400 | real, fixed here | iOS regression from #392: H.264 `videoOutputConfiguration` added `AVVideoExpectedSourceFrameRateKey` / `AVVideoAverageNonDroppableFrameRateKey`, which `canApply(...)` accepts but the iOS encoder silently drops the video track for, yielding an audio-only MP4 reported as success. This branch removes those keys and verifies the exported file actually contains a video track. |
 | #398 | real, fixed here | Android could not compress Dolby Vision `.MOV` inputs (iPhone HDR): `MediaCodec.createDecoderByType("video/dolby-vision")` fails with `NAME_NOT_FOUND` on devices without a Dolby Vision decoder. This branch remaps the input to its backward-compatible HEVC/AVC base layer when possible, and otherwise fails with a clear, actionable error. |
 | #390 | not a bug | Reports `start` / `end` time behavior for video compression, but the current public video API does not expose trim parameters. |
@@ -94,3 +96,5 @@ These should be closed upstream unless a current repro still exists on the lates
 - iOS: guard missing video tracks and use the same adaptive sizing/bitrate strategy
 - iOS: drop unsupported H.264 frame-rate keys and verify the output has a video track to prevent silent audio-only results (#400)
 - iOS: return background-upload response bodies consistently
+- Android: annotate the `HybridCompressor` impl with `@DoNotStrip @Keep` so the Nitro `Compressor` HybridObject (instantiated via JNI by name) survives R8 in consumer release builds (#406)
+- Android: rewrite `NitroPromiseAdapter` in Java so the Nitro module compiles across all React Native versions regardless of `Promise.reject`'s `code` nullability (#404)

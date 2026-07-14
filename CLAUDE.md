@@ -207,6 +207,7 @@ yarn test:pr
 5. **Base64 images.** `Image.compress` strips the base64 data URL header before calling `image_compress`. Do not double-strip in native code.
 6. **Expo plugin changes.** If you change config-plugin behavior, test in `examples/expo` and verify `app.plugin.js` still resolves correctly.
 7. **New Architecture.** Builds with `newArchEnabled=true` generate code into `android/build/generated/source/codegen/java`. Clean builds are required when the spec changes.
+8. **Swift errors vs NSException.** Do not call `NSException.raise()` in iOS Swift code invoked by a TurboModule — it aborts the process and no JS catch can intercept it. Use Swift `throw` with a typed error; the calling Swift code wraps in `do/catch` and calls `reject`. This applies to all iOS image/video/audio compression handlers.
 
 ## 11. What to do when touching specific areas
 

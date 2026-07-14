@@ -13,22 +13,32 @@ class ImageMain {
             
             if options.input != InputType.base64 {
                 ImageCompressor.getAbsoluteImagePath(value, options: options) { absoluteImagePath in
-                    if options.autoCompress {
-                        let result = ImageCompressor.autoCompressHandler(imagePath: absoluteImagePath, base64: nil, options: options)
-                        resolve(result)
-                    } else {
-                        let result = ImageCompressor.manualCompressHandler(imagePath: absoluteImagePath, base64: nil, options: options)
-                        resolve(result)
+                    // The escaping completion runs outside the outer do/catch,
+                    // so failures here need their own catch to reject.
+                    do {
+                        if options.autoCompress {
+                            let result = try ImageCompressor.autoCompressHandler(imagePath: absoluteImagePath, base64: nil, options: options)
+                            resolve(result)
+                        } else {
+                            let result = try ImageCompressor.manualCompressHandler(imagePath: absoluteImagePath, base64: nil, options: options)
+                            resolve(result)
+                        }
+                    } catch {
+                        reject((error as NSError).domain, error.localizedDescription, error)
                     }
                     MediaCache.removeCompletedImagePath(absoluteImagePath)
                 }
             } else {
-                if options.autoCompress {
-                    let result = ImageCompressor.autoCompressHandler(imagePath: nil, base64: value, options: options)
-                    resolve(result)
-                } else {
-                    let result = ImageCompressor.manualCompressHandler(imagePath: nil, base64: value, options: options)
-                    resolve(result)
+                do {
+                    if options.autoCompress {
+                        let result = try ImageCompressor.autoCompressHandler(imagePath: nil, base64: value, options: options)
+                        resolve(result)
+                    } else {
+                        let result = try ImageCompressor.manualCompressHandler(imagePath: nil, base64: value, options: options)
+                        resolve(result)
+                    }
+                } catch {
+                    reject((error as NSError).domain, error.localizedDescription, error)
                 }
             }
         } catch {

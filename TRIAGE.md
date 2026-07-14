@@ -88,6 +88,7 @@ Since the last audit, the branch has integrated or backported work reflected in 
 | --- | --- |
 | #408 | Fixed Expo plugin/release build references so managed Expo apps can build against the current module structure. |
 | #407 | Corrected Nitro module imports/paths to keep `main` working after the 2.0.0 Nitro migration. |
+| #411 | iOS image compression: replaced `NSException.raise()` with Swift `throw` so errors properly reject the promise instead of aborting the whole app. |
 | #403 / #400 | iOS export session now fails explicitly instead of silently returning an audio-only MP4 when the video track is missing or cannot be written. |
 | #402 | Dolby Vision compatibility improvements on iOS. |
 | #399 | Dolby Vision crash fix, up to ~50% faster iOS transcode, and corrected fps/bitrate/GPS metadata handling. |

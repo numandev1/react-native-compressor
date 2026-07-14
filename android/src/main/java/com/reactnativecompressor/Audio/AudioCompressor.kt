@@ -10,8 +10,6 @@ import com.naman14.androidlame.WaveReader
 import com.reactnativecompressor.Utils.MediaCache
 import com.reactnativecompressor.Utils.Utils
 import com.reactnativecompressor.Utils.Utils.addLog
-import javazoom.jl.converter.Converter
-import javazoom.jl.decoder.JavaLayerException
 import java.io.BufferedOutputStream
 import java.io.File
 import java.io.FileNotFoundException
@@ -20,11 +18,12 @@ import java.io.IOException
 
 class AudioCompressor {
   companion object {
-    val TAG="AudioMain"
+    val TAG = "AudioMain"
     private const val OUTPUT_STREAM_BUFFER = 8192
 
     var outputStream: BufferedOutputStream? = null
     var waveReader: WaveReader? = null
+
     @JvmStatic
     fun CompressAudio(
       fileUrl: String,
@@ -33,59 +32,66 @@ class AudioCompressor {
       promise: Promise,
     ) {
       val realPath = Utils.getRealPath(fileUrl, context)
-      var _fileUrl=realPath
+      var _fileUrl = realPath
       val filePathWithoutFileUri = realPath!!.replace("file://", "")
       try {
-        var wavPath=filePathWithoutFileUri;
-        var isNonWav:Boolean=false
-        if (fileUrl.endsWith(".mp4", ignoreCase = true))
-        {
-          addLog("mp4 file found")
-          val mp3Path= Utils.generateCacheFilePath("mp3", context)
-          AudioExtractor().genVideoUsingMuxer(fileUrl, mp3Path, -1, -1, true, false)
-          _fileUrl=Utils.slashifyFilePath(mp3Path)
-          wavPath= Utils.generateCacheFilePath("wav", context)
+        var wavPath = filePathWithoutFileUri
+        var isNonWav: Boolean = false
+        // LAME's WaveReader requires PCM 16-bit LE WAV. Anything else
+        // (m4a/AAC, mp3, ogg, flac, video audio tracks, ...) must be
+        // decoded to WAV first via the platform MediaCodec pipeline —
+        // jlayer's MP3-only Converter silently produced empty WAVs for
+        // every non-MP3 input, which LAME then encoded as a few seconds
+        // of silence (see #410 thread, m4a/AAC support).
+        //
+        // Check the resolved local path, not the original fileUrl: a
+        // content:// or remote URL won't carry the file extension, so
+        // checking fileUrl would mis-classify WAV inputs as non-WAV and
+        // route them through an unnecessary (and potentially failing)
+        // MediaCodec decode pass.
+        if (!filePathWithoutFileUri.endsWith(".wav", ignoreCase = true)) {
+          addLog("non wav file found, transcoding to PCM WAV")
+          wavPath = Utils.generateCacheFilePath("wav", context)
           try {
-            val converter = Converter()
-            converter.convert(mp3Path, wavPath)
-          } catch (e: JavaLayerException) {
-            addLog("JavaLayerException error"+e.localizedMessage)
-            e.printStackTrace();
+            AudioTranscoder.decodeToWav(filePathWithoutFileUri, wavPath)
+          } catch (e: IOException) {
+            addLog("AudioTranscoder failed: " + e.localizedMessage)
+            // Surface the failure rather than silently returning a
+            // degenerate MP3 of silence.
+            File(wavPath).delete()
+            promise.reject("audio_transcode_failed", e.localizedMessage ?: "Audio decode failed", e)
+            return
           }
-          isNonWav=true
-        }
-        else if (!fileUrl.endsWith(".wav", ignoreCase = true))
-        {
-          addLog("non wav file found")
-          wavPath= Utils.generateCacheFilePath("wav", context)
-          try {
-          val converter = Converter()
-          converter.convert(filePathWithoutFileUri, wavPath)
-        } catch (e: JavaLayerException) {
-          addLog("JavaLayerException error"+e.localizedMessage)
-          e.printStackTrace();
-        }
-          isNonWav=true
+          isNonWav = true
         }
 
 
-        autoCompressHelper(wavPath,filePathWithoutFileUri, optionMap,context) { mp3Path, finished ->
+        autoCompressHelper(wavPath, filePathWithoutFileUri, optionMap, context) { mp3Path, finished ->
           if (finished) {
-            val returnableFilePath:String="file://$mp3Path"
+            val returnableFilePath: String = "file://$mp3Path"
             addLog("finished: " + returnableFilePath)
             MediaCache.removeCompletedImagePath(fileUrl)
-            if(isNonWav)
-            {
+            if (isNonWav) {
               File(wavPath).delete()
             }
             promise.resolve(returnableFilePath)
           } else {
-            addLog("error: "+mp3Path)
+            addLog("error: " + mp3Path)
+            // Clean up the temp WAV on failure too; previously it was
+            // leaked because only the success path deleted it.
+            if (isNonWav) {
+              File(wavPath).delete()
+            }
             promise.resolve(_fileUrl)
           }
         }
       } catch (e: Exception) {
-        promise.resolve(_fileUrl)
+        addLog("CompressAudio failed: " + e.localizedMessage)
+        // Clean up any temp WAV that was created before the failure.
+        if (isNonWav) {
+          File(wavPath).delete()
+        }
+        promise.reject("audio_compress_failed", e.localizedMessage ?: "Audio compression failed", e)
       }
     }
 
@@ -101,35 +107,34 @@ class AudioCompressor {
       val options = AudioHelper.fromMap(optionMap)
       val quality = options.quality
 
-      var isCompletedCallbackTriggered:Boolean=false
+      var isCompletedCallbackTriggered: Boolean = false
       try {
         var mp3Path = Utils.generateCacheFilePath("mp3", context)
         val input = File(fileUrl)
         val output = File(mp3Path)
 
         val CHUNK_SIZE = 8192
-      addLog("Initialising wav reader")
+        addLog("Initialising wav reader")
 
-      waveReader = WaveReader(input)
+        waveReader = WaveReader(input)
 
-      try {
-        waveReader!!.openWave()
-      } catch (e: IOException) {
-        e.printStackTrace()
-      }
+        try {
+          waveReader!!.openWave()
+        } catch (e: IOException) {
+          addLog("openWave failed: " + e.localizedMessage)
+          completeCallback(e.localizedMessage ?: "Failed to open WAV", false)
+          return
+        }
 
-      addLog("Intitialising encoder")
+        addLog("Intitialising encoder")
 
 
         // for bitrate
-        var audioBitrate:Int
-        if(options.bitrate != -1)
-        {
-          audioBitrate= options.bitrate/1000
-        }
-        else
-        {
-          audioBitrate=AudioHelper.getDestinationBitrateByQuality(actualFileUrl, quality!!)
+        var audioBitrate: Int
+        if (options.bitrate != -1) {
+          audioBitrate = options.bitrate / 1000
+        } else {
+          audioBitrate = AudioHelper.getDestinationBitrateByQuality(actualFileUrl, quality!!)
           Utils.addLog("dest bitrate: $audioBitrate")
         }
 
@@ -137,127 +142,125 @@ class AudioCompressor {
         androidLame.setOutBitrate(audioBitrate)
 
         // for channels
-        var audioChannels:Int
-        if(options.channels != -1){
-          audioChannels= options.channels!!
-        }
-        else
-        {
-          audioChannels=waveReader!!.channels
+        var audioChannels: Int
+        if (options.channels != -1) {
+          audioChannels = options.channels!!
+        } else {
+          audioChannels = waveReader!!.channels
         }
         androidLame.setOutChannels(audioChannels)
 
         // for sample rate
         androidLame.setInSampleRate(waveReader!!.sampleRate)
-        var audioSampleRate:Int
-        if(options.samplerate != -1){
-          audioSampleRate= options.samplerate!!
-        }
-        else
-        {
-          audioSampleRate=waveReader!!.sampleRate
+        var audioSampleRate: Int
+        if (options.samplerate != -1) {
+          audioSampleRate = options.samplerate!!
+        } else {
+          audioSampleRate = waveReader!!.sampleRate
         }
         androidLame.setOutSampleRate(audioSampleRate)
-        val androidLameBuild=androidLame.build()
+        val androidLameBuild = androidLame.build()
 
-      try {
-        outputStream = BufferedOutputStream(FileOutputStream(output), OUTPUT_STREAM_BUFFER)
-      } catch (e: FileNotFoundException) {
-        e.printStackTrace()
-      }
-
-      var bytesRead = 0
-
-      val buffer_l = ShortArray(CHUNK_SIZE)
-      val buffer_r = ShortArray(CHUNK_SIZE)
-      val mp3Buf = ByteArray(CHUNK_SIZE)
-
-      val channels = waveReader!!.channels
-
-      addLog("started encoding")
-      while (true) {
         try {
-          if (channels == 2) {
+          outputStream = BufferedOutputStream(FileOutputStream(output), OUTPUT_STREAM_BUFFER)
+        } catch (e: FileNotFoundException) {
+          addLog("Failed to create output stream: " + e.localizedMessage)
+          completeCallback(e.localizedMessage ?: "Failed to create output file", false)
+          return
+        }
 
-            bytesRead = waveReader!!.read(buffer_l, buffer_r, CHUNK_SIZE)
-            addLog("bytes read=$bytesRead")
+        var bytesRead = 0
 
-            if (bytesRead > 0) {
+        val buffer_l = ShortArray(CHUNK_SIZE)
+        val buffer_r = ShortArray(CHUNK_SIZE)
+        val mp3Buf = ByteArray(CHUNK_SIZE)
 
-              var bytesEncoded = 0
-              bytesEncoded = androidLameBuild.encode(buffer_l, buffer_r, bytesRead, mp3Buf)
-              addLog("bytes encoded=$bytesEncoded")
+        val channels = waveReader!!.channels
 
-              if (bytesEncoded > 0) {
-                try {
-                  addLog("writing mp3 buffer to outputstream with $bytesEncoded bytes")
-                  outputStream!!.write(mp3Buf, 0, bytesEncoded)
-                } catch (e: IOException) {
-                  e.printStackTrace()
+        addLog("started encoding")
+        while (true) {
+          try {
+            if (channels == 2) {
+
+              bytesRead = waveReader!!.read(buffer_l, buffer_r, CHUNK_SIZE)
+              addLog("bytes read=$bytesRead")
+
+              if (bytesRead > 0) {
+
+                var bytesEncoded = 0
+                bytesEncoded = androidLameBuild.encode(buffer_l, buffer_r, bytesRead, mp3Buf)
+                addLog("bytes encoded=$bytesEncoded")
+
+                if (bytesEncoded > 0) {
+                  try {
+                    addLog("writing mp3 buffer to outputstream with $bytesEncoded bytes")
+                    outputStream!!.write(mp3Buf, 0, bytesEncoded)
+                  } catch (e: IOException) {
+                    e.printStackTrace()
+                  }
+
                 }
 
-              }
+              } else
+                break
+            } else {
 
-            } else
-              break
-          } else {
+              bytesRead = waveReader!!.read(buffer_l, CHUNK_SIZE)
+              addLog("bytes read=$bytesRead")
 
-            bytesRead = waveReader!!.read(buffer_l, CHUNK_SIZE)
-            addLog("bytes read=$bytesRead")
+              if (bytesRead > 0) {
+                var bytesEncoded = 0
 
-            if (bytesRead > 0) {
-              var bytesEncoded = 0
+                bytesEncoded = androidLameBuild.encode(buffer_l, buffer_l, bytesRead, mp3Buf)
+                addLog("bytes encoded=$bytesEncoded")
 
-              bytesEncoded = androidLameBuild.encode(buffer_l, buffer_l, bytesRead, mp3Buf)
-              addLog("bytes encoded=$bytesEncoded")
+                if (bytesEncoded > 0) {
+                  try {
+                    addLog("writing mp3 buffer to outputstream with $bytesEncoded bytes")
+                    outputStream!!.write(mp3Buf, 0, bytesEncoded)
+                  } catch (e: IOException) {
+                    e.printStackTrace()
+                  }
 
-              if (bytesEncoded > 0) {
-                try {
-                  addLog("writing mp3 buffer to outputstream with $bytesEncoded bytes")
-                  outputStream!!.write(mp3Buf, 0, bytesEncoded)
-                } catch (e: IOException) {
-                  e.printStackTrace()
                 }
 
-              }
+              } else
+                break
+            }
 
-            } else
-              break
+
+          } catch (e: IOException) {
+            e.printStackTrace()
           }
 
-
-        } catch (e: IOException) {
-          e.printStackTrace()
         }
 
-      }
-
-      addLog("flushing final mp3buffer")
-      val outputMp3buf = androidLameBuild.flush(mp3Buf)
-      addLog("flushed $outputMp3buf bytes")
-      if (outputMp3buf > 0) {
-        try {
-          addLog("writing final mp3buffer to outputstream")
-          outputStream!!.write(mp3Buf, 0, outputMp3buf)
-          addLog("closing output stream")
-          outputStream!!.close()
-          completeCallback(output.absolutePath, true)
-          isCompletedCallbackTriggered=true
-        } catch (e: IOException) {
-          completeCallback(e.localizedMessage, false)
-          e.printStackTrace()
+        addLog("flushing final mp3buffer")
+        val outputMp3buf = androidLameBuild.flush(mp3Buf)
+        addLog("flushed $outputMp3buf bytes")
+        if (outputMp3buf > 0) {
+          try {
+            addLog("writing final mp3buffer to outputstream")
+            outputStream!!.write(mp3Buf, 0, outputMp3buf)
+            addLog("closing output stream")
+            outputStream!!.close()
+            completeCallback(output.absolutePath, true)
+            isCompletedCallbackTriggered = true
+          } catch (e: IOException) {
+            completeCallback(e.localizedMessage, false)
+            isCompletedCallbackTriggered = true
+            e.printStackTrace()
+          }
         }
-      }
 
       } catch (e: IOException) {
         completeCallback(e.localizedMessage, false)
+        isCompletedCallbackTriggered = true
       }
-      if(!isCompletedCallbackTriggered)
-      {
+      if (!isCompletedCallbackTriggered) {
         completeCallback("something went wrong", false)
       }
     }
-
 
 
   }

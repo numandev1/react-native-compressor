@@ -1,6 +1,6 @@
 # Upstream issue triage
 
-Audited against `numandev1/react-native-compressor` open issues on 2026-04-27 and compared with the current tree in this fork.
+Audited against `numandev1/react-native-compressor` open issues on 2026-07-14 and compared with the current tree in this fork.
 
 Legend:
 - `real` = credible library issue
@@ -79,6 +79,44 @@ These should be closed upstream unless a current repro still exists on the lates
 - #367
 - #370
 - #318
+
+## Recent PRs on the 1.19.3 branch
+
+Since the last audit, the branch has integrated or backported work reflected in the following areas:
+
+| PR | What changed |
+| --- | --- |
+| #408 | Fixed Expo plugin/release build references so managed Expo apps can build against the current module structure. |
+| #407 | Corrected Nitro module imports/paths to keep `main` working after the 2.0.0 Nitro migration. |
+| #403 / #400 | iOS export session now fails explicitly instead of silently returning an audio-only MP4 when the video track is missing or cannot be written. |
+| #402 | Dolby Vision compatibility improvements on iOS. |
+| #399 | Dolby Vision crash fix, up to ~50% faster iOS transcode, and corrected fps/bitrate/GPS metadata handling. |
+| #397 | Cross-platform compressor hardening and review-feedback fixes. |
+| #396 | Additional test coverage for compression paths. |
+| #395 | Refined video compression profiles after upstream issue triage. |
+| #393 | New `stripAudio` option on video compression to drop the audio track from the output. |
+| #392 | Upstream issue triage and high-resolution video compression hardening. |
+| #388 | iOS background upload now resolves with the server response body, matching Android behavior. |
+| #391 | Tooling, CI, and example-app modernization (Yarn 4, React Native 0.85, updated harness). |
+| #386 | Android 14+ orientation correction for images. |
+| #385 | Out-of-memory crash mitigation during large-file processing. |
+| #374 | Base64 image compression handling on iOS. |
+| #372 | 16 KB page-size support on Android. |
+| #368 | Removed deprecated iOS `AssetsLibrary` API and fixed an iOS runtime crash. |
+| #351 | Replaced `toLowerCase()` with Kotlin `lowercase()`. |
+| #342 | Moved `uuidv4` to a dedicated helper to avoid circular dependencies with React Compiler. |
+| #341 | Refactored `createVideoThumbnail` internals. |
+| #339 | Preserved original audio channel count to fix iOS playback for certain Android-compressed videos. |
+| #334 | Fixed iOS crash when processing file size of an unparsed URL. |
+| #328 | Documentation repetition fix. |
+| #325 / #324 | Build fixes for missing `kAudioFormatAPAC` symbol on some Xcode versions. |
+| #321 | iPhone 16 / Pro Max compression fix. |
+| #320 | Yarn upgrade and workspace tooling refresh. |
+| #311 | `isoparser` 1.9.x migration and old-code cleanup. |
+| #305 | Same `isoparser` modernization. |
+| #295 | iOS manual image compression source fix. |
+| #290 | mp4parser compatibility fix. |
+| #284 / #281 | Android upload and speed fixes. |
 
 ## Minor fixes made in this branch
 

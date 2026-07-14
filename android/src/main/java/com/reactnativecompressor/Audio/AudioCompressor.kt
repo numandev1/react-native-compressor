@@ -34,9 +34,15 @@ class AudioCompressor {
       val realPath = Utils.getRealPath(fileUrl, context)
       var _fileUrl = realPath
       val filePathWithoutFileUri = realPath!!.replace("file://", "")
+
+      // These are declared outside the try block so they can be cleaned up
+      // in the catch handler. They must be nullable because the transcoding
+      // branch may not execute.
+      var wavPath: String? = null
+      var isNonWav: Boolean = false
+
       try {
-        var wavPath = filePathWithoutFileUri
-        var isNonWav: Boolean = false
+        wavPath = filePathWithoutFileUri
         // LAME's WaveReader requires PCM 16-bit LE WAV. Anything else
         // (m4a/AAC, mp3, ogg, flac, video audio tracks, ...) must be
         // decoded to WAV first via the platform MediaCodec pipeline —
@@ -65,7 +71,6 @@ class AudioCompressor {
           isNonWav = true
         }
 
-
         autoCompressHelper(wavPath, filePathWithoutFileUri, optionMap, context) { mp3Path, finished ->
           if (finished) {
             val returnableFilePath: String = "file://$mp3Path"
@@ -88,8 +93,13 @@ class AudioCompressor {
       } catch (e: Exception) {
         addLog("CompressAudio failed: " + e.localizedMessage)
         // Clean up any temp WAV that was created before the failure.
-        if (isNonWav) {
-          File(wavPath).delete()
+        val temp = wavPath
+        if (isNonWav && temp != null) {
+          try {
+            File(temp).delete()
+          } catch (_: Throwable) {
+            // ignore cleanup failures
+          }
         }
         promise.reject("audio_compress_failed", e.localizedMessage ?: "Audio compression failed", e)
       }

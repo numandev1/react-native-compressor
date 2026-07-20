@@ -1,7 +1,7 @@
 <div align="center">
  <img height="150" src="/media/logo.png" />
 </div>
- 
+
 <br/>
 
 <div align="center">
@@ -13,6 +13,12 @@
 ![npm](https://img.shields.io/npm/dt/react-native-compressor?style=for-the-badge)
 
 </div>
+
+> ⚠️ **Legacy Notice**
+>
+> This repository is now in **maintenance mode** for the v1 series. Version **1.19.3** will be the last release of v1. Development has moved to **[v2](https://github.com/numandev1/react-native-compressor)** which uses **Nitro Modules** for improved performance and maintainability.
+>
+> New features, bug fixes and enhancements will land in v2 only.
 
 **REACT-NATIVE-COMPRESSOR** is a react-native package, which helps us to Compress `Image`, `Video`, and `Audio` before uploading, same like **Whatsapp** without knowing the compression `algorithm`
 

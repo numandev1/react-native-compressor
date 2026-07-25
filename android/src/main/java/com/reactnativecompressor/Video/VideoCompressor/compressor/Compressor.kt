@@ -734,8 +734,12 @@ object Compressor {
         }
 
         fun isBlacklisted(name: String): Boolean {
+            // ALL_CODECS also surfaces the legacy OMX alias of the QTI encoder
+            // (OMX.qcom.video.encoder.avc). createByCodecName resolves the alias
+            // back to c2.qti.avc.encoder, so it must be blacklisted under both
+            // names. The shorter needle also covers the ".secure" variant.
             val lower = name.lowercase()
-            return lower.contains("c2.qti.avc.encoder") || lower.contains("omx.qcom.video.encoder.avc.secure")
+            return lower.contains("c2.qti.avc.encoder") || lower.contains("omx.qcom.video.encoder.avc")
         }
 
         fun isSoftware(info: MediaCodecInfo): Boolean {

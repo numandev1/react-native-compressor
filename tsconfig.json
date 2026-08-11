@@ -27,5 +27,5 @@
     "target": "ESNext",
     "verbatimModuleSyntax": false
   },
-  "include": ["src"]
+  "include": ["src", "harness", "__tests__"]
 }

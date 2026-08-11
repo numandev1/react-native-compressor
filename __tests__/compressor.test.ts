@@ -1,23 +1,30 @@
 // These unit tests validate the JavaScript wrapper contract. The native
 // Compressor module is mocked, so real media decoding must be smoke-tested
 // in an example app on a simulator or device.
+import { beforeEach, describe, expect, it, jest } from '@jest/globals';
+
+// A bare `jest.fn()` from @jest/globals carries an unknown signature, which leaves
+// mockResolvedValue/mockImplementation uncallable. These tests assert how the JS wrapper calls
+// the native module rather than the native signatures themselves, so the stubs stay permissive.
+const nativeFn = () => jest.fn<(...args: any[]) => any>();
+
 const mockCompressor = {
-  image_compress: jest.fn(),
-  compress: jest.fn(),
-  cancelCompression: jest.fn(),
-  activateBackgroundTask: jest.fn(),
-  deactivateBackgroundTask: jest.fn(),
-  compress_audio: jest.fn(),
-  upload: jest.fn(),
-  cancelUpload: jest.fn(),
-  download: jest.fn(),
-  generateFilePath: jest.fn(),
-  getRealPath: jest.fn(),
-  getVideoMetaData: jest.fn(),
-  getImageMetaData: jest.fn(),
-  createVideoThumbnail: jest.fn(),
-  clearCache: jest.fn(),
-  getFileSize: jest.fn(),
+  image_compress: nativeFn(),
+  compress: nativeFn(),
+  cancelCompression: nativeFn(),
+  activateBackgroundTask: nativeFn(),
+  deactivateBackgroundTask: nativeFn(),
+  compress_audio: nativeFn(),
+  upload: nativeFn(),
+  cancelUpload: nativeFn(),
+  download: nativeFn(),
+  generateFilePath: nativeFn(),
+  getRealPath: nativeFn(),
+  getVideoMetaData: nativeFn(),
+  getImageMetaData: nativeFn(),
+  createVideoThumbnail: nativeFn(),
+  clearCache: nativeFn(),
+  getFileSize: nativeFn(),
 };
 
 const localVideoUri = 'file:///tmp/react-native-compressor/input-video.mp4';
@@ -196,39 +203,49 @@ describe('react-native-compressor JS wrapper API', () => {
     });
   });
 
-  it('wraps native utility functions and normalizes image metadata', async () => {
+  it('wraps native utility functions and passes metadata through unchanged', async () => {
     reactNative.Platform.OS = 'android';
-    mockCompressor.generateFilePath.mockResolvedValue('/tmp/output.jpg');
-    mockCompressor.getRealPath.mockResolvedValue('/real/video.mp4');
-    mockCompressor.getVideoMetaData.mockResolvedValue({ width: 1920, height: 1080 });
-    mockCompressor.getImageMetaData.mockResolvedValue({
-      ImageWidth: '640',
-      ImageLength: '480',
-      Orientation: '1',
+    const videoMetaData = {
+      extension: 'mp4',
+      size: 29820480,
+      duration: 10,
+      width: 1920,
+      height: 1080,
+      displayWidth: 1080,
+      displayHeight: 1920,
+      rotation: 90,
+      hasVideo: true,
+      hasAudio: true,
+      isHDR: false,
+      colorTransfer: 'sdr',
+      fileName: 'IMG_0042.mp4',
+    };
+    const imageMetaData = {
+      width: 640,
+      height: 480,
+      displayWidth: 640,
+      displayHeight: 480,
+      rotation: 0,
+      isMirrored: false,
+      orientation: 1,
       size: 123,
       extension: 'jpg',
-    });
+      mimeType: 'image/jpeg',
+      hasAlpha: false,
+      fileName: 'input-image.jpg',
+    };
+    mockCompressor.generateFilePath.mockResolvedValue('/tmp/output.jpg');
+    mockCompressor.getRealPath.mockResolvedValue('/real/video.mp4');
+    mockCompressor.getVideoMetaData.mockResolvedValue(videoMetaData);
+    mockCompressor.getImageMetaData.mockResolvedValue(imageMetaData);
     mockCompressor.createVideoThumbnail.mockResolvedValue({ path: 'thumb.jpg' });
     mockCompressor.clearCache.mockResolvedValue('cleared');
     mockCompressor.getFileSize.mockResolvedValue('10');
 
     await expect(api.generateFilePath('jpg')).resolves.toBe('file:///tmp/output.jpg');
     await expect(api.getRealPath('content://video', 'video')).resolves.toBe('/real/video.mp4');
-    await expect(api.getVideoMetaData('file://video.mp4')).resolves.toEqual({ width: 1920, height: 1080 });
-    await expect(api.getImageMetaData(localImageUri)).resolves.toEqual({
-      ImageWidth: 640,
-      ImageHeight: 480,
-      Orientation: 1,
-      size: 123,
-      extension: 'jpg',
-      exif: {
-        ImageWidth: '640',
-        ImageLength: '480',
-        Orientation: '1',
-        size: 123,
-        extension: 'jpg',
-      },
-    });
+    await expect(api.getVideoMetaData('file://video.mp4')).resolves.toEqual(videoMetaData);
+    await expect(api.getImageMetaData(localImageUri)).resolves.toEqual(imageMetaData);
     await expect(api.createVideoThumbnail(localVideoUri, { headers: { Authorization: 'token' } })).resolves.toEqual({
       path: 'thumb.jpg',
     });
@@ -236,22 +253,25 @@ describe('react-native-compressor JS wrapper API', () => {
     await expect(api.getFileSize(localImageUri)).resolves.toBe('10');
   });
 
-  it('uses iOS image metadata keys when running on iOS', async () => {
-    mockCompressor.getImageMetaData.mockResolvedValue({
-      PixelWidth: 1024,
-      PixelHeight: 768,
-      Orientation: 6,
+  it('returns the same image metadata keys on iOS as on Android', async () => {
+    reactNative.Platform.OS = 'ios';
+    const imageMetaData = {
+      width: 1024,
+      height: 768,
+      displayWidth: 768,
+      displayHeight: 1024,
+      rotation: 90,
+      isMirrored: false,
+      orientation: 6,
       size: 456,
       extension: 'heic',
-    });
+      mimeType: 'image/heic',
+      hasAlpha: false,
+      fileName: 'input-image.heic',
+    };
+    mockCompressor.getImageMetaData.mockResolvedValue(imageMetaData);
 
-    await expect(api.getImageMetaData('file:///tmp/react-native-compressor/input-image.heic')).resolves.toMatchObject({
-      ImageWidth: 1024,
-      ImageHeight: 768,
-      Orientation: 6,
-      size: 456,
-      extension: 'heic',
-    });
+    await expect(api.getImageMetaData('file:///tmp/react-native-compressor/input-image.heic')).resolves.toEqual(imageMetaData);
   });
 
   it('downloads files, strips Android file prefixes, and reports progress', async () => {
@@ -302,7 +322,7 @@ describe('react-native-compressor JS wrapper API', () => {
       ),
     ).resolves.toEqual({ status: 200 });
 
-    const uploadOptions = mockCompressor.upload.mock.calls[0][1];
+    const uploadOptions = mockCompressor.upload.mock.calls[0]?.[1];
     abortController.abort();
 
     expect(mockCompressor.upload).toHaveBeenCalledWith(

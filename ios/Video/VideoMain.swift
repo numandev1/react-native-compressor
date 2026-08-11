@@ -407,55 +407,166 @@ class VideoCompressor {
 
 
     func getVideoMetaData(_ filePath: String, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
-        VideoCompressor.getAbsoluteVideoPath(filePath, options: [:]) { absoluteImagePath in
-            if absoluteImagePath.hasPrefix("file://") {
+        VideoCompressor.getAbsoluteVideoPath(filePath, options: [:]) { absoluteVideoPath in
+            guard absoluteVideoPath.hasPrefix("file://"), let url = URL(string: absoluteVideoPath) else {
+                reject("INVALID_PATH", "Video path must start with file://", nil)
+                return
+            }
 
-                let absoluteImagePath = URL(string: absoluteImagePath)!.path
-                let fileManager = FileManager.default
-                var isDir: ObjCBool = false
+            let path = url.path
+            let fileManager = FileManager.default
+            var isDir: ObjCBool = false
 
-                if !fileManager.fileExists(atPath: absoluteImagePath, isDirectory: &isDir) || isDir.boolValue {
-                    let err = NSError(domain: "file not found", code: -15, userInfo: nil)
-                    reject(String(err.code), err.localizedDescription, err)
-                    return
+            if !fileManager.fileExists(atPath: path, isDirectory: &isDir) || isDir.boolValue {
+                let err = NSError(domain: "file not found", code: -15, userInfo: nil)
+                reject(String(err.code), err.localizedDescription, err)
+                return
+            }
+
+            let attrs = try? fileManager.attributesOfItem(atPath: path)
+            guard let fileSize = attrs?[FileAttributeKey.size] as? UInt64 else {
+                let err = NSError(domain: "file size unavailable", code: -16, userInfo: nil)
+                reject(String(err.code), err.localizedDescription, err)
+                return
+            }
+
+            var result: [String: Any] = [:]
+            let assetOptions: [String: Any] = [AVURLAssetPreferPreciseDurationAndTimingKey: true]
+            let asset = AVURLAsset(url: URL(fileURLWithPath: path), options: assetOptions)
+
+            // The asset's common metadata is merged first so the normalized keys written below win
+            // if the two ever collide (they do for `location`).
+            var commonMetadata: [AVMetadataItem] = []
+            for key in self.metadatas {
+                let items = AVMetadataItem.metadataItems(from: asset.commonMetadata, withKey: key, keySpace: AVMetadataKeySpace.common)
+                commonMetadata.append(contentsOf: items)
+            }
+            for item in commonMetadata {
+                if let commonKey = item.commonKey, let value = item.value {
+                    result[commonKey.rawValue] = value
                 }
+            }
 
-                let attrs = try? fileManager.attributesOfItem(atPath: absoluteImagePath)
-                if let fileSize = attrs?[FileAttributeKey.size] as? UInt64 {
-                    let fileSizeString = fileSize
+            result["extension"] = (path as NSString).pathExtension
+            result["fileName"] = (path as NSString).lastPathComponent
+            result["size"] = fileSize
+            let time = asset.duration
+            result["duration"] = time.timescale == 0 ? 0 : Double(time.value) / Double(time.timescale)
 
-                    var result: [String: Any] = [:]
-                    let assetOptions: [String: Any] = [AVURLAssetPreferPreciseDurationAndTimingKey: true]
-                    let asset = AVURLAsset(url: URL(fileURLWithPath: absoluteImagePath), options: assetOptions)
-                    if let avAsset = asset.tracks(withMediaType: .video).first {
-                        let size = avAsset.naturalSize
-                        let _extension = (absoluteImagePath as NSString).pathExtension
-                        let time = asset.duration
-                        let seconds = Double(time.value) / Double(time.timescale)
+            let videoTracks = asset.tracks(withMediaType: .video)
+            let audioTracks = asset.tracks(withMediaType: .audio)
+            result["hasVideo"] = !videoTracks.isEmpty
+            result["hasAudio"] = !audioTracks.isEmpty
+            result["trackCount"] = asset.tracks.count
 
-                        result["width"] = size.width
-                        result["height"] = size.height
-                        result["extension"] = _extension
-                        result["size"] = fileSizeString
-                        result["duration"] = seconds
+            // Defaults for an asset with no video track — it is a valid file, just not a video, so
+            // it resolves with zeroed dimensions rather than hanging or rejecting.
+            result["width"] = 0
+            result["height"] = 0
+            result["displayWidth"] = 0
+            result["displayHeight"] = 0
+            result["rotation"] = 0
+            result["isHDR"] = false
+            result["colorTransfer"] = "sdr"
 
-                        var commonMetadata: [AVMetadataItem] = []
-                        for key in self.metadatas {
-                            let items = AVMetadataItem.metadataItems(from: asset.commonMetadata, withKey: key, keySpace: AVMetadataKeySpace.common)
-                            commonMetadata.append(contentsOf: items)
-                        }
+            if let videoTrack = videoTracks.first {
+                let size = videoTrack.naturalSize
+                let transform = videoTrack.preferredTransform
+                let displaySize = size.applying(transform)
+                result["width"] = size.width
+                result["height"] = size.height
+                result["displayWidth"] = abs(displaySize.width)
+                result["displayHeight"] = abs(displaySize.height)
+                result["rotation"] = VideoCompressor.normalizedRotation(from: transform)
+                result["bitrate"] = Int(videoTrack.estimatedDataRate)
+                if videoTrack.nominalFrameRate > 0 {
+                    result["frameRate"] = videoTrack.nominalFrameRate
+                }
+                if let description = videoTrack.formatDescriptions.first {
+                    let formatDescription = description as! CMFormatDescription
+                    result["codec"] = VideoCompressor.normalizedCodec(from: CMFormatDescriptionGetMediaSubType(formatDescription))
+                    let transfer = VideoCompressor.colorTransferName(from: formatDescription)
+                    result["colorTransfer"] = transfer
+                    result["isHDR"] = transfer == "hlg" || transfer == "pq"
+                }
+            }
 
-                        for item in commonMetadata {
-                            if let value = item.value {
-                                result[item.commonKey!.rawValue] = value
-                            }
-                        }
-
-                        resolve(result)
+            if let audioTrack = audioTracks.first {
+                result["audioBitrate"] = Int(audioTrack.estimatedDataRate)
+                if let description = audioTrack.formatDescriptions.first {
+                    let formatDescription = description as! CMFormatDescription
+                    if let basic = CMAudioFormatDescriptionGetStreamBasicDescription(formatDescription)?.pointee {
+                        result["audioSampleRate"] = basic.mSampleRate
+                        result["audioChannels"] = Int(basic.mChannelsPerFrame)
                     }
                 }
             }
+
+            let locationItems = AVMetadataItem.metadataItems(from: asset.commonMetadata, withKey: AVMetadataKey.commonKeyLocation, keySpace: AVMetadataKeySpace.common)
+            if let location = locationItems.first?.stringValue {
+                result["location"] = location
+                if let coordinate = VideoCompressor.parseIso6709(location) {
+                    result["latitude"] = coordinate.latitude
+                    result["longitude"] = coordinate.longitude
+                }
+            }
+
+            resolve(result)
         }
+    }
+
+    /// Snaps the track's preferred transform to the nearest quarter turn in `0, 90, 180, 270`.
+    private static func normalizedRotation(from transform: CGAffineTransform) -> Int {
+        let degrees = atan2(transform.b, transform.a) * 180 / .pi
+        let quarters = Int((degrees / 90).rounded())
+        return ((quarters % 4) + 4) % 4 * 90
+    }
+
+    private static func normalizedCodec(from subType: FourCharCode) -> String {
+        switch subType {
+        case kCMVideoCodecType_H264: return "h264"
+        case kCMVideoCodecType_HEVC, kCMVideoCodecType_HEVCWithAlpha: return "hevc"
+        case kCMVideoCodecType_MPEG4Video: return "mpeg4"
+        case kCMVideoCodecType_JPEG: return "jpeg"
+        default:
+            // Render the remaining tags from their fourCC, e.g. 'av01' -> "av01", 'vp09' -> "vp09".
+            let bytes = [24, 16, 8, 0].map { UInt8((subType >> $0) & 0xFF) }
+            let tag = String(bytes: bytes, encoding: .ascii)?.trimmingCharacters(in: .whitespaces).lowercased() ?? ""
+            switch tag {
+            case "av01": return "av1"
+            case "vp09": return "vp9"
+            case "vp08": return "vp8"
+            default: return tag
+            }
+        }
+    }
+
+    private static func colorTransferName(from formatDescription: CMFormatDescription) -> String {
+        let extensions = CMFormatDescriptionGetExtensions(formatDescription) as? [String: Any]
+        guard let transferFunction = extensions?[kCMFormatDescriptionExtension_TransferFunction as String] as? String else {
+            return "sdr"
+        }
+        switch transferFunction as CFString {
+        case kCMFormatDescriptionTransferFunction_ITU_R_2100_HLG: return "hlg"
+        case kCMFormatDescriptionTransferFunction_SMPTE_ST_2084_PQ: return "pq"
+        case kCMFormatDescriptionTransferFunction_Linear: return "linear"
+        default: return "sdr"
+        }
+    }
+
+    /// Parses the ISO-6709 string `AVAsset` exposes (`"+37.5090-122.2620/"`) into signed decimal
+    /// degrees, so no caller has to write an ISO-6709 parser.
+    private static func parseIso6709(_ location: String) -> (latitude: Double, longitude: Double)? {
+        let pattern = "([+-]\\d+(?:\\.\\d+)?)([+-]\\d+(?:\\.\\d+)?)"
+        guard let regex = try? NSRegularExpression(pattern: pattern),
+              let match = regex.firstMatch(in: location, range: NSRange(location.startIndex..., in: location)),
+              let latitudeRange = Range(match.range(at: 1), in: location),
+              let longitudeRange = Range(match.range(at: 2), in: location),
+              let latitude = Double(location[latitudeRange]),
+              let longitude = Double(location[longitudeRange]) else {
+            return nil
+        }
+        return (latitude, longitude)
     }
 
     static func getAbsoluteVideoPath(_ videoPath: String, options: [String: Any], completionHandler: @escaping (String) -> Void) {

@@ -121,6 +121,10 @@ dependencies {
   // Nitro core (provided as a Gradle subproject by autolinking).
   implementation project(":react-native-nitro-modules")
 
+  // Maintained EXIF reader: unlike the deprecated android.media one it handles HEIC, WebP, PNG and
+  // DNG, and supplies rotation/mirroring/GPS conversion directly.
+  implementation "androidx.exifinterface:exifinterface:1.4.1"
+
   implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4"
   implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.4"
   implementation 'org.mp4parser:isoparser:1.9.56'

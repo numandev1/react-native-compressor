@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, it } from 'react-native-harness';
-import { getEnforcing } from 'react-native/Libraries/TurboModule/TurboModuleRegistry';
+import { TurboModuleRegistry, type TurboModule } from 'react-native';
 import CompressorApi, {
   Audio,
   Image,
@@ -29,8 +29,8 @@ type ReactNativeFsModule = {
   writeFile(path: string, b64: string, options: Record<string, unknown>): Promise<void>;
 };
 
-const getTurboModule = <T>(name: string): T => {
-  return getEnforcing<T>(name);
+const getTurboModule = <T extends TurboModule>(name: string): T => {
+  return TurboModuleRegistry.getEnforcing<T>(name);
 };
 
 const ReactNativeFs = getTurboModule<ReactNativeFsModule>('ReactNativeFs');
@@ -131,10 +131,14 @@ describe('react-native-compressor native harness', () => {
     await expectFileOutput(output);
 
     const metadata = await getImageMetaData(output);
-    expect(metadata.ImageWidth).toBeGreaterThan(0);
-    expect(metadata.ImageHeight).toBeGreaterThan(0);
+    expect(metadata.width).toBeGreaterThan(0);
+    expect(metadata.height).toBeGreaterThan(0);
+    expect(metadata.displayWidth).toBeGreaterThan(0);
+    expect(metadata.displayHeight).toBeGreaterThan(0);
+    expect([0, 90, 180, 270]).toContain(metadata.rotation);
     expect(metadata.size).toBeGreaterThan(0);
-    expect(metadata.exif).toBeTruthy();
+    expect(metadata.mimeType).toContain('image/');
+    expect(metadata.fileName).toBeTruthy();
 
     await expect(getFileSize(output)).resolves.toMatch(/^\d+$/);
   });
@@ -146,6 +150,14 @@ describe('react-native-compressor native harness', () => {
     expect(metadata.duration).toBeGreaterThan(0);
     expect(metadata.extension).toBe('mp4');
     expect(metadata.size).toBeGreaterThan(0);
+    expect(metadata.hasVideo).toBe(true);
+    expect([0, 90, 180, 270]).toContain(metadata.rotation);
+    // Display dimensions are the stored ones, swapped only for a quarter turn.
+    const swapsAxes = metadata.rotation === 90 || metadata.rotation === 270;
+    expect(metadata.displayWidth).toBe(swapsAxes ? metadata.height : metadata.width);
+    expect(metadata.displayHeight).toBe(swapsAxes ? metadata.width : metadata.height);
+    expect(['sdr', 'hlg', 'pq', 'linear']).toContain(metadata.colorTransfer);
+    expect(metadata.isHDR).toBe(metadata.colorTransfer === 'hlg' || metadata.colorTransfer === 'pq');
   });
 
   it('creates and clears a thumbnail for a real video fixture', async () => {

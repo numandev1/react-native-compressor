@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
-import { View, Text, Button, Image, Alert, Platform, BackHandler, StyleSheet } from 'react-native';
+import { View, Text, Button, Image, Alert, Platform, BackHandler, StyleSheet, ScrollView } from 'react-native';
 import {
   Video,
   getRealPath,
+  getVideoMetaData,
   backgroundUpload,
   cancelUpload,
   UploadType,
@@ -10,13 +11,44 @@ import {
   createVideoThumbnail,
   clearCache,
 } from 'react-native-compressor';
+import type { VideoMetaData } from 'react-native-compressor';
 
 import * as ImagePicker from 'react-native-image-picker';
 import { CameraRoll } from '@react-native-camera-roll/camera-roll';
 import prettyBytes from 'pretty-bytes';
 import { getFileInfo } from '../../Utils';
 import ProgressBar from '../../Components/ProgressBar';
+import MetaDataList from '../../Components/MetaDataList';
 import type { ProgressBarRafType } from '../../Components/ProgressBar';
+
+// Groups the response the way the docs describe it: geometry, then track facts, then the optional
+// codec/GPS/audio blocks. Anything not listed still renders, appended alphabetically.
+const VIDEO_FIELD_ORDER = [
+  'fileName',
+  'extension',
+  'size',
+  'duration',
+  'width',
+  'height',
+  'displayWidth',
+  'displayHeight',
+  'rotation',
+  'hasVideo',
+  'hasAudio',
+  'isHDR',
+  'colorTransfer',
+  'codec',
+  'bitrate',
+  'frameRate',
+  'frameCount',
+  'trackCount',
+  'location',
+  'latitude',
+  'longitude',
+  'audioBitrate',
+  'audioSampleRate',
+  'audioChannels',
+];
 // const DOMAIN = 'http://localhost:8080';
 const DOMAIN = 'http://192.168.1.5:8080';
 const uploadPutRequest = `${DOMAIN}/upload/putRequestFile.mov`;
@@ -35,6 +67,8 @@ export default function App() {
   const [compressedVideo, setCompressedVideo] = useState<string>();
   const [compressedSize, setCompressedSize] = useState<string>('0');
   const [compressedVideoThumbnail, setcompressedVideoThumbnail] = useState<string>();
+  const [sourceMetaData, setSourceMetaData] = useState<VideoMetaData>();
+  const [compressedMetaData, setCompressedMetaData] = useState<VideoMetaData>();
 
   const [doingSomething, setDoingSomething] = useState<boolean>(false);
   const [backgroundMode, setBackgroundMode] = useState<boolean>(false);
@@ -49,6 +83,9 @@ export default function App() {
       const detail: any = await getFileInfo(sourceVideo);
       setSourceSize(prettyBytes(parseInt(detail.size, 10)));
     })().catch((error) => console.log({ sourceSizeError: error }));
+    getVideoMetaData(sourceVideo)
+      .then(setSourceMetaData)
+      .catch((error) => console.log({ sourceMetaDataError: error }));
   }, [sourceVideo]);
 
   useEffect(() => {
@@ -65,6 +102,9 @@ export default function App() {
       const detail: any = await getFileInfo(compressedVideo);
       setCompressedSize(prettyBytes(parseInt(detail.size, 10)));
     })();
+    getVideoMetaData(compressedVideo)
+      .then(setCompressedMetaData)
+      .catch((error) => console.log({ compressedMetaDataError: error }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [compressedVideo]);
 
@@ -286,7 +326,7 @@ export default function App() {
     <View style={styles.container}>
       <ProgressBar ref={progressRef} />
       <View style={styles.thumbnailRow}>
-        <View style={styles.sourceColumn}>
+        <ScrollView style={styles.sourceColumn}>
           {sourceVideoThumbnail && (
             <View>
               <Text>Source</Text>
@@ -298,8 +338,9 @@ export default function App() {
               <Button title="Cancel Upload" onPress={() => cancelUploader()} />
             </View>
           )}
-        </View>
-        <View style={styles.compressedColumn}>
+          <MetaDataList title="Source (getVideoMetaData)" data={sourceMetaData} order={VIDEO_FIELD_ORDER} />
+        </ScrollView>
+        <ScrollView style={styles.compressedColumn}>
           {compressedVideoThumbnail && (
             <View>
               <Text>Compressed</Text>
@@ -309,7 +350,8 @@ export default function App() {
               <Button title="Upload(Put)" onPress={() => uploadByPutRequest('compressed')} />
             </View>
           )}
-        </View>
+          <MetaDataList title="Compressed (getVideoMetaData)" data={compressedMetaData} order={VIDEO_FIELD_ORDER} />
+        </ScrollView>
       </View>
       <View style={styles.controlsRow}>
         <Button title="Select Video" onPress={selectVideo} />

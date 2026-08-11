@@ -2,7 +2,7 @@
 # Manual changes might be lost - proceed with caution!
 
 __metadata:
-  version: 9
+  version: 10
   cacheKey: 10c0
 
 "@0no-co/graphql.web@npm:^1.0.13, @0no-co/graphql.web@npm:^1.0.8":
@@ -15798,7 +15798,7 @@ __metadata:
     react-native-safe-area-context: "npm:^5.7.0"
     react-native-screens: "npm:^4.24.0"
     react-native-svg: "npm:^15.15.4"
-    react-native-video: "patch:react-native-video@npm%3A6.19.1#~/.yarn/patches/react-native-video-npm-6.19.1-2c06079fd0.patch"
+    react-native-video: "npm:^6.19.2"
     react-native-worklets: "npm:^0.8.1"
   languageName: unknown
   linkType: soft
@@ -15830,7 +15830,7 @@ __metadata:
     react-native-safe-area-context: "npm:~5.6.0"
     react-native-screens: "npm:~4.16.0"
     react-native-svg: "npm:^15.15.4"
-    react-native-video: "patch:react-native-video@npm%3A6.19.1#~/.yarn/patches/react-native-video-npm-6.19.1-2c06079fd0.patch"
+    react-native-video: "npm:^6.19.2"
     react-native-web: "npm:~0.21.0"
     react-native-worklets: "npm:^0.8.1"
   languageName: unknown
@@ -16054,23 +16054,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-native-video@npm:6.19.1":
-  version: 6.19.1
-  resolution: "react-native-video@npm:6.19.1"
+"react-native-video@npm:^6.19.2":
+  version: 6.19.2
+  resolution: "react-native-video@npm:6.19.2"
   peerDependencies:
     react: "*"
     react-native: "*"
-  checksum: 10c0/0a57c490f15d0388db083c678e4feb3f9c67914ac812ec6ce3d03ca498631039d445b7113cc812a304752a9895a9b021c3148cab5573b9d03646aee0be871896
-  languageName: node
-  linkType: hard
-
-"react-native-video@patch:react-native-video@npm%3A6.19.1#~/.yarn/patches/react-native-video-npm-6.19.1-2c06079fd0.patch":
-  version: 6.19.1
-  resolution: "react-native-video@patch:react-native-video@npm%3A6.19.1#~/.yarn/patches/react-native-video-npm-6.19.1-2c06079fd0.patch::version=6.19.1&hash=76e0af"
-  peerDependencies:
-    react: "*"
-    react-native: "*"
-  checksum: 10c0/afb0f21b9c4f000757eba5c9a9ad761df3c257463077e53d429db9b6377b7507c320f94968e703df4b4af97dd40cdbebaf8ea2855227b4b90bb0f160f3591af1
+  checksum: 10c0/f5e06d4b38ebdbe082e344659deeb64f11e42567f5b89f48b9c6013118643b21687cea7b3f89f593ea77f3b32307423fcdfc26830d399eaa3335dafc16c4be5a
   languageName: node
   linkType: hard
 
@@ -16628,7 +16618,7 @@ __metadata:
 
 "resolve@patch:resolve@npm%3A^1.22.11#optional!builtin<compat/resolve>, resolve@patch:resolve@npm%3A^1.22.2#optional!builtin<compat/resolve>":
   version: 1.22.12
-  resolution: "resolve@patch:resolve@npm%3A1.22.12#optional!builtin<compat/resolve>::version=1.22.12&hash=c3c19d"
+  resolution: "resolve@patch:resolve@npm%3A1.22.12#optional!builtin<compat/resolve>::version=1.22.12&hash=9bd1a5"
   dependencies:
     es-errors: "npm:^1.3.0"
     is-core-module: "npm:^2.16.1"
@@ -16636,13 +16626,13 @@ __metadata:
     supports-preserve-symlinks-flag: "npm:^1.0.0"
   bin:
     resolve: bin/resolve
-  checksum: 10c0/fc6519984ae1f894d877c0060ba8b1f5ba3bc0e85a02f74e141929c118c23d74d9735619a9cc2965397387e514884245c65d72a40731dcb6cfc84c7bcdc8321e
+  checksum: 10c0/e12af106e16e652bd83060e8afacece4ee3dcbd0f4cf028e3d9ad178e6ced9ecb1c87ee60158b239582313902a717f8adc57a9b76ea54b1994141ba15f420c65
   languageName: node
   linkType: hard
 
 "resolve@patch:resolve@npm%3A^2.0.0-next.5#optional!builtin<compat/resolve>, resolve@patch:resolve@npm%3A^2.0.0-next.6#optional!builtin<compat/resolve>":
   version: 2.0.0-next.6
-  resolution: "resolve@patch:resolve@npm%3A2.0.0-next.6#optional!builtin<compat/resolve>::version=2.0.0-next.6&hash=c3c19d"
+  resolution: "resolve@patch:resolve@npm%3A2.0.0-next.6#optional!builtin<compat/resolve>::version=2.0.0-next.6&hash=9bd1a5"
   dependencies:
     es-errors: "npm:^1.3.0"
     is-core-module: "npm:^2.16.1"
@@ -16652,7 +16642,7 @@ __metadata:
     supports-preserve-symlinks-flag: "npm:^1.0.0"
   bin:
     resolve: bin/resolve
-  checksum: 10c0/dca533e38820b0d8d636f269824cef3b7435802ab7401211c6f10af03be0e2f7e216047234e1623046c0a6791577079767e0c04f0d36e42c7f567b1bff7b0742
+  checksum: 10c0/f59a0b355000ae2626fbf62c652c87312ccd213be7a81f4135fd23ecb7a22df48b7b42358fa42f1ad26b8380a71a53413a3a5b123d8fb255fedc25739416efda
   languageName: node
   linkType: hard
 

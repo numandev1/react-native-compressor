@@ -1,5 +1,4 @@
 import { Compressor } from '../Main';
-import { Platform } from 'react-native';
 import { toNativeOptions } from './helpers';
 type qualityType = 'low' | 'medium' | 'high';
 const INCORRECT_INPUT_PATH = 'Incorrect input path. Please provide a valid one';
@@ -42,22 +41,106 @@ type createVideoThumbnailType = (
 
 type clearCacheType = (cacheDir?: string) => Promise<string>;
 
-type getImageMetaDataType = (filePath: string) => Promise<{
-  ImageWidth: number;
-  ImageHeight: number;
-  Orientation: number;
-  size: number;
-  extension: string;
-  exif: { [key: string]: string };
-}>;
+export type ColorTransfer = 'sdr' | 'hlg' | 'pq' | 'linear';
 
-type getVideoMetaDataType = (filePath: string) => Promise<{
+export type VideoMetaData = {
   extension: string;
   size: number;
   duration: number;
+  /** Stored track dimensions, before rotation. */
   width: number;
   height: number;
-}>;
+  /** Dimensions as the video is meant to be shown, with `rotation` applied. */
+  displayWidth: number;
+  displayHeight: number;
+  /** `0`, `90`, `180` or `270`. */
+  rotation: number;
+  hasVideo: boolean;
+  hasAudio: boolean;
+  isHDR: boolean;
+  colorTransfer: ColorTransfer;
+  fileName: string;
+
+  /** Bits per second, video track only. */
+  bitrate?: number;
+  frameRate?: number;
+  frameCount?: number;
+  /** Normalized lowercase name, e.g. `"h264"`, `"hevc"`, `"av1"`, `"vp9"`. */
+  codec?: string;
+  trackCount?: number;
+  /** Raw ISO-6709 string. */
+  location?: string;
+  /** Signed decimal degrees. */
+  latitude?: number;
+  longitude?: number;
+  audioBitrate?: number;
+  audioSampleRate?: number;
+  audioChannels?: number;
+
+  // Platform extras — one platform only, always optional.
+  /** iOS only. `AVAsset` common metadata, merged as-is. */
+  albumName?: string;
+  artist?: string;
+  comment?: string;
+  copyrights?: string;
+  creationDate?: string;
+  date?: string;
+  encodedby?: string;
+  genre?: string;
+  language?: string;
+  lastModifiedDate?: string;
+  performer?: string;
+  publisher?: string;
+  title?: string;
+};
+
+export type ImageMetaData = {
+  /** True pixel dimensions from the decoder, never the EXIF tag. */
+  width: number;
+  height: number;
+  /** Dimensions after `orientation` is applied — swapped when orientation is 5–8. */
+  displayWidth: number;
+  displayHeight: number;
+  /** `0`, `90`, `180` or `270`. */
+  rotation: number;
+  isMirrored: boolean;
+  /** Raw EXIF value 1–8. Missing or `0` is treated as `1`. */
+  orientation: number;
+
+  size: number;
+  extension: string;
+  mimeType: string;
+  hasAlpha: boolean;
+  fileName: string;
+
+  isAnimated?: boolean;
+  frameCount?: number;
+  bitDepth?: number;
+  colorSpace?: string;
+  isHDR?: boolean;
+  dpiX?: number;
+  dpiY?: number;
+
+  /** Signed decimal degrees. */
+  latitude?: number;
+  longitude?: number;
+  /** Metres, negative below sea level. */
+  altitude?: number;
+
+  make?: string;
+  model?: string;
+  lensModel?: string;
+  software?: string;
+  iso?: number;
+  /** Seconds, as a number (`0.0166`), not the `"1/60"` string. */
+  exposureTime?: number;
+  focalLength?: number;
+  flash?: boolean;
+};
+
+type getImageMetaDataType = (filePath: string) => Promise<ImageMetaData>;
+
+type getVideoMetaDataType = (filePath: string) => Promise<VideoMetaData>;
 type getRealPathType = (path: string, type: 'video' | 'image') => Promise<string>;
 
 export const generateFilePath: any = (extension: string) => {
@@ -76,24 +159,8 @@ export const getVideoMetaData: getVideoMetaDataType = (path: string) => {
   return Compressor.getVideoMetaData(path) as ReturnType<getVideoMetaDataType>;
 };
 
-const unifyMetaData = (exifResult: any) => {
-  const output: any = {};
-  const isIos = Platform.OS === 'ios';
-  output.ImageWidth = isIos ? exifResult?.PixelWidth : parseInt(exifResult.ImageWidth);
-
-  output.ImageHeight = isIos ? exifResult?.PixelHeight : parseInt(exifResult.ImageLength);
-
-  output.Orientation = isIos ? exifResult.Orientation : parseInt(exifResult.Orientation);
-
-  output.size = exifResult.size;
-  output.extension = exifResult.extension;
-  output.exif = exifResult;
-  return output;
-};
-
-export const getImageMetaData: getImageMetaDataType = async (path: string) => {
-  const result = await Compressor.getImageMetaData(path);
-  return unifyMetaData(result);
+export const getImageMetaData: getImageMetaDataType = (path: string) => {
+  return Compressor.getImageMetaData(path) as ReturnType<getImageMetaDataType>;
 };
 
 export const createVideoThumbnail: createVideoThumbnailType = (fileUrl, options = {}) => {

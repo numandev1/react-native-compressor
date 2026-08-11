@@ -98,3 +98,9 @@ These should be closed upstream unless a current repro still exists on the lates
 - iOS: return background-upload response bodies consistently
 - Android: annotate the `HybridCompressor` impl with `@DoNotStrip @Keep` so the Nitro `Compressor` HybridObject (instantiated via JNI by name) survives R8 in consumer release builds (#406)
 - Android: rewrite `NitroPromiseAdapter` in Java so the Nitro module compiles across all React Native versions regardless of `Promise.reject`'s `code` nullability (#404)
+- iOS: `getVideoMetaData` could never settle — audio-only files and paths not starting with `file://` fell through every branch without resolving or rejecting, hanging the caller's `await` forever. Every path now settles
+- Android: `getVideoMetaData` threw a null-pointer exception on audio-only and unusual files, because width/height/duration were read with `!!` and those keys are legitimately absent
+- Android: `getVideoMetaData` leaked its `MediaMetadataRetriever` — opened and never released on any path. Now released in a `finally`
+- Android: `getImageMetaData` returned `NaN` for `ImageWidth`/`ImageHeight` on any image without EXIF (PNGs, screenshots, WebP, most edited images), because dimensions were read from the EXIF tags rather than the decoder. Now read from a bounds-only header decode
+- Android: `getImageMetaData` could reject the whole call for an image with no EXIF block, and could not read HEIC/WebP/PNG/DNG metadata on many devices (deprecated framework EXIF reader, now AndroidX)
+- Android/iOS: widened both metadata responses and made them identical in shape across platforms — rotation and display dimensions, codec, bitrate, HDR/colour transfer, audio track details, parsed GPS. Breaking: the image response renames `ImageWidth`/`ImageHeight`/`Orientation` and drops the raw `exif` passthrough; the video response drops the undeclared Android-only `creationTime`

@@ -439,7 +439,7 @@ await clearCache(); // this will clear cache of thumbnails cache directory
 - ###### `returnableOutputType: ReturnableOutputType` (default: uri)
   Can be either `uri` or `base64`, defines the Returnable output image format.
 
-**if you wanna get image metadata (exif) then [read this](#get-metadata-of-image)**
+**if you wanna get image metadata (dimensions, orientation, GPS, camera settings) then [read this](#get-metadata-of-image)**
 
 ## Video
 
@@ -590,21 +590,66 @@ import { getVideoMetaData } from 'react-native-compressor';
 const metaData = await getVideoMetaData(filePath);
 ```
 
-```
+```json
 {
-	"duration": 20.11,
-	"extension": "mp4",
-	"height": 1080,
-	"size": 16940.0,
-	"width": 1920
+  "extension": "mp4",
+  "size": 29820480,
+  "duration": 10.0,
+
+  "width": 1920,
+  "height": 1080,
+  "displayWidth": 1080,
+  "displayHeight": 1920,
+  "rotation": 90,
+
+  "hasVideo": true,
+  "hasAudio": true,
+  "isHDR": false,
+  "colorTransfer": "sdr",
+  "fileName": "IMG_0042.mp4",
+
+  "bitrate": 17842176,
+  "frameRate": 30,
+  "frameCount": 300,
+  "codec": "hevc",
+  "trackCount": 2,
+
+  "location": "+37.5090-122.2620/",
+  "latitude": 37.509,
+  "longitude": -122.262,
+
+  "audioBitrate": 128000,
+  "audioSampleRate": 44100,
+  "audioChannels": 2
 }
 ```
+
+**Always present on both platforms:** `extension`, `size`, `duration`, `width`, `height`,
+`displayWidth`, `displayHeight`, `rotation`, `hasVideo`, `hasAudio`, `isHDR`, `colorTransfer`,
+`fileName`. Everything else appears only when the file carries it.
+
+| Field | Meaning |
+| --- | --- |
+| `width` / `height` | The **stored** track dimensions, before rotation |
+| `displayWidth` / `displayHeight` | Dimensions as the video is meant to be shown, with rotation applied |
+| `rotation` | `0`, `90`, `180` or `270`. Phone recordings store a landscape track plus a rotation flag, so comparing `width` to `height` is *not* how you detect a portrait video — read this instead |
+| `duration` | Seconds |
+| `bitrate` | Bits per second. The video track's own rate where the platform reports it, otherwise the container's overall rate |
+| `codec` | Normalized lowercase name — `"h264"`, `"hevc"`, `"av1"`, `"vp9"` |
+| `colorTransfer` | One of `"sdr"`, `"hlg"`, `"pq"`, `"linear"` |
+| `isHDR` | True for HLG and PQ. HDR footage compressed as if it were SDR comes out washed out |
+| `location` | Raw ISO-6709 string |
+| `latitude` / `longitude` | Signed decimal degrees, parsed natively |
+| `frameCount` | **Android only.** Reading it on iOS would require a full pass over the video samples |
+
+A file with no video track (an audio-only file) resolves with `hasVideo: false` and zeroed
+dimensions rather than rejecting. A corrupt or unreadable file rejects.
 
 - ###### `getVideoMetaData(path: string)`
 
 ### Get Metadata Of Image
 
-if you want to get metadata of video than you can use this function
+if you want to get metadata of an image than you can use this function
 
 ```js
 import { getImageMetaData } from 'react-native-compressor';
@@ -612,18 +657,108 @@ import { getImageMetaData } from 'react-native-compressor';
 const metaData = await getImageMetaData(filePath);
 ```
 
-```
+```json
 {
-  "ImageWidth": 4032,
-  "ImageHeight": 3024,
-  "Orientation": 3,
-  "size": 4127057,
+  "width": 4032,
+  "height": 3024,
+  "displayWidth": 3024,
+  "displayHeight": 4032,
+  "rotation": 90,
+  "isMirrored": false,
+  "orientation": 6,
+
+  "size": 3145728,
   "extension": "jpg",
-  "exif":{...}
+  "mimeType": "image/jpeg",
+  "hasAlpha": false,
+  "fileName": "IMG_0042.jpg",
+
+  "isAnimated": false,
+  "frameCount": 1,
+  "bitDepth": 8,
+  "colorSpace": "Display P3",
+  "isHDR": false,
+  "dpiX": 72,
+  "dpiY": 72,
+
+  "latitude": 37.509,
+  "longitude": -122.262,
+  "altitude": 12.4,
+
+  "make": "Apple",
+  "model": "iPhone 15 Pro",
+  "lensModel": "iPhone 15 Pro back triple camera 6.86mm f/1.78",
+  "software": "17.2",
+  "iso": 64,
+  "exposureTime": 0.0166,
+  "focalLength": 6.86,
+  "flash": false
 }
 ```
 
+**Always present on both platforms:** `width`, `height`, `displayWidth`, `displayHeight`,
+`rotation`, `isMirrored`, `orientation`, `size`, `extension`, `mimeType`, `hasAlpha`, `fileName`.
+Everything else appears only when the file carries it — a missing EXIF block is normal (PNGs,
+screenshots, most edited images) and is not an error.
+
+| Field | Meaning |
+| --- | --- |
+| `width` / `height` | True pixel dimensions from the decoder — never the EXIF tag, so these are correct for images with no EXIF |
+| `displayWidth` / `displayHeight` | Dimensions after orientation is applied — swapped when `orientation` is 5–8 |
+| `rotation` | `0`, `90`, `180` or `270` |
+| `isMirrored` | True for orientations 2, 4, 5 and 7 |
+| `orientation` | The raw EXIF value 1–8, as a number. Missing or `0` is reported as `1` |
+| `latitude` / `longitude` | Signed decimal degrees — already negated for the southern and western hemispheres |
+| `altitude` | Metres, negative below sea level |
+| `exposureTime` | Seconds as a number (`0.0166`), not the `"1/60"` string |
+| `hasAlpha` | Read exactly on iOS. **Inferred from the container on Android** (PNG/WebP/GIF), since confirming it would mean decoding the bitmap |
+| `isHDR` | **iOS only.** Detecting it on Android is unreliable, so the key is omitted there rather than guessed |
+
+Orientation is the piece most often got wrong, so the full mapping:
+
+| `orientation` | `rotation` | `isMirrored` | swaps dimensions |
+| --- | --- | --- | --- |
+| 1 | 0 | false | no |
+| 2 | 0 | true | no |
+| 3 | 180 | false | no |
+| 4 | 180 | true | no |
+| 5 | 90 | true | **yes** |
+| 6 | 90 | false | **yes** |
+| 7 | 270 | true | **yes** |
+| 8 | 270 | false | **yes** |
+
+The image is never fully decoded, so a 100 MP file costs no more memory than a thumbnail.
+
 - ###### `getImageMetaData(path: string)`
+
+#### Migrating from v2
+
+`getImageMetaData` returned differently-shaped data on each platform, so the keys were renamed and
+the raw `exif` passthrough — an unnormalized platform dump, nested `{Exif}` / `{GPS}` / `{TIFF}`
+dictionaries on iOS and a flat all-strings tag map on Android — was removed. Every value it carried
+that is worth reading is now a normalized, identically-shaped, top-level key.
+
+| v2 | v3 |
+| --- | --- |
+| `ImageWidth` | `width` (and it is no longer `NaN` on Android for images without EXIF) |
+| `ImageHeight` | `height` |
+| `Orientation` | `orientation` (plus the derived `rotation`, `isMirrored`, `displayWidth`, `displayHeight`) |
+| `exif['{GPS}'].Latitude` / `GPSLatitude` | `latitude` — signed, no reference letter to apply |
+| `exif['{GPS}'].Longitude` / `GPSLongitude` | `longitude` |
+| `exif['{GPS}'].Altitude` / `GPSAltitude` | `altitude` |
+| `exif['{TIFF}'].Make` / `Make` | `make` |
+| `exif['{TIFF}'].Model` / `Model` | `model` |
+| `exif['{TIFF}'].Software` / `Software` | `software` |
+| `exif['{Exif}'].LensModel` / `LensModel` | `lensModel` |
+| `exif['{Exif}'].ISOSpeedRatings` / `ISOSpeedRatings` | `iso` |
+| `exif['{Exif}'].ExposureTime` / `ExposureTime` | `exposureTime` (seconds, as a number) |
+| `exif['{Exif}'].FocalLength` / `FocalLength` | `focalLength` |
+| `exif['{Exif}'].Flash` / `Flash` | `flash` (boolean: did the flash fire) |
+| `exif.PixelWidth` (iOS) / `exif.ImageWidth` (Android) | `width` — the `Platform.OS` branch is gone |
+
+`getVideoMetaData` keeps every key it had. The undeclared, Android-only `creationTime` — which
+returned a raw `"20240115T123456.000Z"` string, or the literal string `"null"` when the file had no
+date — was removed.
 
 ### Get Real Path
 

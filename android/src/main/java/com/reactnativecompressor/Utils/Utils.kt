@@ -16,12 +16,15 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.nio.ByteBuffer
 import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
 import java.util.regex.Pattern
 
 
 object Utils {
     private const val TAG = "react-native-compessor"
-    var compressorExports: MutableMap<String, VideoCompressorClass?> = HashMap()
+    // Written on the Nitro executor, read by cancelCompression and cleared on
+    // the main thread.
+    val compressorExports: MutableMap<String, VideoCompressorClass> = ConcurrentHashMap()
     @JvmStatic
     fun generateCacheFilePath(extension: String, reactContext: ReactApplicationContext): String {
         val outputDir = reactContext.cacheDir
@@ -31,9 +34,9 @@ object Utils {
     @JvmStatic
     fun compressVideo(srcPath: String, destinationPath: String, resultWidth: Int, resultHeight: Int, videoBitRate: Float, frameRate: Int, uuid: String,progressDivider:Int, stripAudio: Boolean = false, promise: Promise, reactContext: ReactApplicationContext) {
       val currentVideoCompression = intArrayOf(0)
-      val videoCompressorClass: VideoCompressorClass? = VideoCompressorClass(reactContext);
+      val videoCompressorClass = VideoCompressorClass(reactContext)
       compressorExports[uuid] = videoCompressorClass
-      videoCompressorClass?.start(
+      videoCompressorClass.start(
         srcPath, destinationPath, resultWidth, resultHeight, videoBitRate.toInt(), frameRate, stripAudio,
         listener = object : CompressionListener {
           override fun onProgress(index: Int, percent: Float) {
@@ -53,20 +56,22 @@ object Utils {
           override fun onSuccess(index: Int, size: Long, path: String?) {
             val fileUrl = "file://$destinationPath"
             //convert finish,result(true is success,false is fail)
+            compressorExports.remove(uuid)
             promise.resolve(fileUrl)
             MediaCache.removeCompletedImagePath(fileUrl)
             currentVideoCompression[0] = 0
-            compressorExports[uuid] = null
           }
 
             override fun onFailure(index: Int, failureMessage: String) {
               Log.wtf("failureMessage", failureMessage)
+              compressorExports.remove(uuid)
               promise.reject(Throwable(failureMessage))
               currentVideoCompression[0] = 0
             }
 
             override fun onCancelled(index: Int) {
               Log.wtf("TAG", "compression has been cancelled")
+              compressorExports.remove(uuid)
               promise.reject(Throwable("compression has been cancelled"))
               // make UI changes, cleanup, etc
               currentVideoCompression[0] = 0
@@ -77,9 +82,9 @@ object Utils {
 
     fun cancelCompressionHelper(uuid: String) {
         try {
-            val export = compressorExports[uuid]
-            export?.cancel()
-          compressorExports[uuid]=null
+            // Only flag the compression; it removes itself from the map when its
+            // Promise settles.
+            compressorExports[uuid]?.cancel()
         } catch (ex: Exception) {
         }
     }

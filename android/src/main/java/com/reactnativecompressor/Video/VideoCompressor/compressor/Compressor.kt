@@ -248,7 +248,7 @@ object Compressor {
 
         // Prepare the video encoder. If the encoder rejects the throughput-tuned
         // format at configure() time, prepareEncoder reconfigures using this
-        // baseline format (same params, no VBR/priority/operating-rate keys).
+        // baseline format (same params, no VBR key).
         val encoder = prepareEncoder(outputFormat, hasQTI) {
           MediaFormat.createVideoFormat(MIME_TYPE, newWidth, newHeight).also {
             setOutputFileParameters(
@@ -695,8 +695,8 @@ object Compressor {
             Log.i("Compressor", "encoder selected: ${encoder.name}")
             return encoder
         } catch (e: Exception) {
-            // Some encoders reject the throughput-tuning keys (VBR bitrate mode,
-            // priority, operating rate) at configure() time. A codec that throws
+            // Some encoders reject the throughput-tuning key (VBR bitrate mode)
+            // at configure() time. A codec that throws
             // from configure() is unusable, so release it and retry on a fresh
             // codec with a baseline format (default rate control) rather than
             // failing the whole compression.

@@ -99,13 +99,8 @@ object CompressorUtils {
           MediaFormat.KEY_BITRATE_MODE,
           MediaCodecInfo.EncoderCapabilities.BITRATE_MODE_VBR
         )
-        // Hint the hardware codec to run as fast as it can (not throttled to
-        // realtime playback) and at the highest scheduling priority. These keys
-        // unlock full throughput on Qualcomm / Exynos / MTK SoCs that accept them.
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
-          setInteger(MediaFormat.KEY_PRIORITY, 0)
-          setInteger(MediaFormat.KEY_OPERATING_RATE, Short.MAX_VALUE.toInt())
-        }
+        // KEY_PRIORITY = 0 (realtime) + KEY_OPERATING_RATE are intentionally not set:
+        // Exynos encoders accept them in configure() but fail start() with NO_MEMORY.
       }
 
       getColorStandard(inputFormat)?.let {

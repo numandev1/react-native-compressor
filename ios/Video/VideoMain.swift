@@ -64,7 +64,7 @@ class VideoCompressor {
   }
 
   func compress(fileUrl: String, options: [String: Any], resolve:@escaping RCTPromiseResolveBlock, reject:@escaping RCTPromiseRejectBlock) -> Void {
-    let progressDivider=options["progressDivider"] as? Int ?? 0
+    let progressDivider=(options["progressDivider"] as? NSNumber)?.intValue ?? 0
     compressVideo(url: URL(string: fileUrl)!, options:options,
     onProgress: { progress in
         EventEmitterHandler.emitVideoCompressProgress(progress, uuid: options["uuid"] as! String)
@@ -266,7 +266,7 @@ class VideoCompressor {
     func autoCompressionHelper(url: URL, options: [String: Any], onProgress: @escaping (Float) -> Void,  onCompletion: @escaping (URL) -> Void, onFailure: @escaping (Error) -> Void){
         let maxSize = (options["maxSize"] as? NSNumber)?.floatValue ?? 640
         let uuid:String = options["uuid"] as! String
-        let progressDivider=options["progressDivider"] as? Int ?? 0
+        let progressDivider=(options["progressDivider"] as? NSNumber)?.intValue ?? 0
         let stripAudio=options["stripAudio"] as? Bool ?? false
 
         let asset = AVAsset(url: url)
@@ -289,7 +289,7 @@ class VideoCompressor {
     func manualCompressionHelper(url: URL, options: [String: Any], onProgress: @escaping (Float) -> Void,  onCompletion: @escaping (URL) -> Void, onFailure: @escaping (Error) -> Void){
         let uuid:String = options["uuid"] as! String
         let bitRate = (options["bitrate"] as? NSNumber)?.intValue
-        let progressDivider=options["progressDivider"] as? Int ?? 0
+        let progressDivider=(options["progressDivider"] as? NSNumber)?.intValue ?? 0
         let stripAudio=options["stripAudio"] as? Bool ?? false
         let asset = AVAsset(url: url)
         guard let track = getVideoTrack(asset: asset) else {
@@ -461,7 +461,7 @@ class VideoCompressor {
     static func getAbsoluteVideoPath(_ videoPath: String, options: [String: Any], completionHandler: @escaping (String) -> Void) {
         if videoPath.hasPrefix("http://") || videoPath.hasPrefix("https://") {
             let uuid=options["uuid"] as? String ?? ""
-            let progressDivider=options["progressDivider"] as? Int ?? 0
+            let progressDivider=(options["progressDivider"] as? NSNumber)?.intValue ?? 0
             Downloader.downloadFileAndSaveToCache(videoPath, uuid: uuid,progressDivider:progressDivider) { downloadedPath in
                 completionHandler(downloadedPath)
             }

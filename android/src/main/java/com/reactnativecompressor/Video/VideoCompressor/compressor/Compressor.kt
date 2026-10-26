@@ -515,7 +515,7 @@ object Compressor {
           // finishMovie() never runs on this path, so close the MP4Builder
           // streams explicitly or the output file handle leaks.
           mediaMuxer.close()
-          return Result(id, success = false, failureMessage = exception.message)
+          return Result(id, success = false, failureMessage = failureMessage(exception))
         }
 
         // Release resources
@@ -553,7 +553,7 @@ object Compressor {
         // extractor.release) where the MP4Builder is still open. close() is
         // idempotent, so calling it after a successful finishMovie() is a no-op.
         muxer?.close()
-        return Result(id, success = false, failureMessage = exception.message)
+        return Result(id, success = false, failureMessage = failureMessage(exception))
       }
 
       var resultFile = cacheFile
@@ -772,6 +772,15 @@ object Compressor {
             MediaCodec.createEncoderByType(MIME_TYPE)
         }
     }
+
+    // A MediaCodec.CodecException often has an empty message; its diagnosticInfo
+    // names the codec error (e.g. android.media.MediaCodec.error_neg_12 is NO_MEMORY).
+    private fun failureMessage(exception: Throwable): String? =
+        if (exception is MediaCodec.CodecException) {
+            listOfNotNull(exception.message?.ifBlank { null }, exception.diagnosticInfo).joinToString(": ")
+        } else {
+            exception.message
+        }
 
   // Dolby Vision profile 5 (0x20) carries no HEVC base layer, so no standard
   // Android decoder can render it. Detect it up front so start() can reject the

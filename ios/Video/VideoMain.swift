@@ -20,6 +20,9 @@ class VideoCompressor {
   var backgroundTaskId: UIBackgroundTaskIdentifier = .invalid;
 
   var compressorExports: [String: NextLevelSessionExporter] = [:]
+  // `compress` (JS thread) and `cancelCompression` (JS thread) read and
+  // write the map while the completion handler (main thread) clears it.
+  private let compressorExportsLock = NSLock()
 
     let metadatas: [String] = [
         "albumName",
@@ -76,7 +79,10 @@ class VideoCompressor {
   }
 
     func cancelCompression(uuid: String) -> Void {
-        compressorExports[uuid]?.cancelExport()
+        compressorExportsLock.lock()
+        let exporter = compressorExports[uuid]
+        compressorExportsLock.unlock()
+        exporter?.cancelExport()
     }
 
     func getfileSize(forURL url: Any) -> Double {
@@ -357,7 +363,9 @@ class VideoCompressor {
         }
         exporter.metadata = preservedMetadata
 
+        compressorExportsLock.lock()
         compressorExports[uuid] = exporter
+        compressorExportsLock.unlock()
         exporter.export(progressHandler: { (progress) in
             let roundProgress:Int=Int((progress*100).rounded());
             if(progressDivider==0||(roundProgress%progressDivider==0&&roundProgress>currentVideoCompression))
@@ -367,7 +375,9 @@ class VideoCompressor {
             }
         }, completionHandler: { result in
             currentVideoCompression=0;
+            self.compressorExportsLock.lock()
             self.compressorExports[uuid] = nil
+            self.compressorExportsLock.unlock()
             switch result {
             case .success:
               if let outputURL = exporter.outputURL {

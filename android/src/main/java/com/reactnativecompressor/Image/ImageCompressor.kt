@@ -153,21 +153,37 @@ object ImageCompressor {
       return stream
     }
 
+    /**
+     * Decodes with downsampling via inSampleSize (the same technique
+     * autoCompressImage() already uses below) instead of loadImage()
+     * (BitmapFactory.decodeFile with no downsampling — a full decode of a
+     * high-resolution photo on a low-RAM device is a common OOM cause).
+     */
+    fun loadImageDownsampled(imagePath: String?, maxWidth: Int, maxHeight: Int): Bitmap {
+      val uri = Uri.parse(imagePath)
+      val filePath = uri.path
+      val boundsOptions = BitmapFactory.Options()
+      boundsOptions.inJustDecodeBounds = true
+      BitmapFactory.decodeFile(filePath, boundsOptions)
+      boundsOptions.inSampleSize = calculateInSampleSize(boundsOptions, maxWidth, maxHeight)
+      boundsOptions.inJustDecodeBounds = false
+      return BitmapFactory.decodeFile(filePath, boundsOptions)
+    }
+
     fun manualCompressImage(imagePath: String?, options: ImageCompressorOptions, reactContext: ReactApplicationContext?): String? {
-      val image = if (options.input === ImageCompressorOptions.InputType.base64) decodeImage(imagePath) else loadImage(imagePath)
+      val image = if (options.input === ImageCompressorOptions.InputType.base64) decodeImage(imagePath) else loadImageDownsampled(imagePath, options.maxWidth, options.maxHeight)
       val resizedImage = resize(image, options.maxWidth, options.maxHeight)
       val isBase64 = options.returnableOutputType === ImageCompressorOptions.ReturnableOutputType.base64
       val uri = Uri.parse(imagePath)
       val imagePathNew = uri.path
       var scaledBitmap: Bitmap? = correctImageOrientation(resizedImage, imagePathNew)
       val imageDataByteArrayOutputStream = compress(scaledBitmap, options.output, options.quality, options.disablePngTransparency)
-      val compressedImagePath = encodeImage(imageDataByteArrayOutputStream, isBase64, options.output.toString(), imagePath, reactContext)
-      if (isCompressedSizeLessThanActualFile(imagePath!!, compressedImagePath)) {
-          return compressedImagePath
-      } else {
-          MediaCache.deleteFile(compressedImagePath!!)
-          return slashifyFilePath(imagePath)
-      }
+      // Unlike autoCompressImage(), don't fall back to the original file when
+      // the compressed output isn't smaller — manualCompressImage() must
+      // always return a file in the requested output format (e.g. a caller
+      // converting HEIC/HEIF to JPEG needs that guarantee regardless of the
+      // resulting file size).
+      return encodeImage(imageDataByteArrayOutputStream, isBase64, options.output.toString(), imagePath, reactContext)
     }
 
   fun isCompressedSizeLessThanActualFile(sourceFileUrl: String,compressedFileUrl: String?): Boolean {

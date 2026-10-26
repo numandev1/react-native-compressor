@@ -2,6 +2,7 @@ import Accelerate
 import CoreGraphics
 import Photos
 import Foundation
+import ImageIO
 import MobileCoreServices
 
 
@@ -161,8 +162,16 @@ class ImageCompressor {
             }
         }
         
+        // Pixel data here has already been decoded/rotated to the "up"
+        // orientation (see decodeDownsampledImage below). Without forcing this
+        // tag, the merge loop above copies the ORIGINAL file's Orientation tag
+        // (commonly 3/6/8 for camera photos) onto an already-upright image —
+        // any viewer that respects EXIF orientation will rotate it a second
+        // time, incorrectly.
+        dataMetadata?[kCGImagePropertyOrientation] = 1
+
         let outputFormat = isPNG(data) ? kUTTypePNG : kUTTypeJPEG
-        
+
         let destinationData = NSMutableData()
         let destination = CGImageDestinationCreateWithData(destinationData, outputFormat, 1, nil)!
         CGImageDestinationAddImage(destination, image.cgImage!, dataMetadata as CFDictionary?)
@@ -293,28 +302,105 @@ class ImageCompressor {
         return fileUrl
     }
 
-    
-    static func manualCompressHandler(imagePath: String?, base64: String?, options: ImageCompressorOptions) -> String {
-        var exception: NSException?
-        var image: UIImage?
+    /// Opens a CGImageSource for the given path — same 3 input branches as the
+    /// old loadImage() (file://, data:, bare absolute path) but WITHOUT
+    /// decoding the image. This lets ImageIO downsample directly from the
+    /// source when generating a thumbnail, instead of us decoding the full
+    /// image into memory first.
+    static func makeImageSource(_ path: String) -> CGImageSource? {
+        if path.hasPrefix("file://") {
+            guard let fileURL = URL(string: path) else { return nil }
+            return CGImageSourceCreateWithURL(fileURL as CFURL, nil)
+        }
+        if path.hasPrefix("data:") {
+            guard let dataURL = URL(string: path), let data = try? Data(contentsOf: dataURL) else { return nil }
+            return CGImageSourceCreateWithData(data as CFData, nil)
+        }
+        return CGImageSourceCreateWithURL(URL(fileURLWithPath: path) as CFURL, nil)
+    }
 
-        switch options.input {
+    /// Decodes the image already downsampled AND orientation-corrected in a
+    /// single step via CGImageSourceCreateThumbnailAtIndex, instead of
+    /// UIImage(contentsOfFile:) followed by redrawing the FULL-resolution
+    /// bitmap into a new CGContext (the old path: peaks at ~2x the full
+    /// native-resolution RGBA buffer in memory, which is the root cause of
+    /// OOM crashes on lower-RAM devices when compressing large/HEIC photos).
+    /// kCGImageSourceCreateThumbnailWithTransform: true makes ImageIO apply
+    /// the EXIF orientation transform as part of decoding, so the returned
+    /// image is always orientation .up — scaleAndRotateImage() is no longer
+    /// needed on this path.
+    static func decodeDownsampledImage(imagePath: String?, base64: String?, input: InputType, maxWidth: Int, maxHeight: Int) -> UIImage? {
+        let imageSource: CGImageSource?
+
+        switch input {
         case .base64:
-            if let _base64 = base64 {
-                image = ImageCompressor.decodeImage(_base64)
+            guard let base64Value = base64,
+                  let data = Data(base64Encoded: base64Value, options: .ignoreUnknownCharacters) else {
+                return nil
             }
+            imageSource = CGImageSourceCreateWithData(data as CFData, nil)
         case .uri:
-            if let _imagePath = imagePath {
-                image = ImageCompressor.loadImage(_imagePath)
-            }
+            guard let path = imagePath else { return nil }
+            imageSource = ImageCompressor.makeImageSource(path)
         }
 
-        if let _image = image {
-            image = ImageCompressor.scaleAndRotateImage(_image)
+        guard let source = imageSource else { return nil }
+
+        // Read the native pixel size from metadata only (no decoding) so we
+        // never upscale small images — kCGImageSourceThumbnailMaxPixelSize's
+        // behavior when the requested size is larger than the source isn't
+        // consistently documented across iOS versions, so we clamp manually
+        // to be safe.
+        var nativeLongEdge = CGFloat(max(maxWidth, maxHeight))
+        if let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
+           let pixelWidth = properties[kCGImagePropertyPixelWidth] as? Int,
+           let pixelHeight = properties[kCGImagePropertyPixelHeight] as? Int {
+            nativeLongEdge = CGFloat(max(pixelWidth, pixelHeight))
+        }
+
+        let requestedLongEdge = CGFloat(max(maxWidth, maxHeight))
+        let targetLongEdge = max(1, Int(min(requestedLongEdge, nativeLongEdge).rounded()))
+
+        let thumbnailOptions: [CFString: Any] = [
+            kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceCreateThumbnailWithTransform: true,
+            kCGImageSourceThumbnailMaxPixelSize: targetLongEdge,
+            kCGImageSourceShouldCacheImmediately: true,
+        ]
+
+        guard let thumbnail = CGImageSourceCreateThumbnailAtIndex(source, 0, thumbnailOptions as CFDictionary) else {
+            return nil
+        }
+
+        return UIImage(cgImage: thumbnail)
+    }
+
+    /// kCGImageSourceThumbnailMaxPixelSize only accepts a single scalar value
+    /// (constrains the longer edge). If maxWidth != maxHeight (not exercised
+    /// by any current call site, but kept for behavioral safety), fit
+    /// precisely into the maxWidth x maxHeight box using the existing
+    /// manualResize() — safe memory-wise here since the input has already
+    /// been downsampled, not full-resolution.
+    static func fitExactBoxIfNeeded(_ image: UIImage, maxWidth: Int, maxHeight: Int) -> UIImage {
+        guard maxWidth != maxHeight else { return image }
+        return ImageCompressor.manualResize(image, maxWidth: maxWidth, maxHeight: maxHeight)
+    }
+
+    /// Shared decode + resize step used by both manual and auto compress.
+    static func decodeAndPrepareImage(imagePath: String?, base64: String?, options: ImageCompressorOptions) -> UIImage? {
+        guard let decoded = ImageCompressor.decodeDownsampledImage(imagePath: imagePath, base64: base64, input: options.input, maxWidth: options.maxWidth, maxHeight: options.maxHeight) else {
+            return nil
+        }
+        return ImageCompressor.fitExactBoxIfNeeded(decoded, maxWidth: options.maxWidth, maxHeight: options.maxHeight)
+    }
+
+    static func manualCompressHandler(imagePath: String?, base64: String?, options: ImageCompressorOptions) -> String {
+        var exception: NSException?
+
+        if let image = ImageCompressor.decodeAndPrepareImage(imagePath: imagePath, base64: base64, options: options) {
             let outputExtension = ImageCompressorOptions.getOutputInString(options.output)
-            let resizedImage = ImageCompressor.manualResize(image!, maxWidth: options.maxWidth, maxHeight: options.maxHeight)
             let isBase64 = options.returnableOutputType == .rbase64
-            return ImageCompressor.manualCompress(resizedImage, output: options.output.rawValue, quality: options.quality, outputExtension: outputExtension, isBase64: isBase64,disablePngTransparency: options.disablePngTransparency, actualImagePath: imagePath)
+            return ImageCompressor.manualCompress(image, output: options.output.rawValue, quality: options.quality, outputExtension: outputExtension, isBase64: isBase64, disablePngTransparency: options.disablePngTransparency, actualImagePath: imagePath)
         } else {
             exception = NSException(name: NSExceptionName(rawValue: "unsupported_value"), reason: "Unsupported value type.", userInfo: nil)
             exception?.raise()
@@ -323,62 +409,19 @@ class ImageCompressor {
         return ""
     }
 
-    
+
     static func autoCompressHandler(imagePath: String?, base64: String?, options: ImageCompressorOptions) -> String {
         var exception: NSException?
-        var image: UIImage?
-        
-        switch options.input {
-        case .base64:
-            if let _base64 = base64 {
-                image = ImageCompressor.decodeImage(_base64)
-            }
-        case .uri:
-            if let _imagePath = imagePath {
-                image = ImageCompressor.loadImage(_imagePath)
-            }
-        }
-        
-        if var image = image {
-            image = ImageCompressor.scaleAndRotateImage(image)
+
+        if let image = ImageCompressor.decodeAndPrepareImage(imagePath: imagePath, base64: base64, options: options) {
             let outputExtension = ImageCompressorOptions.getOutputInString(options.output)
-            
-            var actualHeight = image.size.height
-            var actualWidth = image.size.width
-            let maxHeight: CGFloat = CGFloat(options.maxHeight)
-            let maxWidth: CGFloat = CGFloat(options.maxWidth)
-            var imgRatio = actualWidth / actualHeight
-            let maxRatio = maxWidth / maxHeight
-            let compressionQuality: CGFloat = CGFloat(options.quality)
-            
-            if actualHeight > maxHeight || actualWidth > maxWidth {
-                if imgRatio < maxRatio {
-                    imgRatio = maxHeight / actualHeight
-                    actualWidth = imgRatio * actualWidth
-                    actualHeight = maxHeight
-                } else if imgRatio > maxRatio {
-                    imgRatio = maxWidth / actualWidth
-                    actualHeight = imgRatio * actualHeight
-                    actualWidth = maxWidth
-                } else {
-                    actualHeight = maxHeight
-                    actualWidth = maxWidth
-                }
-            }
-            
-            let rect = CGRect(x: 0.0, y: 0.0, width: actualWidth, height: actualHeight)
-            UIGraphicsBeginImageContext(rect.size)
-            image.draw(in: rect)
             let isBase64 = options.returnableOutputType == .rbase64
-            
-            if let img = UIGraphicsGetImageFromCurrentImageContext() {
-                return writeImage(img, output: options.output.rawValue, quality: Float(compressionQuality), outputExtension: outputExtension, isBase64: isBase64, disablePngTransparency: options.disablePngTransparency, isEnableAutoCompress: true, actualImagePath: imagePath)
-            }
+            return ImageCompressor.writeImage(image, output: options.output.rawValue, quality: options.quality, outputExtension: outputExtension, isBase64: isBase64, disablePngTransparency: options.disablePngTransparency, isEnableAutoCompress: true, actualImagePath: imagePath)
         } else {
             exception = NSException(name: NSExceptionName(rawValue: "unsupported_value"), reason: "Unsupported value type.", userInfo: nil)
             exception?.raise()
         }
-        
+
         return ""
     }
     

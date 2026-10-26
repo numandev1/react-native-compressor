@@ -29,6 +29,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.nio.ByteBuffer
+import java.util.concurrent.atomic.AtomicBoolean
 
 object Compressor {
 
@@ -51,10 +52,11 @@ object Compressor {
   private const val STREAMABLE_SUFFIX = "-streamable"
   private const val DEFAULT_OUTPUT_EXTENSION = "mp4"
 
-  // Flag to check if compression is running
-  var isRunning = true
+  // Each compression passes its own `cancelled` flag, so cancelling one does not
+  // stop the others (#300).
+  const val CANCELLED_MESSAGE = "The compression has stopped!"
 
-  private fun getStreamableOutputFile(cacheFile: File): File =
+  fun getStreamableOutputFile(cacheFile: File): File =
     File(
       cacheFile.parentFile ?: File("."),
       "${cacheFile.nameWithoutExtension}$STREAMABLE_SUFFIX.${cacheFile.extension.ifEmpty { DEFAULT_OUTPUT_EXTENSION }}"
@@ -71,6 +73,7 @@ object Compressor {
     outputBitrate: Int,
     outputFrameRate: Int,
     disableAudio: Boolean = false,
+    cancelled: AtomicBoolean,
     listener: CompressionProgressListener,
   ): Result = withContext(Dispatchers.Default) {
 
@@ -78,100 +81,108 @@ object Compressor {
     val extractor = MediaExtractor()
     val mediaMetadataRetriever = MediaMetadataRetriever()
 
+    // Release both on every path, including early returns and throws.
+    // Releasing an already released extractor is a no-op.
     try {
-      // Set the data source for the MediaMetadataRetriever
-      mediaMetadataRetriever.setDataSource(context, srcUri)
-    } catch (exception: IllegalArgumentException) {
-      printException(exception)
-      return@withContext Result(
-        index,
-        success = false,
-        failureMessage = "${exception.message}"
-      )
-    }
-
-    runCatching {
-      // Set the data source for the MediaExtractor
-      extractor.setDataSource(context, srcUri, null)
-    }
-
-    // Retrieve video metadata
-    val height: Double = prepareVideoHeight(mediaMetadataRetriever)
-    val width: Double = prepareVideoWidth(mediaMetadataRetriever)
-    val rotationData = mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_ROTATION)
-    val bitrateData = mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_BITRATE)
-    val durationData = mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
-    // ISO 6709 string (e.g. "+37.4220-122.0840/"). Forwarded into the
-    // output udta/©xyz box so GPS metadata survives the rewrite.
-    //
-    // Some Samsung firmwares (S10 / Android 12) place "©xyz" in the
-    // per-track udta, or use a 'loci' box, or iTunes-style meta/keys+ilst.
-    // MediaMetadataRetriever only reads moov/udta/©xyz — returning null
-    // (or empty) and dropping GPS. Fall back to a raw MP4 walker that
-    // scans the whole file for every known location encoding.
-    val retrievedLocation =
-      mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_LOCATION)
-    val locationData = if (!retrievedLocation.isNullOrEmpty()) {
-      retrievedLocation
-    } else {
-      LocationExtractor.extract(context, srcUri)
-    }
-    // Never log the resolved ISO 6709 string — it is the user's exact GPS
-    // coordinates. Log only presence and which mechanism resolved it.
-    val locationSource = when {
-      !retrievedLocation.isNullOrEmpty() -> "retriever"
-      !locationData.isNullOrEmpty() -> "extractor"
-      else -> "none"
-    }
-    Log.i("Compressor", "source location resolved: hasLocation=${!locationData.isNullOrEmpty()} source=$locationSource")
-
-    // Check if any metadata is missing
-    if (rotationData.isNullOrEmpty() || bitrateData.isNullOrEmpty() || durationData.isNullOrEmpty()) {
-      // Exit execution
-      return@withContext Result(
-        index,
-        success = false,
-        failureMessage = "Failed to extract video metadata, please try again"
-      )
-    }
-
-    var rotation = rotationData.toInt()
-    val duration = durationData.toLong() * 1000
-
-    // Handle new bitrate value
-    val newBitrate: Int = outputBitrate
-
-    // Handle new width and height values
-    var (newWidth, newHeight) = Pair(outputWidth, outputHeight)
-
-    // Handle rotation values and swapping height and width if needed
-    rotation = when (rotation) {
-      90, 270 -> {
-        val tempHeight = newHeight
-        newHeight = newWidth
-        newWidth = tempHeight
-        0
+      try {
+        // Set the data source for the MediaMetadataRetriever
+        mediaMetadataRetriever.setDataSource(context, srcUri)
+      } catch (exception: IllegalArgumentException) {
+        printException(exception)
+        return@withContext Result(
+          index,
+          success = false,
+          failureMessage = "${exception.message}"
+        )
       }
-      180 -> 0
-      else -> rotation
-    }
 
-    // Start video compression
-    return@withContext start(
-      index,
-      newWidth!!,
-      newHeight!!,
-      destination,
-      newBitrate,
-      outputFrameRate,
-      streamableFile,
-      disableAudio,
-      extractor,
-      listener,
-      duration,
-      rotation,
-      locationData,
-    )
+      runCatching {
+        // Set the data source for the MediaExtractor
+        extractor.setDataSource(context, srcUri, null)
+      }
+
+      // Retrieve video metadata
+      val height: Double = prepareVideoHeight(mediaMetadataRetriever)
+      val width: Double = prepareVideoWidth(mediaMetadataRetriever)
+      val rotationData = mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_ROTATION)
+      val bitrateData = mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_BITRATE)
+      val durationData = mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
+      // ISO 6709 string (e.g. "+37.4220-122.0840/"). Forwarded into the
+      // output udta/©xyz box so GPS metadata survives the rewrite.
+      //
+      // Some Samsung firmwares (S10 / Android 12) place "©xyz" in the
+      // per-track udta, or use a 'loci' box, or iTunes-style meta/keys+ilst.
+      // MediaMetadataRetriever only reads moov/udta/©xyz — returning null
+      // (or empty) and dropping GPS. Fall back to a raw MP4 walker that
+      // scans the whole file for every known location encoding.
+      val retrievedLocation =
+        mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_LOCATION)
+      val locationData = if (!retrievedLocation.isNullOrEmpty()) {
+        retrievedLocation
+      } else {
+        LocationExtractor.extract(context, srcUri)
+      }
+      // Never log the resolved ISO 6709 string — it is the user's exact GPS
+      // coordinates. Log only presence and which mechanism resolved it.
+      val locationSource = when {
+        !retrievedLocation.isNullOrEmpty() -> "retriever"
+        !locationData.isNullOrEmpty() -> "extractor"
+        else -> "none"
+      }
+      Log.i("Compressor", "source location resolved: hasLocation=${!locationData.isNullOrEmpty()} source=$locationSource")
+
+      // Check if any metadata is missing
+      if (rotationData.isNullOrEmpty() || bitrateData.isNullOrEmpty() || durationData.isNullOrEmpty()) {
+        // Exit execution
+        return@withContext Result(
+          index,
+          success = false,
+          failureMessage = "Failed to extract video metadata, please try again"
+        )
+      }
+
+      var rotation = rotationData.toInt()
+      val duration = durationData.toLong() * 1000
+
+      // Handle new bitrate value
+      val newBitrate: Int = outputBitrate
+
+      // Handle new width and height values
+      var (newWidth, newHeight) = Pair(outputWidth, outputHeight)
+
+      // Handle rotation values and swapping height and width if needed
+      rotation = when (rotation) {
+        90, 270 -> {
+          val tempHeight = newHeight
+          newHeight = newWidth
+          newWidth = tempHeight
+          0
+        }
+        180 -> 0
+        else -> rotation
+      }
+
+      // Start video compression
+      return@withContext start(
+        index,
+        newWidth!!,
+        newHeight!!,
+        destination,
+        newBitrate,
+        outputFrameRate,
+        streamableFile,
+        disableAudio,
+        extractor,
+        listener,
+        duration,
+        rotation,
+        locationData,
+        cancelled,
+      )
+    } finally {
+      runCatching { mediaMetadataRetriever.release() }
+      runCatching { extractor.release() }
+    }
   }
 
   // Function to start video compression
@@ -190,6 +201,7 @@ object Compressor {
     duration: Long,
     rotation: Int,
     location: String?,
+    cancelled: AtomicBoolean,
   ): Result {
     // Check if newWidth and newHeight are valid
     if (newWidth != 0 && newHeight != 0) {
@@ -371,7 +383,7 @@ object Compressor {
 
                         loop@ while (decoderOutputAvailable || encoderOutputAvailable) {
 
-                            if (!isRunning) {
+                            if (cancelled.get()) {
                                 dispose(
                                     videoIndex,
                                     decoder,
@@ -380,12 +392,15 @@ object Compressor {
                                     outputSurface,
                                     extractor
                                 )
-
-                                compressionProgressListener.onProgressCancelled(id)
+                                // Close the muxer's file streams and report only
+                                // through the returned Result, so the Promise
+                                // settles once. VideoCompressorClass deletes the
+                                // partial output.
+                                mediaMuxer.close()
                                 return Result(
                                     id,
                                     success = false,
-                                    failureMessage = "The compression has stopped!"
+                                    failureMessage = CANCELLED_MESSAGE
                                 )
                             }
 
@@ -528,15 +543,26 @@ object Compressor {
           extractor
         )
 
+        // Stop between stages once cancelled.
+        if (cancelled.get()) {
+          mediaMuxer.close()
+          return Result(id, success = false, failureMessage = CANCELLED_MESSAGE)
+        }
+
         // Process audio if necessary
         processAudio(
           mediaMuxer = mediaMuxer,
           bufferInfo = bufferInfo,
           disableAudio = disableAudio,
-          extractor
+          extractor,
+          cancelled,
         )
 
         extractor.release()
+        if (cancelled.get()) {
+          mediaMuxer.close()
+          return Result(id, success = false, failureMessage = CANCELLED_MESSAGE)
+        }
         try {
           mediaMuxer.finishMovie()
         } catch (e: Throwable) {
@@ -557,6 +583,10 @@ object Compressor {
       }
 
       var resultFile = cacheFile
+
+      if (cancelled.get()) {
+        return Result(id, success = false, failureMessage = CANCELLED_MESSAGE)
+      }
 
       try {
         // Keep default outputs browser/progressive-playback compatible by moving the
@@ -610,7 +640,8 @@ object Compressor {
         mediaMuxer: MP4Builder,
         bufferInfo: MediaCodec.BufferInfo,
         disableAudio: Boolean,
-        extractor: MediaExtractor
+        extractor: MediaExtractor,
+        cancelled: AtomicBoolean,
     ) {
         val audioIndex = findTrack(extractor, isVideo = false)
         if (audioIndex >= 0 && !disableAudio) {
@@ -642,7 +673,7 @@ object Compressor {
             var inputDone = false
             extractor.seekTo(0, MediaExtractor.SEEK_TO_PREVIOUS_SYNC)
 
-            while (!inputDone) {
+            while (!inputDone && !cancelled.get()) {
                 val index = extractor.sampleTrackIndex
                 if (index == audioIndex) {
                     bufferInfo.size = extractor.readSampleData(buffer, 0)
@@ -715,7 +746,7 @@ object Compressor {
                 baseline, null, null,
                 MediaCodec.CONFIGURE_FLAG_ENCODE
             )
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             // Even the baseline format was rejected; release the codec so it
             // doesn't leak, then let start()'s outer catch report the failure.
             runCatching { fallback.release() }
@@ -808,7 +839,15 @@ object Compressor {
 
         val decoder = MediaCodec.createDecoderByType(inputFormat.getString(MediaFormat.KEY_MIME)!!)
 
-        decoder.configure(inputFormat, outputSurface.getSurface(), null, 0)
+        // The caller only gets the decoder once this returns, so release it here
+        // (as prepareEncoder does) if configure() throws; otherwise every failed
+        // attempt leaks a live codec.
+        try {
+            decoder.configure(inputFormat, outputSurface.getSurface(), null, 0)
+        } catch (e: Throwable) {
+            runCatching { decoder.release() }
+            throw e
+        }
 
         return decoder
     }

@@ -268,6 +268,7 @@ class VideoCompressor {
         let uuid:String = options["uuid"] as! String
         let progressDivider=(options["progressDivider"] as? NSNumber)?.intValue ?? 0
         let stripAudio=options["stripAudio"] as? Bool ?? false
+        let preserveMetadata=options["preserveMetadata"] as? Bool ?? true
 
         let asset = AVAsset(url: url)
         guard let track = getVideoTrack(asset: asset) else {
@@ -277,7 +278,7 @@ class VideoCompressor {
         }
         let profile = createCompressionProfile(track: track, maxSize: CGFloat(maxSize), requestedBitrate: nil)
 
-        exportVideoHelper(url: url, asset: asset, bitRate: profile.bitrate, frameRate: profile.frameRate, resultWidth: profile.width, resultHeight: profile.height,uuid: uuid,progressDivider: progressDivider, stripAudio: stripAudio) { progress in
+        exportVideoHelper(url: url, asset: asset, bitRate: profile.bitrate, frameRate: profile.frameRate, resultWidth: profile.width, resultHeight: profile.height,uuid: uuid,progressDivider: progressDivider, stripAudio: stripAudio, preserveMetadata: preserveMetadata) { progress in
             onProgress(progress)
         } onCompletion: { outputURL in
             onCompletion(outputURL)
@@ -291,6 +292,7 @@ class VideoCompressor {
         let bitRate = (options["bitrate"] as? NSNumber)?.intValue
         let progressDivider=(options["progressDivider"] as? NSNumber)?.intValue ?? 0
         let stripAudio=options["stripAudio"] as? Bool ?? false
+        let preserveMetadata=options["preserveMetadata"] as? Bool ?? true
         let asset = AVAsset(url: url)
         guard let track = getVideoTrack(asset: asset) else {
           let error = CompressionError(message: "Invalid video URL, no track found")
@@ -300,7 +302,7 @@ class VideoCompressor {
         let maxSize = (options["maxSize"] as? NSNumber)?.floatValue ?? Float(1920)
         let profile = createCompressionProfile(track: track, maxSize: CGFloat(maxSize), requestedBitrate: bitRate)
 
-        exportVideoHelper(url: url, asset: asset, bitRate: profile.bitrate, frameRate: profile.frameRate, resultWidth: profile.width, resultHeight: profile.height,uuid: uuid,progressDivider: progressDivider, stripAudio: stripAudio) { progress in
+        exportVideoHelper(url: url, asset: asset, bitRate: profile.bitrate, frameRate: profile.frameRate, resultWidth: profile.width, resultHeight: profile.height,uuid: uuid,progressDivider: progressDivider, stripAudio: stripAudio, preserveMetadata: preserveMetadata) { progress in
             onProgress(progress)
         } onCompletion: { outputURL in
             onCompletion(outputURL)
@@ -309,7 +311,7 @@ class VideoCompressor {
         }
       }
 
-    func exportVideoHelper(url: URL,asset: AVAsset, bitRate: Int, frameRate: Int, resultWidth:Int,resultHeight:Int,uuid:String,progressDivider: Int, stripAudio: Bool = false, onProgress: @escaping (Float) -> Void,  onCompletion: @escaping (URL) -> Void, onFailure: @escaping (Error) -> Void){
+    func exportVideoHelper(url: URL,asset: AVAsset, bitRate: Int, frameRate: Int, resultWidth:Int,resultHeight:Int,uuid:String,progressDivider: Int, stripAudio: Bool = false, preserveMetadata: Bool = true, onProgress: @escaping (Float) -> Void,  onCompletion: @escaping (URL) -> Void, onFailure: @escaping (Error) -> Void){
         var currentVideoCompression:Int=0
 
         var tmpURL = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
@@ -350,12 +352,14 @@ class VideoCompressor {
         }
 
         // Preserve source metadata (location, creation date, etc.) by forwarding
-        // every available metadata format to the writer.
-        var preservedMetadata: [AVMetadataItem] = asset.metadata
-        for format in asset.availableMetadataFormats {
-            preservedMetadata.append(contentsOf: asset.metadata(forFormat: format))
+        // every available metadata format to the writer, unless the caller opted out.
+        if preserveMetadata {
+            var preservedMetadata: [AVMetadataItem] = asset.metadata
+            for format in asset.availableMetadataFormats {
+                preservedMetadata.append(contentsOf: asset.metadata(forFormat: format))
+            }
+            exporter.metadata = preservedMetadata
         }
-        exporter.metadata = preservedMetadata
 
         compressorExports[uuid] = exporter
         exporter.export(progressHandler: { (progress) in

@@ -46,6 +46,7 @@ object AutoVideoCompression {
                     options.uuid!!,
                     options.progressDivider!!,
                     options.stripAudio,
+                    options.preserveMetadata,
                     promise,
                     reactContext,
                 )

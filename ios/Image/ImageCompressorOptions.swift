@@ -28,14 +28,18 @@ class ImageCompressorOptions: NSObject {
             switch key {
             case "compressionMethod":
                 options.autoCompress = (value as? String ?? "") != "manual"
+            // Nitro hands every JS number over as a Swift Double, which `as? Int` and
+            // `as? Float` never match, so these options silently fell back to their
+            // defaults (#417). NSNumber bridges a Double, an Int and an NSNumber alike,
+            // the same cast VideoMain uses for its numeric options.
             case "maxWidth":
-                options.maxWidth = (value as? Int) ?? 1280
+                options.maxWidth = (value as? NSNumber)?.intValue ?? 1280
             case "maxHeight":
-                options.maxHeight = (value as? Int) ?? 1280
+                options.maxHeight = (value as? NSNumber)?.intValue ?? 1280
             case "progressDivider":
-                options.progressDivider = (value as? Int) ?? 0
+                options.progressDivider = (value as? NSNumber)?.intValue ?? 0
             case "quality":
-                options.quality = (value as? Float) ?? 0.8
+                options.quality = (value as? NSNumber)?.floatValue ?? 0.8
             case "input":
                 options.parseInput(value as? String)
             case "output":

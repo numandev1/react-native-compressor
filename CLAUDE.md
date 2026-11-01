@@ -118,6 +118,10 @@ When you change native Swift/Kotlin code and can't run it on a device/simulator,
   remaps such inputs to their backward-compatible HEVC/AVC base layer (profiles 8/4
   → HEVC, profile 9 → AVC) or throws a clear error for non-compatible profiles
   (5/7). See #398.
+- Don't set `KEY_PRIORITY = 0` / `KEY_OPERATING_RATE` on the encoder format. Exynos
+  encoders (e.g. `c2.exynos.h264.encoder`) accept them in `configure()`, then fail
+  `start()` with `NO_MEMORY` ("real-time(32767 fps) is not supported"), and the
+  `prepareEncoder` fallback only covers `configure()` failures.
 - The encoder is intentionally `c2.android.avc.encoder` (when QTI codecs exist) or
   `MediaCodec.createEncoderByType("video/avc")`; QTI AVC encoders can produce MP4s
   that do not play on Mac/iPhone, so avoid switching this without testing.

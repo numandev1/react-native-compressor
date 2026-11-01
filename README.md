@@ -677,7 +677,6 @@ const metaData = await getImageMetaData(filePath);
   "frameCount": 1,
   "bitDepth": 8,
   "colorSpace": "Display P3",
-  "isHDR": false,
   "dpiX": 72,
   "dpiY": 72,
 
@@ -712,7 +711,6 @@ screenshots, most edited images) and is not an error.
 | `altitude` | Metres, negative below sea level |
 | `exposureTime` | Seconds as a number (`0.0166`), not the `"1/60"` string |
 | `hasAlpha` | Read exactly on iOS. **Inferred from the container on Android** (PNG/WebP/GIF), since confirming it would mean decoding the bitmap |
-| `isHDR` | **iOS only.** Detecting it on Android is unreliable, so the key is omitted there rather than guessed |
 
 Orientation is the piece most often got wrong, so the full mapping:
 

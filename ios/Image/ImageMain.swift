@@ -93,9 +93,12 @@ class ImageMain {
                 if let dpiX = properties[kCGImagePropertyDPIWidth] as? Double { result["dpiX"] = dpiX }
                 if let dpiY = properties[kCGImagePropertyDPIHeight] as? Double { result["dpiY"] = dpiY }
 
+                // The image count alone does not mean animation (a multi-page TIFF has several
+                // stills), so only containers that can animate are reported as animated.
                 let frameCount = CGImageSourceGetCount(imageSource)
+                let animatableTypes: Set<String> = ["com.compuserve.gif", "public.png", "org.webmproject.webp", "public.webp", "public.heics"]
                 result["frameCount"] = frameCount
-                result["isAnimated"] = frameCount > 1
+                result["isAnimated"] = frameCount > 1 && animatableTypes.contains(CGImageSourceGetType(imageSource) as String? ?? "")
 
                 if let tiff = properties[kCGImagePropertyTIFFDictionary] as? [CFString: Any] {
                     if let make = tiff[kCGImagePropertyTIFFMake] as? String { result["make"] = make }

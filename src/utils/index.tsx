@@ -117,7 +117,6 @@ export type ImageMetaData = {
   frameCount?: number;
   bitDepth?: number;
   colorSpace?: string;
-  isHDR?: boolean;
   dpiX?: number;
   dpiY?: number;
 

@@ -1,5 +1,7 @@
 all:
 
+.PHONY: all install pod-install sync nitrogen prepack run-ios run-ios-sim run-android run-bundler run-expo-ios run-expo-android run-expo-bundler build-android build-ios test typecheck lint lint-fix test-pr test-harness-android test-harness-ios clean clean-deps purge refresh resync open-android open-ios check-dep release
+
 ROOT_DIR    := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 BARE_DIR    := $(ROOT_DIR)/examples/bare
 EXPO_DIR    := $(ROOT_DIR)/examples/expo

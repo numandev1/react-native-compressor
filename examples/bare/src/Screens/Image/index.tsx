@@ -31,7 +31,6 @@ const IMAGE_FIELD_ORDER = [
   'frameCount',
   'bitDepth',
   'colorSpace',
-  'isHDR',
   'dpiX',
   'dpiY',
   'latitude',

@@ -455,6 +455,12 @@ class VideoCompressor {
 
             let videoTracks = asset.tracks(withMediaType: .video)
             let audioTracks = asset.tracks(withMediaType: .audio)
+            // An existing file with no readable track (empty, corrupt or not media) is not valid
+            // input; an audio-only file still resolves below.
+            guard !videoTracks.isEmpty || !audioTracks.isEmpty else {
+                reject("INVALID_MEDIA", "File is not a readable audio or video file: \(path)", nil)
+                return
+            }
             result["hasVideo"] = !videoTracks.isEmpty
             result["hasAudio"] = !audioTracks.isEmpty
             result["trackCount"] = asset.tracks.count

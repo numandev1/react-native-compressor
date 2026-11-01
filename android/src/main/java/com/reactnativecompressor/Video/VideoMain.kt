@@ -1,5 +1,6 @@
 package com.reactnativecompressor.Video
 
+import android.media.MediaCodecInfo
 import android.media.MediaExtractor
 import android.media.MediaFormat
 import android.media.MediaMetadataRetriever
@@ -142,8 +143,8 @@ class VideoMain(private val reactContext: ReactApplicationContext) {
         val mime = format.getString(MediaFormat.KEY_MIME) ?: continue
         when {
           hasVideo && mime.startsWith("video/") && !params.hasKey("codec") -> {
-            params.putString("codec", normalizeCodec(mime))
-            format.intOrNull(MediaFormat.KEY_FRAME_RATE)?.let { params.putInt("frameRate", it) }
+            params.putString("codec", normalizeCodec(mime, format))
+            format.floatOrNull(MediaFormat.KEY_FRAME_RATE)?.let { params.putDouble("frameRate", it.toDouble()) }
             format.intOrNull(MediaFormat.KEY_BIT_RATE)?.let { params.putInt("bitrate", it) }
             // KEY_FRAME_COUNT is API 28+; absent on older platforms and on some containers.
             format.intOrNull("frame-count")?.let { params.putInt("frameCount", it) }
@@ -176,6 +177,17 @@ class VideoMain(private val reactContext: ReactApplicationContext) {
     null
   }
 
+  private fun MediaFormat.floatOrNull(key: String): Float? = if (containsKey(key)) {
+    try {
+      getFloat(key)
+    } catch (e: ClassCastException) {
+      // Most extractors store frame rate as an integer; fractional rates (29.97) arrive as floats.
+      getInteger(key).toFloat()
+    }
+  } else {
+    null
+  }
+
   companion object {
     /** Snaps an arbitrary degree value to the nearest quarter turn in `0, 90, 180, 270`. */
     private fun normalizeRotation(degrees: Int): Int {
@@ -183,14 +195,27 @@ class VideoMain(private val reactContext: ReactApplicationContext) {
       return ((quarters % 4) + 4) % 4 * 90
     }
 
-    private fun normalizeCodec(mime: String): String = when (mime) {
+    private fun normalizeCodec(mime: String, format: MediaFormat): String = when (mime) {
       MediaFormat.MIMETYPE_VIDEO_AVC -> "h264"
-      MediaFormat.MIMETYPE_VIDEO_HEVC, "video/dolby-vision" -> "hevc"
+      MediaFormat.MIMETYPE_VIDEO_HEVC -> "hevc"
+      MediaFormat.MIMETYPE_VIDEO_DOLBY_VISION -> dolbyVisionBaseCodec(format)
       MediaFormat.MIMETYPE_VIDEO_AV1 -> "av1"
       MediaFormat.MIMETYPE_VIDEO_VP9 -> "vp9"
       MediaFormat.MIMETYPE_VIDEO_VP8 -> "vp8"
       MediaFormat.MIMETYPE_VIDEO_MPEG4 -> "mpeg4"
       else -> mime.removePrefix("video/").lowercase()
+    }
+
+    /** Reports the codec of a Dolby Vision track's base layer, which the profile determines. */
+    private fun dolbyVisionBaseCodec(format: MediaFormat): String {
+      val profile = if (format.containsKey(MediaFormat.KEY_PROFILE)) format.getInteger(MediaFormat.KEY_PROFILE) else null
+      return when (profile) {
+        MediaCodecInfo.CodecProfileLevel.DolbyVisionProfileDvavPer,
+        MediaCodecInfo.CodecProfileLevel.DolbyVisionProfileDvavPen,
+        MediaCodecInfo.CodecProfileLevel.DolbyVisionProfileDvavSe -> "h264"
+        MediaCodecInfo.CodecProfileLevel.DolbyVisionProfileDvav110 -> "av1"
+        else -> "hevc"
+      }
     }
 
     private fun colorTransferName(colorTransfer: Int?): String = when (colorTransfer) {

@@ -1,4 +1,3 @@
-import Accelerate
 import CoreGraphics
 import Photos
 import Foundation
@@ -14,106 +13,11 @@ private enum CompressorResizeMode {
 
 
 class ImageCompressor {
-    static func findTargetSize(_ image: UIImage, maxWidth: Int, maxHeight: Int) -> CGSize {
-        let width = image.size.width
-        let height = image.size.height
-
-        if width > height {
-            let newHeight = height / (width / CGFloat(maxWidth))
-            return CGSize(width: CGFloat(maxWidth), height: newHeight)
-        }
-
-        let newWidth = width / (height / CGFloat(maxHeight))
-        return CGSize(width: newWidth, height: CGFloat(maxHeight))
-    }
-
-    
-    static func decodeImage(_ value: String) -> UIImage? {
-        if let data = Data(base64Encoded: value, options: .ignoreUnknownCharacters) {
-            return UIImage(data: data)
-        }
-        return nil
-    }
-
-    
-    static func loadImage(_ path: String) -> UIImage? {
-        var image: UIImage?
-
-        if path.hasPrefix("data:") || path.hasPrefix("file:") {
-            if let imageUrl = URL(string: path), let imageData = try? Data(contentsOf: imageUrl) {
-                image = UIImage(data: imageData)
-            }
-        } else {
-            image = UIImage(contentsOfFile: path)
-        }
-
-        return image
-    }
-
-    
-    static func manualResize(_ image: UIImage, maxWidth: Int, maxHeight: Int) -> UIImage {
-        let targetSize = findTargetSize(image, maxWidth: maxWidth, maxHeight: maxHeight)
-
-        if let cgImage = image.cgImage {
-            let sourceWidth = Int(image.size.width)
-            let sourceHeight = Int(image.size.height)
-            let targetWidth = Int(targetSize.width)
-            let targetHeight = Int(targetSize.height)
-            let bytesPerPixel = 4
-            let sourceBytesPerRow = sourceWidth * bytesPerPixel
-            let targetBytesPerRow = targetWidth * bytesPerPixel
-            let bitsPerComponent = 8
-
-            let colorSpace = CGColorSpaceCreateDeviceRGB()
-
-            var sourceData = [UInt8](repeating: 0, count: sourceHeight * sourceBytesPerRow)
-            let context = CGContext(data: &sourceData,
-                                    width: Int(sourceWidth),
-                                    height: Int(sourceHeight),
-                                    bitsPerComponent: bitsPerComponent,
-                                    bytesPerRow: sourceBytesPerRow,
-                                    space: colorSpace,
-                                    bitmapInfo: CGImageAlphaInfo.premultipliedFirst.rawValue | CGBitmapInfo.byteOrder32Big.rawValue)
-
-            context?.draw(cgImage, in: CGRect(x: 0, y: 0, width: sourceWidth, height: sourceHeight))
-         
-
-            var targetData = [UInt8](repeating: 0, count: targetWidth * targetHeight * bytesPerPixel)
-
-            var srcBuffer = vImage_Buffer(data: &sourceData, height: vImagePixelCount(sourceHeight), width: vImagePixelCount(sourceWidth), rowBytes: sourceBytesPerRow)
-            var targetBuffer = vImage_Buffer(data: &targetData, height: vImagePixelCount(targetHeight), width: vImagePixelCount(targetWidth), rowBytes: targetBytesPerRow)
-
-            let error = vImageScale_ARGB8888(&srcBuffer, &targetBuffer, nil, vImage_Flags(kvImageHighQualityResampling))
-
-            if error != kvImageNoError {
-                free(&targetData)
-                let exception = NSException(name: NSExceptionName(rawValue: "drawing_error"), reason: "Problem while rendering your image", userInfo: nil)
-                exception.raise()
-            }
-
-            let targetContext = CGContext(data: &targetData,
-                                          width: targetWidth,
-                                          height: targetHeight,
-                                          bitsPerComponent: bitsPerComponent,
-                                          bytesPerRow: targetBytesPerRow,
-                                          space: colorSpace,
-                                          bitmapInfo: CGImageAlphaInfo.premultipliedFirst.rawValue | CGBitmapInfo.byteOrder32Big.rawValue)
-
-            let targetRef = targetContext?.makeImage()
-            let resizedImage = UIImage(cgImage: targetRef!)
-            
-
-            return resizedImage
-        }
-        return UIImage()
-    }
-    
     static func isCompressedSizeLessThanActualFile(sourceFileUrl: String?, sourceData: Data?, compressedFileUrl: String)-> Bool {
         var sourcefileSize: Int = 0
         
         if let _sourceFileUrl = sourceFileUrl {
-            let sourceVideoURL = URL(string: _sourceFileUrl)
-            sourcefileSize = Utils.getfileSizeInBytes(forURL: sourceVideoURL!)
+            sourcefileSize = Utils.getfileSizeInBytes(forURL: ImageCompressor.fileURL(_sourceFileUrl))
         }
         
         if let _sourceData = sourceData {
@@ -135,11 +39,7 @@ class ImageCompressor {
     }
     
     static func copyExifInfo(actualImagePath: String, image: UIImage, data: Data) -> Data {
-        let fileURL = URL(string: actualImagePath)!
-        let filePath = fileURL.path
-        
-        let url = URL(fileURLWithPath: filePath)
-        let source = CGImageSourceCreateWithURL(url as CFURL, nil)!
+        let source = CGImageSourceCreateWithURL(ImageCompressor.fileURL(actualImagePath) as CFURL, nil)!
         let metadata = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any]
         
         let dataProvider = CGDataProvider(data: data as CFData)
@@ -238,63 +138,6 @@ class ImageCompressor {
     }
 
     
-    static func scaleAndRotateImage(_ image: UIImage) -> UIImage {
-        if image.imageOrientation == .up {
-            return image
-        }
-
-        var transform = CGAffineTransform.identity
-
-        switch image.imageOrientation {
-        case .down, .downMirrored:
-            transform = transform.translatedBy(x: image.size.width, y: image.size.height)
-            transform = transform.rotated(by: CGFloat.pi)
-        case .left, .leftMirrored:
-            transform = transform.translatedBy(x: image.size.width, y: 0)
-            transform = transform.rotated(by: CGFloat.pi / 2)
-        case .right, .rightMirrored:
-            transform = transform.translatedBy(x: 0, y: image.size.height)
-            transform = transform.rotated(by: -CGFloat.pi / 2)
-        default:
-            break
-        }
-
-        switch image.imageOrientation {
-        case .upMirrored, .downMirrored:
-            transform = transform.translatedBy(x: image.size.width, y: 0)
-            transform = transform.scaledBy(x: -1, y: 1)
-        case .leftMirrored, .rightMirrored:
-            transform = transform.translatedBy(x: image.size.height, y: 0)
-            transform = transform.scaledBy(x: -1, y: 1)
-        default:
-            break
-        }
-
-        if let cgImage = image.cgImage, let colorSpace = cgImage.colorSpace {
-            guard let context = CGContext(data: nil, width: Int(image.size.width), height: Int(image.size.height),
-                                          bitsPerComponent: cgImage.bitsPerComponent, bytesPerRow: 0,
-                                          space: colorSpace, bitmapInfo: cgImage.bitmapInfo.rawValue) else {
-                return image
-            }
-
-            context.concatenate(transform)
-
-            switch image.imageOrientation {
-            case .left, .leftMirrored, .right, .rightMirrored:
-                context.draw(cgImage, in: CGRect(x: 0, y: 0, width: image.size.height, height: image.size.width))
-            default:
-                context.draw(cgImage, in: CGRect(x: 0, y: 0, width: image.size.width, height: image.size.height))
-            }
-
-            if let rotatedCGImage = context.makeImage() {
-                return UIImage(cgImage: rotatedCGImage)
-            }
-        }
-
-        return image
-    }
-
-    
     static func makeValidUri(_ filePath: String) -> String {
         let fileWithUrl = URL(fileURLWithPath: filePath)
         let absoluteUrl = fileWithUrl.deletingLastPathComponent()
@@ -302,21 +145,25 @@ class ImageCompressor {
         return fileUrl
     }
 
-    /// Opens a CGImageSource for the given path — same 3 input branches as the
-    /// old loadImage() (file://, data:, bare absolute path) but WITHOUT
-    /// decoding the image. This lets ImageIO downsample directly from the
+    /// Builds a file URL from a file: URI or a bare absolute path. URL(string:)
+    /// returns nil on iOS < 17 for a URI that isn't percent-encoded (e.g. it
+    /// contains spaces), so fall back to the path with its scheme stripped.
+    static func fileURL(_ path: String) -> URL {
+        guard path.hasPrefix("file:") else { return URL(fileURLWithPath: path) }
+        if let url = URL(string: path) { return url }
+        return URL(fileURLWithPath: path.replacingOccurrences(of: "^file:/*", with: "/", options: .regularExpression))
+    }
+
+    /// Opens a CGImageSource for the given path — file:, data: or a bare
+    /// absolute path, WITHOUT decoding the image. This lets ImageIO downsample directly from the
     /// source when generating a thumbnail, instead of us decoding the full
     /// image into memory first.
     static func makeImageSource(_ path: String) -> CGImageSource? {
-        if path.hasPrefix("file://") {
-            guard let fileURL = URL(string: path) else { return nil }
-            return CGImageSourceCreateWithURL(fileURL as CFURL, nil)
-        }
         if path.hasPrefix("data:") {
             guard let dataURL = URL(string: path), let data = try? Data(contentsOf: dataURL) else { return nil }
             return CGImageSourceCreateWithData(data as CFData, nil)
         }
-        return CGImageSourceCreateWithURL(URL(fileURLWithPath: path) as CFURL, nil)
+        return CGImageSourceCreateWithURL(ImageCompressor.fileURL(path) as CFURL, nil)
     }
 
     /// Decodes the image already downsampled AND orientation-corrected in a
@@ -327,8 +174,7 @@ class ImageCompressor {
     /// OOM crashes on lower-RAM devices when compressing large/HEIC photos).
     /// kCGImageSourceCreateThumbnailWithTransform: true makes ImageIO apply
     /// the EXIF orientation transform as part of decoding, so the returned
-    /// image is always orientation .up — scaleAndRotateImage() is no longer
-    /// needed on this path.
+    /// image is always orientation .up.
     static func decodeDownsampledImage(imagePath: String?, base64: String?, input: InputType, maxWidth: Int, maxHeight: Int) -> UIImage? {
         let imageSource: CGImageSource?
 
@@ -346,20 +192,20 @@ class ImageCompressor {
 
         guard let source = imageSource else { return nil }
 
-        // Read the native pixel size from metadata only (no decoding) so we
-        // never upscale small images — kCGImageSourceThumbnailMaxPixelSize's
-        // behavior when the requested size is larger than the source isn't
-        // consistently documented across iOS versions, so we clamp manually
-        // to be safe.
-        var nativeLongEdge = CGFloat(max(maxWidth, maxHeight))
+        // kCGImageSourceThumbnailMaxPixelSize takes a single value for the longer
+        // edge, so derive it from the native size (metadata only, no decoding):
+        // fit inside both maxWidth and maxHeight, and never upscale.
+        var targetLongEdge = min(maxWidth, maxHeight)
         if let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
            let pixelWidth = properties[kCGImagePropertyPixelWidth] as? Int,
            let pixelHeight = properties[kCGImagePropertyPixelHeight] as? Int {
-            nativeLongEdge = CGFloat(max(pixelWidth, pixelHeight))
+            // EXIF orientations 5-8 swap width and height once applied.
+            let isTransposed = (properties[kCGImagePropertyOrientation] as? Int ?? 1) >= 5
+            let width = CGFloat(isTransposed ? pixelHeight : pixelWidth)
+            let height = CGFloat(isTransposed ? pixelWidth : pixelHeight)
+            let scale = min(1, CGFloat(maxWidth) / width, CGFloat(maxHeight) / height)
+            targetLongEdge = max(1, Int((max(width, height) * scale).rounded()))
         }
-
-        let requestedLongEdge = CGFloat(max(maxWidth, maxHeight))
-        let targetLongEdge = max(1, Int(min(requestedLongEdge, nativeLongEdge).rounded()))
 
         let thumbnailOptions: [CFString: Any] = [
             kCGImageSourceCreateThumbnailFromImageAlways: true,
@@ -375,29 +221,10 @@ class ImageCompressor {
         return UIImage(cgImage: thumbnail)
     }
 
-    /// kCGImageSourceThumbnailMaxPixelSize only accepts a single scalar value
-    /// (constrains the longer edge). If maxWidth != maxHeight (not exercised
-    /// by any current call site, but kept for behavioral safety), fit
-    /// precisely into the maxWidth x maxHeight box using the existing
-    /// manualResize() — safe memory-wise here since the input has already
-    /// been downsampled, not full-resolution.
-    static func fitExactBoxIfNeeded(_ image: UIImage, maxWidth: Int, maxHeight: Int) -> UIImage {
-        guard maxWidth != maxHeight else { return image }
-        return ImageCompressor.manualResize(image, maxWidth: maxWidth, maxHeight: maxHeight)
-    }
-
-    /// Shared decode + resize step used by both manual and auto compress.
-    static func decodeAndPrepareImage(imagePath: String?, base64: String?, options: ImageCompressorOptions) -> UIImage? {
-        guard let decoded = ImageCompressor.decodeDownsampledImage(imagePath: imagePath, base64: base64, input: options.input, maxWidth: options.maxWidth, maxHeight: options.maxHeight) else {
-            return nil
-        }
-        return ImageCompressor.fitExactBoxIfNeeded(decoded, maxWidth: options.maxWidth, maxHeight: options.maxHeight)
-    }
-
     static func manualCompressHandler(imagePath: String?, base64: String?, options: ImageCompressorOptions) -> String {
         var exception: NSException?
 
-        if let image = ImageCompressor.decodeAndPrepareImage(imagePath: imagePath, base64: base64, options: options) {
+        if let image = ImageCompressor.decodeDownsampledImage(imagePath: imagePath, base64: base64, input: options.input, maxWidth: options.maxWidth, maxHeight: options.maxHeight) {
             let outputExtension = ImageCompressorOptions.getOutputInString(options.output)
             let isBase64 = options.returnableOutputType == .rbase64
             return ImageCompressor.manualCompress(image, output: options.output.rawValue, quality: options.quality, outputExtension: outputExtension, isBase64: isBase64, disablePngTransparency: options.disablePngTransparency, actualImagePath: imagePath)
@@ -413,7 +240,7 @@ class ImageCompressor {
     static func autoCompressHandler(imagePath: String?, base64: String?, options: ImageCompressorOptions) -> String {
         var exception: NSException?
 
-        if let image = ImageCompressor.decodeAndPrepareImage(imagePath: imagePath, base64: base64, options: options) {
+        if let image = ImageCompressor.decodeDownsampledImage(imagePath: imagePath, base64: base64, input: options.input, maxWidth: options.maxWidth, maxHeight: options.maxHeight) {
             let outputExtension = ImageCompressorOptions.getOutputInString(options.output)
             let isBase64 = options.returnableOutputType == .rbase64
             return ImageCompressor.writeImage(image, output: options.output.rawValue, quality: options.quality, outputExtension: outputExtension, isBase64: isBase64, disablePngTransparency: options.disablePngTransparency, isEnableAutoCompress: true, actualImagePath: imagePath)

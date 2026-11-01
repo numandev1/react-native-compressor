@@ -142,6 +142,18 @@ describe('react-native-compressor native harness', () => {
     await expect(getFileSize(output)).resolves.toMatch(/^\d+$/);
   });
 
+  it('fits inside both bounds without upscaling a small image', async () => {
+    const output = await Image.compress(imageUri, {
+      compressionMethod: 'manual',
+      maxWidth: 1000,
+      maxHeight: 500,
+    });
+
+    const metadata = await getImageMetaData(output);
+    expect(metadata.ImageWidth).toBe(16);
+    expect(metadata.ImageHeight).toBe(16);
+  });
+
   it('reads metadata from a real video fixture through the exported metadata API', async () => {
     const metadata = await getVideoMetaData(videoUri);
     expect(metadata.width).toBeGreaterThan(0);

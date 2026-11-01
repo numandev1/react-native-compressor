@@ -38,25 +38,8 @@ object ImageCompressor {
     fun findActualSize(image: Bitmap, maxWidth: Int, maxHeight: Int): ImageSize {
         val width = image.width.toFloat()
         val height = image.height.toFloat()
-        if (width > height) {
-            val newHeight = Math.round(height / (width / maxWidth))
-            val scale = newHeight / height
-            return ImageSize(maxWidth, newHeight, scale)
-        }
-        val newWidth = Math.round(width / (height / maxHeight))
-        val scale = newWidth / width
-        return ImageSize(newWidth, maxHeight, scale)
-    }
-
-    fun decodeImage(value: String?): Bitmap {
-        val data = Base64.decode(value, Base64.DEFAULT)
-        return BitmapFactory.decodeByteArray(data, 0, data.size)
-    }
-
-    fun loadImage(value: String?): Bitmap {
-        val uri = Uri.parse(value)
-        val filePath = uri.path
-        return BitmapFactory.decodeFile(filePath)
+        val scale = minOf(1f, maxWidth / width, maxHeight / height)
+        return ImageSize(Math.round(width * scale), Math.round(height * scale), scale)
     }
 
     /**
@@ -155,28 +138,36 @@ object ImageCompressor {
 
     /**
      * Decodes with downsampling via inSampleSize (the same technique
-     * autoCompressImage() already uses below) instead of loadImage()
-     * (BitmapFactory.decodeFile with no downsampling — a full decode of a
-     * high-resolution photo on a low-RAM device is a common OOM cause).
+     * autoCompressImage() already uses below) instead of a full decode, which
+     * for a high-resolution photo on a low-RAM device is a common OOM cause.
+     * BitmapFactory returns null rather than throwing on undecodable input.
      */
+    private fun decodeDownsampled(maxWidth: Int, maxHeight: Int, decode: (BitmapFactory.Options) -> Bitmap?): Bitmap {
+      val options = BitmapFactory.Options()
+      options.inJustDecodeBounds = true
+      decode(options)
+      options.inSampleSize = calculateInSampleSize(options, maxWidth, maxHeight)
+      options.inJustDecodeBounds = false
+      return decode(options) ?: throw IllegalArgumentException("Unable to decode image")
+    }
+
+    fun decodeImageDownsampled(value: String?, maxWidth: Int, maxHeight: Int): Bitmap {
+      val data = Base64.decode(value, Base64.DEFAULT)
+      return decodeDownsampled(maxWidth, maxHeight) { BitmapFactory.decodeByteArray(data, 0, data.size, it) }
+    }
+
     fun loadImageDownsampled(imagePath: String?, maxWidth: Int, maxHeight: Int): Bitmap {
-      val uri = Uri.parse(imagePath)
-      val filePath = uri.path
-      val boundsOptions = BitmapFactory.Options()
-      boundsOptions.inJustDecodeBounds = true
-      BitmapFactory.decodeFile(filePath, boundsOptions)
-      boundsOptions.inSampleSize = calculateInSampleSize(boundsOptions, maxWidth, maxHeight)
-      boundsOptions.inJustDecodeBounds = false
-      return BitmapFactory.decodeFile(filePath, boundsOptions)
+      val filePath = Uri.parse(imagePath).path
+      return decodeDownsampled(maxWidth, maxHeight) { BitmapFactory.decodeFile(filePath, it) }
     }
 
     fun manualCompressImage(imagePath: String?, options: ImageCompressorOptions, reactContext: ReactApplicationContext?): String? {
-      val image = if (options.input === ImageCompressorOptions.InputType.base64) decodeImage(imagePath) else loadImageDownsampled(imagePath, options.maxWidth, options.maxHeight)
-      val resizedImage = resize(image, options.maxWidth, options.maxHeight)
+      val image = if (options.input === ImageCompressorOptions.InputType.base64) decodeImageDownsampled(imagePath, options.maxWidth, options.maxHeight) else loadImageDownsampled(imagePath, options.maxWidth, options.maxHeight)
       val isBase64 = options.returnableOutputType === ImageCompressorOptions.ReturnableOutputType.base64
       val uri = Uri.parse(imagePath)
       val imagePathNew = uri.path
-      var scaledBitmap: Bitmap? = correctImageOrientation(resizedImage, imagePathNew)
+      // Rotate first: a 90° EXIF rotation swaps which edge maxWidth/maxHeight apply to.
+      val scaledBitmap = resize(correctImageOrientation(image, imagePathNew)!!, options.maxWidth, options.maxHeight)
       val imageDataByteArrayOutputStream = compress(scaledBitmap, options.output, options.quality, options.disablePngTransparency)
       // Unlike autoCompressImage(), don't fall back to the original file when
       // the compressed output isn't smaller — manualCompressImage() must

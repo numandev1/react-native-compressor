@@ -136,6 +136,9 @@ describe('react-native-compressor native harness', () => {
     expect(metadata.displayWidth).toBeGreaterThan(0);
     expect(metadata.displayHeight).toBeGreaterThan(0);
     expect([0, 90, 180, 270]).toContain(metadata.rotation);
+    // the fixture is 16×16, so maxWidth/maxHeight must shrink it (#417)
+    expect(metadata.width).toBeLessThanOrEqual(8);
+    expect(metadata.height).toBeLessThanOrEqual(8);
     expect(metadata.size).toBeGreaterThan(0);
     expect(metadata.mimeType).toContain('image/');
     expect(metadata.fileName).toBeTruthy();

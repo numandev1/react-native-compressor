@@ -248,7 +248,7 @@ object Compressor {
 
         // Prepare the video encoder. If the encoder rejects the throughput-tuned
         // format at configure() time, prepareEncoder reconfigures using this
-        // baseline format (same params, no VBR/priority/operating-rate keys).
+        // baseline format (same params, no VBR key).
         val encoder = prepareEncoder(outputFormat, hasQTI) {
           MediaFormat.createVideoFormat(MIME_TYPE, newWidth, newHeight).also {
             setOutputFileParameters(
@@ -515,7 +515,7 @@ object Compressor {
           // finishMovie() never runs on this path, so close the MP4Builder
           // streams explicitly or the output file handle leaks.
           mediaMuxer.close()
-          return Result(id, success = false, failureMessage = exception.message)
+          return Result(id, success = false, failureMessage = failureMessage(exception))
         }
 
         // Release resources
@@ -553,7 +553,7 @@ object Compressor {
         // extractor.release) where the MP4Builder is still open. close() is
         // idempotent, so calling it after a successful finishMovie() is a no-op.
         muxer?.close()
-        return Result(id, success = false, failureMessage = exception.message)
+        return Result(id, success = false, failureMessage = failureMessage(exception))
       }
 
       var resultFile = cacheFile
@@ -695,8 +695,8 @@ object Compressor {
             Log.i("Compressor", "encoder selected: ${encoder.name}")
             return encoder
         } catch (e: Exception) {
-            // Some encoders reject the throughput-tuning keys (VBR bitrate mode,
-            // priority, operating rate) at configure() time. A codec that throws
+            // Some encoders reject the throughput-tuning key (VBR bitrate mode)
+            // at configure() time. A codec that throws
             // from configure() is unusable, so release it and retry on a fresh
             // codec with a baseline format (default rate control) rather than
             // failing the whole compression.
@@ -772,6 +772,15 @@ object Compressor {
             MediaCodec.createEncoderByType(MIME_TYPE)
         }
     }
+
+    // A MediaCodec.CodecException often has an empty message; its diagnosticInfo
+    // names the codec error (e.g. android.media.MediaCodec.error_neg_12 is NO_MEMORY).
+    private fun failureMessage(exception: Throwable): String? =
+        if (exception is MediaCodec.CodecException) {
+            listOfNotNull(exception.message?.ifBlank { null }, exception.diagnosticInfo).joinToString(": ")
+        } else {
+            exception.message
+        }
 
   // Dolby Vision profile 5 (0x20) carries no HEVC base layer, so no standard
   // Android decoder can render it. Detect it up front so start() can reject the

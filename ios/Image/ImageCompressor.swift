@@ -50,7 +50,7 @@ class ImageCompressor {
     }
 
     
-    static func manualResize(_ image: UIImage, maxWidth: Int, maxHeight: Int) -> UIImage {
+    static func manualResize(_ image: UIImage, maxWidth: Int, maxHeight: Int) throws -> UIImage {
         let targetSize = findTargetSize(image, maxWidth: maxWidth, maxHeight: maxHeight)
 
         if let cgImage = image.cgImage {
@@ -85,9 +85,10 @@ class ImageCompressor {
             let error = vImageScale_ARGB8888(&srcBuffer, &targetBuffer, nil, vImage_Flags(kvImageHighQualityResampling))
 
             if error != kvImageNoError {
-                free(&targetData)
-                let exception = NSException(name: NSExceptionName(rawValue: "drawing_error"), reason: "Problem while rendering your image", userInfo: nil)
-                exception.raise()
+                // Throw instead of raising an NSException (process abort no JS
+                // catch survives) — the caller rejects the promise.
+                throw NSError(domain: "drawing_error", code: 1,
+                              userInfo: [NSLocalizedDescriptionKey: "Problem while rendering your image"])
             }
 
             let targetContext = CGContext(data: &targetData,
@@ -170,9 +171,8 @@ class ImageCompressor {
         return destinationData as Data
     }
     
-    static func writeImage(_ image: UIImage, output: Int, quality: Float, outputExtension: String, isBase64: Bool, disablePngTransparency: Bool, isEnableAutoCompress: Bool, actualImagePath: String?)-> String {
+    static func writeImage(_ image: UIImage, output: Int, quality: Float, outputExtension: String, isBase64: Bool, disablePngTransparency: Bool, isEnableAutoCompress: Bool, actualImagePath: String?) throws -> String {
         var data: Data
-        var exception: NSException?
         let normalizedQuality = CGFloat(min(max(quality, 0), 1))
         
         switch OutputType(rawValue: output)! {
@@ -216,16 +216,19 @@ class ImageCompressor {
                 return returnablePath
                 
             } catch {
-                exception = NSException(name: NSExceptionName(rawValue: "file_error"), reason: "Error writing file", userInfo: nil)
-                exception?.raise()
+                // Throw instead of raising an NSException: a raise inside a
+                // TurboModule invocation aborts the whole app and no JS catch
+                // can intercept it — the caller rejects the promise instead.
+                throw NSError(domain: "file_error", code: 1,
+                              userInfo: [NSLocalizedDescriptionKey: "Error writing file: \(error.localizedDescription)"])
             }
         }
         return ""
     }
 
     
-    static func manualCompress(_ image: UIImage, output: Int, quality: Float, outputExtension: String, isBase64: Bool, disablePngTransparency: Bool, actualImagePath: String?) -> String {
-        return writeImage(image, output: output, quality: quality, outputExtension: outputExtension, isBase64: isBase64, disablePngTransparency: disablePngTransparency, isEnableAutoCompress: false, actualImagePath: actualImagePath)
+    static func manualCompress(_ image: UIImage, output: Int, quality: Float, outputExtension: String, isBase64: Bool, disablePngTransparency: Bool, actualImagePath: String?) throws -> String {
+        return try writeImage(image, output: output, quality: quality, outputExtension: outputExtension, isBase64: isBase64, disablePngTransparency: disablePngTransparency, isEnableAutoCompress: false, actualImagePath: actualImagePath)
     }
 
     
@@ -294,8 +297,7 @@ class ImageCompressor {
     }
 
     
-    static func manualCompressHandler(imagePath: String?, base64: String?, options: ImageCompressorOptions) -> String {
-        var exception: NSException?
+    static func manualCompressHandler(imagePath: String?, base64: String?, options: ImageCompressorOptions) throws -> String {
         var image: UIImage?
 
         switch options.input {
@@ -312,20 +314,23 @@ class ImageCompressor {
         if let _image = image {
             image = ImageCompressor.scaleAndRotateImage(_image)
             let outputExtension = ImageCompressorOptions.getOutputInString(options.output)
-            let resizedImage = ImageCompressor.manualResize(image!, maxWidth: options.maxWidth, maxHeight: options.maxHeight)
+            let resizedImage = try ImageCompressor.manualResize(image!, maxWidth: options.maxWidth, maxHeight: options.maxHeight)
             let isBase64 = options.returnableOutputType == .rbase64
-            return ImageCompressor.manualCompress(resizedImage, output: options.output.rawValue, quality: options.quality, outputExtension: outputExtension, isBase64: isBase64,disablePngTransparency: options.disablePngTransparency, actualImagePath: imagePath)
+            return try ImageCompressor.manualCompress(resizedImage, output: options.output.rawValue, quality: options.quality, outputExtension: outputExtension, isBase64: isBase64,disablePngTransparency: options.disablePngTransparency, actualImagePath: imagePath)
         } else {
-            exception = NSException(name: NSExceptionName(rawValue: "unsupported_value"), reason: "Unsupported value type.", userInfo: nil)
-            exception?.raise()
+            // Throw instead of raising an NSException (process abort no JS
+            // catch survives — e.g. a stored file path invalidated by an iOS
+            // container relocation boot-looped an app at startup). The caller
+            // rejects the promise with the same name/message.
+            throw NSError(domain: "unsupported_value", code: 1,
+                          userInfo: [NSLocalizedDescriptionKey: "Unsupported value type."])
         }
 
         return ""
     }
 
     
-    static func autoCompressHandler(imagePath: String?, base64: String?, options: ImageCompressorOptions) -> String {
-        var exception: NSException?
+    static func autoCompressHandler(imagePath: String?, base64: String?, options: ImageCompressorOptions) throws -> String {
         var image: UIImage?
         
         switch options.input {
@@ -372,11 +377,15 @@ class ImageCompressor {
             let isBase64 = options.returnableOutputType == .rbase64
             
             if let img = UIGraphicsGetImageFromCurrentImageContext() {
-                return writeImage(img, output: options.output.rawValue, quality: Float(compressionQuality), outputExtension: outputExtension, isBase64: isBase64, disablePngTransparency: options.disablePngTransparency, isEnableAutoCompress: true, actualImagePath: imagePath)
+                return try writeImage(img, output: options.output.rawValue, quality: Float(compressionQuality), outputExtension: outputExtension, isBase64: isBase64, disablePngTransparency: options.disablePngTransparency, isEnableAutoCompress: true, actualImagePath: imagePath)
             }
         } else {
-            exception = NSException(name: NSExceptionName(rawValue: "unsupported_value"), reason: "Unsupported value type.", userInfo: nil)
-            exception?.raise()
+            // Throw instead of raising an NSException (process abort no JS
+            // catch survives — e.g. a stored file path invalidated by an iOS
+            // container relocation boot-looped an app at startup). The caller
+            // rejects the promise with the same name/message.
+            throw NSError(domain: "unsupported_value", code: 1,
+                          userInfo: [NSLocalizedDescriptionKey: "Unsupported value type."])
         }
         
         return ""

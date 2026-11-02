@@ -18,6 +18,13 @@ type videoCompresssionType = {
    * Default: false
    */
   stripAudio?: boolean;
+  /***
+   * When false, the source video's metadata (its GPS location, creation date, etc.) is not copied
+   * into the output video.
+   * When false, a video at or under minimumFileSizeForCompress is still compressed.
+   * Default: true
+   */
+  preserveMetadata?: boolean;
 };
 
 export type VideoCompressorType = {
@@ -55,6 +62,9 @@ const Video: VideoCompressorType = {
     }
     if (options?.stripAudio) {
       modifiedOptions.stripAudio = options.stripAudio;
+    }
+    if (options?.preserveMetadata === false) {
+      modifiedOptions.preserveMetadata = false;
     }
     if (options?.getCancellationId) {
       options?.getCancellationId(uuid);

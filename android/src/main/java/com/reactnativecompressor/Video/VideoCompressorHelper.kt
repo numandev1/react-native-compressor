@@ -29,6 +29,7 @@ class VideoCompressorHelper {
     var progressDivider: Int? = 0
     var minimumFileSizeForCompress = 0.0f
     var stripAudio = false
+    var preserveMetadata = true
 
     companion object {
         private var _reactContext: ReactApplicationContext? = null
@@ -89,6 +90,7 @@ class VideoCompressorHelper {
                     "bitrate" -> options.bitrate = map.getDouble(key).toFloat()
                     "progressDivider" -> options.progressDivider = map.getInt(key)
                     "stripAudio" -> options.stripAudio = map.getBoolean(key)
+                    "preserveMetadata" -> options.preserveMetadata = map.getBoolean(key)
                 }
             }
             return options
@@ -159,6 +161,7 @@ class VideoCompressorHelper {
                     options.uuid!!,
                     options.progressDivider!!,
                     options.stripAudio,
+                    options.preserveMetadata,
                     promise,
                     reactContext,
                 )

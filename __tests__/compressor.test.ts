@@ -165,6 +165,16 @@ describe('react-native-compressor JS wrapper API', () => {
     );
   });
 
+  it('forwards preserveMetadata only when the caller opts out of source metadata', async () => {
+    mockCompressor.compress.mockResolvedValue('file://no-metadata.mp4');
+
+    await api.Video.compress(localVideoUri, { compressionMethod: 'manual', preserveMetadata: false });
+    await api.Video.compress(localVideoUri, { compressionMethod: 'manual', preserveMetadata: true });
+
+    expect(mockCompressor.compress.mock.calls[0]?.[1]).toEqual(expect.objectContaining({ preserveMetadata: false }));
+    expect(mockCompressor.compress.mock.calls[1]?.[1]).not.toHaveProperty('preserveMetadata');
+  });
+
   it('proxies video cancellation and background task lifecycle', async () => {
     mockCompressor.activateBackgroundTask.mockImplementation(async (_options, onExpired) => {
       onExpired?.();

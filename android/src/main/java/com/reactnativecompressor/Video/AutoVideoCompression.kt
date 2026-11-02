@@ -19,7 +19,7 @@ object AutoVideoCompression {
             val file = File(srcPath)
             val sizeInBytes = file.length().toFloat()
             val sizeInMb = sizeInBytes / (1024 * 1024)
-            if (sizeInMb > minimumFileSizeForCompress) {
+            if (sizeInMb > minimumFileSizeForCompress || !options.preserveMetadata) {
                 val destinationPath = generateCacheFilePath("mp4", reactContext!!)
                 val actualHeight = VideoCompressorHelper.getMetadataInt(metaRetriever, MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)
                 val actualWidth = VideoCompressorHelper.getMetadataInt(metaRetriever, MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)
@@ -46,6 +46,7 @@ object AutoVideoCompression {
                     options.uuid!!,
                     options.progressDivider!!,
                     options.stripAudio,
+                    options.preserveMetadata,
                     promise,
                     reactContext,
                 )

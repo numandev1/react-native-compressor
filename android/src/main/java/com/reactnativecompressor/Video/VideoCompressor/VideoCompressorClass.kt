@@ -26,6 +26,7 @@ class VideoCompressorClass(private val context: ReactApplicationContext) {
     bitrate: Int,
     frameRate: Int,
     stripAudio: Boolean = false,
+    preserveMetadata: Boolean = true,
     listener: CompressionListener,
   ) {
     val uris = mutableListOf<Uri>()
@@ -40,6 +41,7 @@ class VideoCompressorClass(private val context: ReactApplicationContext) {
       bitrate,
       frameRate,
       stripAudio,
+      preserveMetadata,
       listener,
       destPath
     )
@@ -58,6 +60,7 @@ class VideoCompressorClass(private val context: ReactApplicationContext) {
     bitrate: Int,
     frameRate: Int,
     stripAudio: Boolean,
+    preserveMetadata: Boolean,
     listener: CompressionListener,
     destPath: String
   ) {
@@ -82,6 +85,7 @@ class VideoCompressorClass(private val context: ReactApplicationContext) {
             bitrate,
             frameRate,
             stripAudio,
+            preserveMetadata,
             listener,
           )
 
@@ -106,6 +110,7 @@ class VideoCompressorClass(private val context: ReactApplicationContext) {
     bitrate: Int,
     frameRate: Int,
     disableAudio: Boolean = false,
+    preserveMetadata: Boolean = true,
     listener: CompressionListener,
   ): Result = withContext(Dispatchers.Default) {
     return@withContext compressVideo(
@@ -119,6 +124,7 @@ class VideoCompressorClass(private val context: ReactApplicationContext) {
       bitrate,
       frameRate,
       disableAudio,
+      preserveMetadata,
       object : CompressionProgressListener {
         override fun onProgressChanged(index: Int, percent: Float) {
           listener.onProgress(index, percent)

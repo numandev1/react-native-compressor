@@ -71,6 +71,7 @@ object Compressor {
     outputBitrate: Int,
     outputFrameRate: Int,
     disableAudio: Boolean = false,
+    preserveMetadata: Boolean = true,
     listener: CompressionProgressListener,
   ): Result = withContext(Dispatchers.Default) {
 
@@ -109,16 +110,20 @@ object Compressor {
     // MediaMetadataRetriever only reads moov/udta/©xyz — returning null
     // (or empty) and dropping GPS. Fall back to a raw MP4 walker that
     // scans the whole file for every known location encoding.
-    val retrievedLocation =
+    val retrievedLocation = if (preserveMetadata) {
       mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_LOCATION)
-    val locationData = if (!retrievedLocation.isNullOrEmpty()) {
-      retrievedLocation
     } else {
-      LocationExtractor.extract(context, srcUri)
+      null
+    }
+    val locationData = when {
+      !preserveMetadata -> null
+      !retrievedLocation.isNullOrEmpty() -> retrievedLocation
+      else -> LocationExtractor.extract(context, srcUri)
     }
     // Never log the resolved ISO 6709 string — it is the user's exact GPS
     // coordinates. Log only presence and which mechanism resolved it.
     val locationSource = when {
+      !preserveMetadata -> "not preserved"
       !retrievedLocation.isNullOrEmpty() -> "retriever"
       !locationData.isNullOrEmpty() -> "extractor"
       else -> "none"

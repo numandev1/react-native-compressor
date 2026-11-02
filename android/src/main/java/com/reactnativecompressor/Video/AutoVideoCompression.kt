@@ -11,10 +11,13 @@ import java.io.File
 object AutoVideoCompression {
     fun createCompressionSettings(fileUrl: String?, options: VideoCompressorHelper, promise: Promise, reactContext: ReactApplicationContext?) {
         val minimumFileSizeForCompress = options.minimumFileSizeForCompress
+        // Released in finally; compressVideo() only takes the values read from it.
+        var retrieverToRelease: MediaMetadataRetriever? = null
         try {
             val uri = Uri.parse(fileUrl)
             val srcPath = uri.path
             val metaRetriever = MediaMetadataRetriever()
+            retrieverToRelease = metaRetriever
             metaRetriever.setDataSource(srcPath)
             val file = File(srcPath)
             val sizeInBytes = file.length().toFloat()
@@ -54,6 +57,8 @@ object AutoVideoCompression {
             }
         } catch (ex: Exception) {
             promise.reject(ex)
+        } finally {
+            runCatching { retrieverToRelease?.release() }
         }
     }
 }

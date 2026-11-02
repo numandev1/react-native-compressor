@@ -4,18 +4,21 @@ import android.database.Cursor
 import android.net.Uri
 import android.provider.MediaStore
 import com.facebook.react.bridge.ReactApplicationContext
+import com.reactnativecompressor.Video.VideoCompressor.compressor.Compressor
 import com.reactnativecompressor.Video.VideoCompressor.compressor.Compressor.compressVideo
-import com.reactnativecompressor.Video.VideoCompressor.compressor.Compressor.isRunning
 import com.reactnativecompressor.Video.VideoCompressor.video.Result
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.util.concurrent.atomic.AtomicBoolean
 
 class VideoCompressorClass(private val context: ReactApplicationContext) {
-  private var job: Job? = null
+  // Cancellation is scoped to this compression (#300). The pipeline checks the
+  // flag and returns a Result; the coroutine itself is never cancelled, so the
+  // listener always gets exactly one terminal callback.
+  private val cancelled = AtomicBoolean(false)
 
   @JvmOverloads
   fun start(
@@ -45,9 +48,15 @@ class VideoCompressorClass(private val context: ReactApplicationContext) {
     )
   }
 
+  /** Stops this compression at the next check. The listener still gets exactly one terminal callback. */
   fun cancel() {
-    job?.cancel()
-    isRunning = false
+    cancelled.set(true)
+  }
+
+  private fun deleteOutputs(destPath: String) {
+    val file = File(destPath)
+    runCatching { file.delete() }
+    runCatching { Compressor.getStreamableOutputFile(file).delete() }
   }
 
   private fun doVideoCompression(
@@ -63,16 +72,17 @@ class VideoCompressorClass(private val context: ReactApplicationContext) {
   ) {
     var streamableFile: File? = null
     for (i in uris.indices) {
-      job = CoroutineScope(Dispatchers.Main).launch {
+      CoroutineScope(Dispatchers.Main).launch {
         val desFile = File(destPath)
 
         if (isStreamable)
           streamableFile = File(destPath)
 
-        desFile?.let {
-          isRunning = true
-          listener.onStart(i)
-          val result = startCompression(
+        listener.onStart(i)
+        // A throw from the pipeline (e.g. malformed metadata) must still settle
+        // the Promise, so report it as a failure.
+        val result = try {
+          startCompression(
             i,
             uris[i],
             desFile.path,
@@ -84,11 +94,20 @@ class VideoCompressorClass(private val context: ReactApplicationContext) {
             stripAudio,
             listener,
           )
+        } catch (e: Throwable) {
+          Result(i, success = false, failureMessage = e.message ?: "An error has occurred!")
+        }
 
-          // Runs in Main(UI) Thread
-          if (result.success) {
-            listener.onSuccess(i, result.size, result.path)
-          } else {
+        // Runs in Main(UI) Thread. Exactly one terminal callback; failed and
+        // cancelled compressions leave no partial output behind.
+        when {
+          cancelled.get() -> {
+            deleteOutputs(desFile.path)
+            listener.onCancelled(i)
+          }
+          result.success -> listener.onSuccess(i, result.size, result.path)
+          else -> {
+            deleteOutputs(desFile.path)
             listener.onFailure(i, result.failureMessage ?: "An error has occurred!")
           }
         }
@@ -119,6 +138,7 @@ class VideoCompressorClass(private val context: ReactApplicationContext) {
       bitrate,
       frameRate,
       disableAudio,
+      cancelled,
       object : CompressionProgressListener {
         override fun onProgressChanged(index: Int, percent: Float) {
           listener.onProgress(index, percent)

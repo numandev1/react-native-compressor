@@ -22,7 +22,35 @@ class InputSurface(surface: Surface?) {
             throw NullPointerException()
         }
         mSurface = surface
-        eglSetup()
+        // The caller never gets this object when eglSetup() throws, so it cannot
+        // release() it; clean up the input Surface and any EGL context or window
+        // surface created so far before rethrowing.
+        try {
+            eglSetup()
+        } catch (e: Throwable) {
+            releaseAfterFailedSetup()
+            throw e
+        }
+    }
+
+    private fun releaseAfterFailedSetup() {
+        val display = mEGLDisplay
+        if (display != null && display !== EGL14.EGL_NO_DISPLAY) {
+            // EGL14 throws on null handles, so only destroy what was created.
+            val eglSurface = mEGLSurface
+            if (eglSurface != null && eglSurface !== EGL14.EGL_NO_SURFACE) {
+                runCatching { EGL14.eglDestroySurface(display, eglSurface) }
+            }
+            val eglContext = mEGLContext
+            if (eglContext != null && eglContext !== EGL14.EGL_NO_CONTEXT) {
+                runCatching { EGL14.eglDestroyContext(display, eglContext) }
+            }
+        }
+        runCatching { mSurface?.release() }
+        mEGLDisplay = null
+        mEGLContext = null
+        mEGLSurface = null
+        mSurface = null
     }
 
     private fun eglSetup() {

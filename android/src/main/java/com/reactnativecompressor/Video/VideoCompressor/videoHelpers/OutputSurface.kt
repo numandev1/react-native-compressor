@@ -28,7 +28,15 @@ class OutputSurface : OnFrameAvailableListener {
      * passed to MediaCodec.configure().
      */
     init {
-        setup()
+        // The callback thread above is already running. If GL setup throws, the
+        // caller never gets this object to release(), so tear down the thread and
+        // any SurfaceTexture/Surface made so far before rethrowing.
+        try {
+            setup()
+        } catch (e: Throwable) {
+            release()
+            throw e
+        }
     }
 
     /**
@@ -63,7 +71,10 @@ class OutputSurface : OnFrameAvailableListener {
      * tracked. Bounded at 500ms to avoid hanging on a pathological looper.
      */
     fun release() {
-        mSurface?.release()
+        runCatching { mSurface?.release() }
+        // Release the SurfaceTexture's buffer queue now instead of waiting for
+        // its finalizer. dispose() releases the decoder first.
+        runCatching { mSurfaceTexture?.release() }
 
         mTextureRender = null
         mSurface = null

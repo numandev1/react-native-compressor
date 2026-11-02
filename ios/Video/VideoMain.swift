@@ -111,7 +111,8 @@ class VideoCompressor {
         {
               minimumFileSizeForCompress=(options["minimumFileSizeForCompress"] as? NSNumber)?.doubleValue ?? 0;
         }
-        if(fileSize>minimumFileSizeForCompress)
+        let preserveMetadata=options["preserveMetadata"] as? Bool ?? true
+        if(fileSize>minimumFileSizeForCompress || !preserveMetadata)
         {
             if(options["compressionMethod"] as! String=="auto")
             {

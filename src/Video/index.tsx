@@ -21,6 +21,7 @@ type videoCompresssionType = {
   /***
    * When false, the source video's metadata (its GPS location, creation date, etc.) is not copied
    * into the output video.
+   * When false, a video at or under minimumFileSizeForCompress is still compressed.
    * Default: true
    */
   preserveMetadata?: boolean;

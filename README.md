@@ -485,7 +485,7 @@ await clearCache(); // this will clear cache of thumbnails cache directory
 
 - ###### `preserveMetadata: boolean` (default: true)
 
-  By default the output keeps the source video's metadata, such as its GPS location and creation date. Pass `false` to leave it out, for example when the compressed video leaves the device and the location should not go with it.
+  By default the output keeps the source video's metadata, such as its GPS location and creation date. Pass `false` to leave it out, for example when the compressed video leaves the device and the location should not go with it. With `false`, a video at or under `minimumFileSizeForCompress` is still compressed, because returning the source file would keep its metadata.
 
 **if you wanna get video metadata then [read this](#get-metadata-of-video)**
 

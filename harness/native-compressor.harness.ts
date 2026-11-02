@@ -133,6 +133,9 @@ describe('react-native-compressor native harness', () => {
     const metadata = await getImageMetaData(output);
     expect(metadata.ImageWidth).toBeGreaterThan(0);
     expect(metadata.ImageHeight).toBeGreaterThan(0);
+    // the fixture is 16×16, so maxWidth/maxHeight must shrink it (#417)
+    expect(metadata.ImageWidth).toBeLessThanOrEqual(8);
+    expect(metadata.ImageHeight).toBeLessThanOrEqual(8);
     expect(metadata.size).toBeGreaterThan(0);
     expect(metadata.exif).toBeTruthy();
 

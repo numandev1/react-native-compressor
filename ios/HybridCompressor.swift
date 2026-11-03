@@ -221,20 +221,35 @@ final class HybridCompressor: HybridCompressorSpec {
         return [:]
     }
 
+    /// The `NSDictionary` branch is deliberately first: bridging through it is what normalizes the
+    /// numeric types the domain code produces (`CGFloat`, `UInt64`) into `NSNumber`, which is the
+    /// only form Nitro's `AnyValue.fromAny` recognises — a bare `CGFloat` matches none of its cases
+    /// and the key is silently dropped. The same bridge also turns Swift `Bool` into `NSNumber`,
+    /// which `AnyValue.fromAny` would match as `Double` before it ever reaches its `Bool` case, so
+    /// `unwrapBoolean` restores those before handing the values over.
     private static func stringKeyedOptionalDictionary(_ value: Any?) -> [String: Any?] {
         if let ns = value as? NSDictionary {
             var out = [String: Any?]()
             for (key, val) in ns where key is String {
-                out[key as! String] = val
+                out[key as! String] = unwrapBoolean(val)
             }
             return out
         }
         if let dict = value as? [String: Any] {
             var out = [String: Any?]()
-            for (key, val) in dict { out[key] = val }
+            for (key, val) in dict { out[key] = unwrapBoolean(val) }
             return out
         }
         return [:]
+    }
+
+    /// `NSNumber` does not distinguish `true` from `1` by type, but the underlying CoreFoundation
+    /// object does — so a boxed boolean can be recovered rather than reported as a number.
+    private static func unwrapBoolean(_ value: Any?) -> Any? {
+        guard let number = value as? NSNumber, CFGetTypeID(number) == CFBooleanGetTypeID() else {
+            return value
+        }
+        return number.boolValue
     }
 
     private static func doubleValue(_ value: Any?) -> Double {

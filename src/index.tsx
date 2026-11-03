@@ -40,6 +40,7 @@ export {
   UploaderHttpMethod,
 };
 export type { VideoCompressorType };
+export type { VideoMetaData, ImageMetaData, ColorTransfer } from './utils';
 export default {
   Video,
   Audio,

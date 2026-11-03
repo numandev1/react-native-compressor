@@ -71,6 +71,7 @@ We should use **react-native-compressor** instead of **FFmpeg** because **react-
     - [Cancel Video Compression](#cancel-video-compression)
     - [Video Api Docs](#video-1)
   - [Audio](#audio)
+    - [Build without audio compression (Android)](#build-without-audio-compression-android)
   - [Background Upload](#background-upload)
   - [Cancel Background Upload](#cancel-background-upload)
   - [Download File](#download)
@@ -291,6 +292,16 @@ const result = await Audio.compress(
   }
 );
 ```
+
+##### Build without audio compression (Android)
+
+If your app does not use `Audio.compress`, add this line to `android/gradle.properties`:
+
+```properties
+Compressor_enableAudio=false
+```
+
+The Android build then leaves out audio compression, the `TAndroidLame` dependency (`libandroidlame.so`), `jlayer` and the JitPack repository. `Audio.compress` on Android rejects with an error whose message starts with `[E_AUDIO_DISABLED]`. The default is `true`. iOS does not change.
 
 ### Background Upload
 

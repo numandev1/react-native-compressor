@@ -206,6 +206,14 @@ describe('react-native-compressor JS wrapper API', () => {
     });
   });
 
+  it('passes a native audio rejection to the caller', async () => {
+    mockCompressor.compress_audio.mockRejectedValueOnce(
+      new Error('[E_AUDIO_DISABLED] Audio compression is disabled in this build (Compressor_enableAudio=false).'),
+    );
+
+    await expect(api.Audio.compress(localAudioUri)).rejects.toThrow('E_AUDIO_DISABLED');
+  });
+
   it('wraps native utility functions and normalizes image metadata', async () => {
     reactNative.Platform.OS = 'android';
     mockCompressor.generateFilePath.mockResolvedValue('/tmp/output.jpg');

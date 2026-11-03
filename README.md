@@ -639,11 +639,12 @@ const metaData = await getVideoMetaData(filePath);
 | `colorTransfer` | One of `"sdr"`, `"hlg"`, `"pq"`, `"linear"` |
 | `isHDR` | True for HLG and PQ. HDR footage compressed as if it were SDR comes out washed out |
 | `location` | Raw ISO-6709 string |
-| `latitude` / `longitude` | Signed decimal degrees, parsed natively |
+| `latitude` / `longitude` | Signed decimal degrees, parsed natively. Omitted when `location` is not in ISO-6709 decimal-degree form |
 | `frameCount` | **Android only.** Reading it on iOS would require a full pass over the video samples |
 
 A file with no video track (an audio-only file) resolves with `hasVideo: false` and zeroed
-dimensions rather than rejecting. A corrupt or unreadable file rejects.
+dimensions rather than rejecting. A corrupt or unreadable file, or one with neither an audio nor a
+video track (such as a still image), rejects with `INVALID_MEDIA`.
 
 - ###### `getVideoMetaData(path: string)`
 

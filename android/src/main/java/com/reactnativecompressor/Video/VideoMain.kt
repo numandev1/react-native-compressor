@@ -5,6 +5,7 @@ import android.media.MediaExtractor
 import android.media.MediaFormat
 import android.media.MediaMetadataRetriever
 import android.net.Uri
+import android.os.Build
 import android.util.Log
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.Promise
@@ -81,6 +82,12 @@ class VideoMain(private val reactContext: ReactApplicationContext) {
 
       val hasVideo = metaRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_HAS_VIDEO) == "yes"
       val hasAudio = metaRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_HAS_AUDIO) == "yes"
+      // The retriever can open non-A/V files (e.g. still HEIF images); those are not valid input. An
+      // audio-only file still resolves below. Matches the iOS INVALID_MEDIA rejection.
+      if (!hasVideo && !hasAudio) {
+        promise.reject("INVALID_MEDIA", "File is not a readable audio or video file: $srcPath")
+        return
+      }
       params.putBoolean("hasVideo", hasVideo)
       params.putBoolean("hasAudio", hasAudio)
 
@@ -96,6 +103,11 @@ class VideoMain(private val reactContext: ReactApplicationContext) {
 
       metaRetriever.intOf(MediaMetadataRetriever.METADATA_KEY_BITRATE)?.let { params.putInt("bitrate", it) }
       metaRetriever.intOf(MediaMetadataRetriever.METADATA_KEY_NUM_TRACKS)?.let { params.putInt("trackCount", it) }
+      // The exact frame count is exposed by the retriever on API 28+; track formats usually omit it.
+      if (hasVideo && Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+        metaRetriever.intOf(MediaMetadataRetriever.METADATA_KEY_VIDEO_FRAME_COUNT)?.takeIf { it > 0 }
+          ?.let { params.putInt("frameCount", it) }
+      }
 
       val location = metaRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_LOCATION)
       if (location != null) {
@@ -146,8 +158,10 @@ class VideoMain(private val reactContext: ReactApplicationContext) {
             params.putString("codec", normalizeCodec(mime, format))
             format.floatOrNull(MediaFormat.KEY_FRAME_RATE)?.let { params.putDouble("frameRate", it.toDouble()) }
             format.intOrNull(MediaFormat.KEY_BIT_RATE)?.let { params.putInt("bitrate", it) }
-            // KEY_FRAME_COUNT is API 28+; absent on older platforms and on some containers.
-            format.intOrNull("frame-count")?.let { params.putInt("frameCount", it) }
+            // Fallback for when the retriever could not report the frame count.
+            if (!params.hasKey("frameCount")) {
+              format.intOrNull("frame-count")?.let { params.putInt("frameCount", it) }
+            }
             val transfer = colorTransferName(format.intOrNull(MediaFormat.KEY_COLOR_TRANSFER))
             params.putString("colorTransfer", transfer)
             params.putBoolean("isHDR", transfer == "hlg" || transfer == "pq")
@@ -227,12 +241,15 @@ class VideoMain(private val reactContext: ReactApplicationContext) {
 
     /**
      * Parses the ISO-6709 string `MediaMetadataRetriever` returns (`"+37.5090-122.2620/"`) into
-     * signed decimal degrees. Returns null when the string is not in that form.
+     * signed decimal degrees. Only the decimal-degree form (2-digit latitude, 3-digit longitude) is
+     * accepted; degrees/minutes(/seconds) forms are not converted and return null, as does any
+     * out-of-range coordinate.
      */
     private fun parseIso6709(location: String): Pair<Double, Double>? {
-      val match = Regex("([+-]\\d+(?:\\.\\d+)?)([+-]\\d+(?:\\.\\d+)?)").find(location) ?: return null
+      val match = Regex("^([+-]\\d{2}(?:\\.\\d+)?)([+-]\\d{3}(?:\\.\\d+)?)").find(location) ?: return null
       val latitude = match.groupValues[1].toDoubleOrNull() ?: return null
       val longitude = match.groupValues[2].toDoubleOrNull() ?: return null
+      if (latitude !in -90.0..90.0 || longitude !in -180.0..180.0) return null
       return latitude to longitude
     }
   }

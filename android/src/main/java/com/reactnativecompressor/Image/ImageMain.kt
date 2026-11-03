@@ -115,11 +115,17 @@ class ImageMain(private val reactContext: ReactApplicationContext) {
     exif.getAttribute(ExifInterface.TAG_BITS_PER_SAMPLE)?.split(" ", ",")?.firstOrNull()?.toIntOrNull()
       ?.let { params.putInt("bitDepth", it) }
 
-    // X/YResolution are per ResolutionUnit: 2 = inches (already DPI), 3 = centimetres.
-    val perCentimetre = exif.getAttributeInt(ExifInterface.TAG_RESOLUTION_UNIT, 2) == 3
-    val toDpi = { value: Double -> if (perCentimetre) value * 2.54 else value }
-    exif.positiveDouble(ExifInterface.TAG_X_RESOLUTION)?.let { params.putDouble("dpiX", toDpi(it)) }
-    exif.positiveDouble(ExifInterface.TAG_Y_RESOLUTION)?.let { params.putDouble("dpiY", toDpi(it)) }
+    // X/YResolution are per ResolutionUnit: 2 = inches (already DPI), 3 = centimetres. Unit 1 has no
+    // absolute unit, so no DPI can be derived and the fields are left absent.
+    val dpiFactor = when (exif.getAttributeInt(ExifInterface.TAG_RESOLUTION_UNIT, 2)) {
+      2 -> 1.0
+      3 -> 2.54
+      else -> null
+    }
+    if (dpiFactor != null) {
+      exif.positiveDouble(ExifInterface.TAG_X_RESOLUTION)?.let { params.putDouble("dpiX", it * dpiFactor) }
+      exif.positiveDouble(ExifInterface.TAG_Y_RESOLUTION)?.let { params.putDouble("dpiY", it * dpiFactor) }
+    }
   }
 
   /**

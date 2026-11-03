@@ -561,15 +561,19 @@ class VideoCompressor {
     }
 
     /// Parses the ISO-6709 string `AVAsset` exposes (`"+37.5090-122.2620/"`) into signed decimal
-    /// degrees, so no caller has to write an ISO-6709 parser.
+    /// degrees, so no caller has to write an ISO-6709 parser. Only the decimal-degree form (2-digit
+    /// latitude, 3-digit longitude) is accepted; degrees/minutes(/seconds) forms are not converted
+    /// and return nil, as does any out-of-range coordinate.
     private static func parseIso6709(_ location: String) -> (latitude: Double, longitude: Double)? {
-        let pattern = "([+-]\\d+(?:\\.\\d+)?)([+-]\\d+(?:\\.\\d+)?)"
+        let pattern = "^([+-]\\d{2}(?:\\.\\d+)?)([+-]\\d{3}(?:\\.\\d+)?)"
         guard let regex = try? NSRegularExpression(pattern: pattern),
               let match = regex.firstMatch(in: location, range: NSRange(location.startIndex..., in: location)),
               let latitudeRange = Range(match.range(at: 1), in: location),
               let longitudeRange = Range(match.range(at: 2), in: location),
               let latitude = Double(location[latitudeRange]),
-              let longitude = Double(location[longitudeRange]) else {
+              let longitude = Double(location[longitudeRange]),
+              (-90.0...90.0).contains(latitude),
+              (-180.0...180.0).contains(longitude) else {
             return nil
         }
         return (latitude, longitude)

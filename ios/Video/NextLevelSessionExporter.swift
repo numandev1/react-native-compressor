@@ -133,7 +133,18 @@ open class NextLevelSessionExporter: NSObject {
     
     fileprivate var _duration: TimeInterval = 0
     fileprivate var _lastSamplePresentationTime: CMTime = .invalid
-    
+
+    // Settlement bookkeeping: every export calls the completion handler
+    // exactly once. `_completionHandler` and `_createdOutput` are read on the main
+    // queue; the fields below are only touched on `_inputQueue`.
+    fileprivate enum TrackKind { case video, audio }
+    fileprivate var _createdOutput = false
+    fileprivate var _pendingTracks: Set<TrackKind> = []
+    fileprivate var _trackGroup: DispatchGroup?
+    fileprivate var _cancelRequested = false
+    fileprivate var _abortError: Error?
+    fileprivate var _watchdog: DispatchSourceTimer?
+
     // MARK: - object lifecycle
     
     /// Initializes a session with an asset to export.
@@ -151,6 +162,7 @@ open class NextLevelSessionExporter: NSObject {
     }
     
     deinit {
+        self._watchdog?.cancel()
         self._writer = nil
         self._reader = nil
         self._pixelBufferAdaptor = nil
@@ -181,13 +193,17 @@ extension NextLevelSessionExporter {
     public func export(renderHandler: RenderHandler? = nil,
                        progressHandler: ProgressHandler? = nil,
                        completionHandler: CompletionHandler? = nil) {
+        // Assign the handlers before any failure path, so early failures still
+        // reach the completion handler.
+        self._progressHandler = progressHandler
+        self._renderHandler = renderHandler
+        self._completionHandler = completionHandler
+
         guard let asset = self.asset,
               let outputURL = self.outputURL,
               let outputFileType = self.outputFileType else {
             print("NextLevelSessionExporter, an asset and output URL are required for encoding")
-            DispatchQueue.main.async {
-                self._completionHandler?(.failure(NextLevelSessionExporterError.setupFailure))
-            }
+            self.fail(NextLevelSessionExporterError.setupFailure)
             return
         }
         
@@ -203,41 +219,41 @@ extension NextLevelSessionExporter {
         
         self._progress = 0
         
+        let reader: AVAssetReader
         do {
-            self._reader = try AVAssetReader(asset: asset)
+            reader = try AVAssetReader(asset: asset)
         } catch {
             print("NextLevelSessionExporter, could not setup a reader for the provided asset \(asset)")
-            DispatchQueue.main.async {
-                self._completionHandler?(.failure(NextLevelSessionExporterError.setupFailure))
-            }
+            self.fail(NextLevelSessionExporterError.setupFailure)
+            return
         }
         
+        let writer: AVAssetWriter
         do {
-            self._writer = try AVAssetWriter(outputURL: outputURL, fileType: outputFileType)
+            writer = try AVAssetWriter(outputURL: outputURL, fileType: outputFileType)
         } catch {
-            print("NextLevelSessionExporter, could not setup a reader for the provided asset \(asset)")
-            DispatchQueue.main.async {
-                self._completionHandler?(.failure(NextLevelSessionExporterError.setupFailure))
-            }
+            print("NextLevelSessionExporter, could not setup a writer for the provided asset \(asset)")
+            self.fail(NextLevelSessionExporterError.setupFailure)
+            return
         }
+        self._reader = reader
+        self._writer = writer
+        // AVAssetWriter refuses an existing file, so anything at `outputURL` from
+        // here on is ours to delete on failure.
+        self._createdOutput = true
 
         // if a video configuration exists, validate it (otherwise, proceed as audio)
         if let _ = self.videoOutputConfiguration, self.validateVideoOutputConfiguration() == false {
             print("NextLevelSessionExporter, could not setup with the specified video output configuration")
-            DispatchQueue.main.async {
-                self._completionHandler?(.failure(NextLevelSessionExporterError.setupFailure))
-            }
+            self.fail(NextLevelSessionExporterError.setupFailure)
+            return
         }
         
-        self._progressHandler = progressHandler
-        self._renderHandler = renderHandler
-        self._completionHandler = completionHandler
-        
-        self._reader?.timeRange = self.timeRange
-        self._writer?.shouldOptimizeForNetworkUse = self.optimizeForNetworkUse
+        reader.timeRange = self.timeRange
+        writer.shouldOptimizeForNetworkUse = self.optimizeForNetworkUse
         
         if let metadata = self.metadata {
-            self._writer?.metadata = metadata
+            writer.metadata = metadata
         }
         
         if self.timeRange.duration.isValid && self.timeRange.duration.isPositiveInfinity == false {
@@ -259,68 +275,72 @@ extension NextLevelSessionExporter {
         // Continuing here used to export only the audio track and still resolve
         // as a success (issue #400).
         guard self.setupVideoOutput(withAsset: asset) else {
-            DispatchQueue.main.async {
-                self._completionHandler?(.failure(NextLevelSessionExporterError.unsupportedVideoOutputConfiguration))
-                self._completionHandler = nil
-            }
+            self.fail(NextLevelSessionExporterError.unsupportedVideoOutputConfiguration)
             return
         }
         if !self.stripAudio {
-            self.setupAudioOutput(withAsset: asset)
-            self.setupAudioInput()
+            // An audio output the reader holds but no writer input drains
+            // stalls the other track, so a rejected audio pairing fails the export.
+            guard self.setupAudio(withAsset: asset) else {
+                self.fail(NextLevelSessionExporterError.setupFailure)
+                return
+            }
+        }
+        
+        var tracks: [(TrackKind, AVAssetReaderOutput, AVAssetWriterInput)] = []
+        if let videoInput = self._videoInput, let videoOutput = self._videoOutput {
+            tracks.append((.video, videoOutput, videoInput))
+        }
+        if let audioInput = self._audioInput, let audioOutput = self._audioOutput {
+            tracks.append((.audio, audioOutput, audioInput))
         }
         
         // export
         
-        self._writer?.startWriting()
-        self._reader?.startReading()
-        self._writer?.startSession(atSourceTime: self.timeRange.start)
+        guard writer.startWriting() else {
+            self.fail(writer.error ?? NextLevelSessionExporterError.writingFailure)
+            return
+        }
+        guard reader.startReading() else {
+            writer.cancelWriting()
+            self.fail(reader.error ?? NextLevelSessionExporterError.readingFailure)
+            return
+        }
+        writer.startSession(atSourceTime: self.timeRange.start)
         
-        let dispatchGroup = DispatchGroup()
-    
-        let videoTracks = asset.tracks(withMediaType: AVMediaType.video)
-        if let videoInput = self._videoInput,
-           let videoOutput = self._videoOutput,
-           videoTracks.count > 0 {
-            dispatchGroup.enter()
-            videoInput.requestMediaDataWhenReady(on: self._inputQueue, using: {
-                if self.encode(readySamplesFromReaderOutput: videoOutput, toWriterInput: videoInput) == false {
-                    dispatchGroup.leave()
-                }
-            })
-        } 
-        
-        if let audioInput = self._audioInput,
-            let audioOutput = self._audioOutput {
-            dispatchGroup.enter()
-            audioInput.requestMediaDataWhenReady(on: self._inputQueue, using: {
-                if self.encode(readySamplesFromReaderOutput: audioOutput, toWriterInput: audioInput) == false {
-                    dispatchGroup.leave()
-                }
-            })
-        } 
-        
-        dispatchGroup.notify(queue: .global()) {
-            DispatchQueue.main.async {
-                self.finish()
+        // Each track leaves the group exactly once — when its samples run out,
+        // or when any track, the watchdog or `cancelExport()` aborts the export.
+        // A writer or reader failure can stop a track's ready callbacks, so the
+        // group cannot rely on each track's own callback to leave.
+        let group = DispatchGroup()
+        self._inputQueue.sync {
+            self._trackGroup = group
+            for (kind, _, _) in tracks {
+                group.enter()
+                self._pendingTracks.insert(kind)
             }
+            if !tracks.isEmpty {
+                self.startWatchdog()
+            }
+        }
+        for (kind, output, input) in tracks {
+            input.requestMediaDataWhenReady(on: self._inputQueue, using: {
+                self.pump(kind, from: output, to: input)
+            })
+        }
+        
+        group.notify(queue: .main) {
+            self.finish()
         }
     }
     
-    /// Cancels any export in progress.
+    /// Cancels any export in progress. The completion handler is still called
+    /// exactly once (with `.cancelled` unless the export had already finished).
     public func cancelExport() {
         self._inputQueue.async {
-            if self._writer?.status == .writing {
-                self._writer?.cancelWriting()
-            }
-            
-            if self._reader?.status == .reading {
-                self._reader?.cancelReading()
-            }
-            
-            DispatchQueue.main.async {
-                self.complete()
-                self.reset()
+            self._cancelRequested = true
+            if !self._pendingTracks.isEmpty {
+                self.abortTracks(nil)
             }
         }
     }
@@ -350,13 +370,16 @@ extension NextLevelSessionExporter {
             self._videoOutput?.videoComposition = self.createVideoComposition()
         }
         
-        if let videoOutput = self._videoOutput,
-            let reader = self._reader {
-            if reader.canAdd(videoOutput) {
-                reader.add(videoOutput)
-            }
+        // A video output the reader refuses would never be drained (and
+        // reading from it raises), so treat it like a rejected configuration.
+        guard let videoOutput = self._videoOutput,
+              let reader = self._reader,
+              reader.canAdd(videoOutput) else {
+            print("NextLevelSessionExporter, the reader rejected the video output")
+            return false
         }
-        
+        reader.add(videoOutput)
+
         // video input
         if self._writer?.canApply(outputSettings: self.videoOutputConfiguration, forMediaType: AVMediaType.video) == true {
             self._videoInput = AVAssetWriterInput(mediaType: AVMediaType.video, outputSettings: self.videoOutputConfiguration)
@@ -368,10 +391,14 @@ extension NextLevelSessionExporter {
         
         if let writer = self._writer,
             let videoInput = self._videoInput {
-            if writer.canAdd(videoInput) {
-                writer.add(videoInput)
+            // An input the writer refuses never becomes ready, so the
+            // export would wait forever.
+            guard writer.canAdd(videoInput) else {
+                print("NextLevelSessionExporter, the writer rejected the video input")
+                return false
             }
-            
+            writer.add(videoInput)
+
             // setup pixelbuffer adaptor
             
             var pixelBufferAttrib: [String : Any] = [:]
@@ -388,14 +415,17 @@ extension NextLevelSessionExporter {
         return true
     }
 
-    private func setupAudioOutput(withAsset asset: AVAsset) {
+    /// Sets up the audio reader output and writer input as a pair. Returns
+    /// `true` without audio when the asset has no usable (non-APAC) audio track,
+    /// and `false` when the reader or writer refuses its half — adding only one
+    /// half leaves an undrained output or an input that never becomes ready, and
+    /// the export waits forever.
+    private func setupAudio(withAsset asset: AVAsset) -> Bool {
+        self._audioOutput = nil
+        self._audioInput = nil
         let audioTracks = asset.tracks(withMediaType: AVMediaType.audio)
         var audioTracksToUse: [AVAssetTrack] = []
-        
-        guard audioTracks.count > 0 else {
-            self._audioOutput = nil
-            return
-        }
+
         // Remove APAC tracks
         for audioTrack in audioTracks {
             let mediaSubtypes = audioTrack.formatDescriptions.filter { CMFormatDescriptionGetMediaType($0 as! CMFormatDescription) == kCMMediaType_Audio }.map { CMFormatDescriptionGetMediaSubType($0 as! CMFormatDescription) }
@@ -403,29 +433,26 @@ extension NextLevelSessionExporter {
                 audioTracksToUse.append(audioTrack)
             }
         }
-        self._audioOutput = AVAssetReaderAudioMixOutput(audioTracks: audioTracksToUse, audioSettings: nil)
-        self._audioOutput?.alwaysCopiesSampleData = false
-        self._audioOutput?.audioMix = self.audioMix
-        if let reader = self._reader,
-            let audioOutput = self._audioOutput {
-            if reader.canAdd(audioOutput) {
-                reader.add(audioOutput)
-            }
+        guard audioTracksToUse.count > 0 else {
+            return true
         }
-    }
-    
-    private func setupAudioInput() {
-        guard let _ = self._audioOutput else {
-            return
+        let audioOutput = AVAssetReaderAudioMixOutput(audioTracks: audioTracksToUse, audioSettings: nil)
+        audioOutput.alwaysCopiesSampleData = false
+        audioOutput.audioMix = self.audioMix
+        let audioInput = AVAssetWriterInput(mediaType: AVMediaType.audio, outputSettings: self.audioOutputConfiguration)
+        audioInput.expectsMediaDataInRealTime = self.expectsMediaDataInRealTime
+        guard let reader = self._reader,
+              let writer = self._writer,
+              reader.canAdd(audioOutput),
+              writer.canAdd(audioInput) else {
+            print("NextLevelSessionExporter, the reader or writer rejected the audio track")
+            return false
         }
-        
-        self._audioInput = AVAssetWriterInput(mediaType: AVMediaType.audio, outputSettings: self.audioOutputConfiguration)
-        self._audioInput?.expectsMediaDataInRealTime = self.expectsMediaDataInRealTime
-        if let writer = self._writer, let audioInput = self._audioInput {
-            if writer.canAdd(audioInput) {
-                writer.add(audioInput)
-            }
-        }
+        reader.add(audioOutput)
+        writer.add(audioInput)
+        self._audioOutput = audioOutput
+        self._audioInput = audioInput
+        return true
     }
     
 }
@@ -434,51 +461,122 @@ extension NextLevelSessionExporter {
 
 extension NextLevelSessionExporter {
     
-    // called on the inputQueue
-    internal func encode(readySamplesFromReaderOutput output: AVAssetReaderOutput, toWriterInput input: AVAssetWriterInput) -> Bool {
-        while input.isReadyForMoreMediaData {
-            guard self._reader?.status == .reading && self._writer?.status == .writing,
-                  let sampleBuffer = output.copyNextSampleBuffer() else {
-                input.markAsFinished()
-                return false
+    // Called on the input queue from the track's ready callback. Every exit
+    // either keeps the track pending (the writer will call again when ready) or
+    // settles it through `finishTrack` / `abortTracks`.
+    fileprivate func pump(_ kind: TrackKind, from output: AVAssetReaderOutput, to input: AVAssetWriterInput) {
+        while self._pendingTracks.contains(kind) && input.isReadyForMoreMediaData {
+            if self._cancelRequested {
+                self.abortTracks(nil)
+                return
             }
-            
-            var handled = false
-            var error = false
-            if self._videoOutput == output {
-                // determine progress
-                self._lastSamplePresentationTime = CMSampleBufferGetPresentationTimeStamp(sampleBuffer) - self.timeRange.start
-                let progress = self._duration == 0 ? 1 : Float(CMTimeGetSeconds(self._lastSamplePresentationTime) / self._duration)
-                self.updateProgress(progress: progress)
-                
-                // prepare progress frames
-                if let pixelBufferAdaptor = self._pixelBufferAdaptor,
-                    let pixelBufferPool = pixelBufferAdaptor.pixelBufferPool,
-                    let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) {
-                    
-                    var toRenderBuffer: CVPixelBuffer? = nil
-                    let result = CVPixelBufferPoolCreatePixelBuffer(kCFAllocatorDefault, pixelBufferPool, &toRenderBuffer)
-                    if result == kCVReturnSuccess {
-                        if let toBuffer = toRenderBuffer {
-                            self._renderHandler?(pixelBuffer, self._lastSamplePresentationTime, toBuffer)
-                            if pixelBufferAdaptor.append(toBuffer, withPresentationTime:self._lastSamplePresentationTime) == false {
-                                error = true
-                            }
-                            handled = true
-                        }
-                    }
+            guard let reader = self._reader,
+                  let writer = self._writer,
+                  writer.status == .writing else {
+                self.abortTracks(nil)
+                return
+            }
+            switch reader.status {
+            case .reading:
+                break
+            case .completed:
+                self.finishTrack(kind, markingFinished: input)
+                return
+            default:
+                self.abortTracks(nil)
+                return
+            }
+            guard let sampleBuffer = output.copyNextSampleBuffer() else {
+                // nil is both "this output is exhausted" and "the reader failed".
+                if reader.status == .failed {
+                    self.abortTracks(nil)
+                } else {
+                    self.finishTrack(kind, markingFinished: input)
                 }
+                return
             }
-            
-            if handled == false && input.append(sampleBuffer) == false {
-                error = true
-            }
-            
-            if error {
-                return false
+            if self.append(sampleBuffer, of: kind, to: input) == false {
+                self.abortTracks(writer.error ?? NextLevelSessionExporterError.writingFailure)
+                return
             }
         }
-        return true
+    }
+
+    // called on the input queue — appends one sample (the former per-sample body of `encode`)
+    fileprivate func append(_ sampleBuffer: CMSampleBuffer, of kind: TrackKind, to input: AVAssetWriterInput) -> Bool {
+        if kind == .video {
+            // determine progress
+            self._lastSamplePresentationTime = CMSampleBufferGetPresentationTimeStamp(sampleBuffer) - self.timeRange.start
+            let progress = self._duration == 0 ? 1 : Float(CMTimeGetSeconds(self._lastSamplePresentationTime) / self._duration)
+            self.updateProgress(progress: progress)
+            
+            // prepare progress frames
+            if let pixelBufferAdaptor = self._pixelBufferAdaptor,
+                let pixelBufferPool = pixelBufferAdaptor.pixelBufferPool,
+                let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) {
+                
+                var toRenderBuffer: CVPixelBuffer? = nil
+                let result = CVPixelBufferPoolCreatePixelBuffer(kCFAllocatorDefault, pixelBufferPool, &toRenderBuffer)
+                if result == kCVReturnSuccess, let toBuffer = toRenderBuffer {
+                    self._renderHandler?(pixelBuffer, self._lastSamplePresentationTime, toBuffer)
+                    return pixelBufferAdaptor.append(toBuffer, withPresentationTime: self._lastSamplePresentationTime)
+                }
+            }
+        }
+        return input.append(sampleBuffer)
+    }
+
+    // called on the input queue — the only place a track leaves the group
+    fileprivate func finishTrack(_ kind: TrackKind, markingFinished input: AVAssetWriterInput?) {
+        guard self._pendingTracks.remove(kind) != nil else {
+            return
+        }
+        if let input = input, self._writer?.status == .writing {
+            input.markAsFinished()
+        }
+        if self._pendingTracks.isEmpty {
+            self._watchdog?.cancel()
+            self._watchdog = nil
+        }
+        self._trackGroup?.leave()
+    }
+
+    // called on the input queue — stops reading and writing and settles every
+    // pending track, so the group always notifies
+    fileprivate func abortTracks(_ error: Error?) {
+        if self._abortError == nil, let error = error {
+            self._abortError = error
+        }
+        if self._reader?.status == .reading {
+            self._reader?.cancelReading()
+        }
+        if self._writer?.status == .writing {
+            self._writer?.cancelWriting()
+        }
+        for kind in self._pendingTracks {
+            self.finishTrack(kind, markingFinished: nil)
+        }
+    }
+
+    // called on the input queue. A writer or reader that fails (or a cancel that
+    // arrives) while no track's ready callback is running would otherwise go
+    // unnoticed — the writer stops calling a failed input's ready block.
+    fileprivate func startWatchdog() {
+        let timer = DispatchSource.makeTimerSource(queue: self._inputQueue)
+        timer.schedule(deadline: .now() + .seconds(1), repeating: .seconds(1))
+        timer.setEventHandler { [weak self] in
+            guard let self = self, !self._pendingTracks.isEmpty else {
+                return
+            }
+            let readerStatus = self._reader?.status
+            if self._cancelRequested
+                || self._writer?.status != .writing
+                || (readerStatus != .reading && readerStatus != .completed) {
+                self.abortTracks(nil)
+            }
+        }
+        self._watchdog = timer
+        timer.resume()
     }
     
     internal func createVideoComposition() -> AVMutableVideoComposition {
@@ -576,18 +674,31 @@ extension NextLevelSessionExporter {
         self._progressHandler?(progress)
     }
     
-    // always called on the main thread
+    // always called on the main thread, once, after every track settled
     internal func finish() {
-        if self._reader?.status == .cancelled || self._writer?.status == .cancelled {
+        let (cancelRequested, abortError) = self._inputQueue.sync { (self._cancelRequested, self._abortError) }
+        guard let reader = self._reader, let writer = self._writer else {
             self.complete()
-        } else if self._writer?.status == .failed {
-            self._reader?.cancelReading()
+            return
+        }
+        if cancelRequested
+            || abortError != nil
+            || writer.status != .writing
+            || reader.status == .failed
+            || reader.status == .cancelled {
+            if reader.status == .reading {
+                reader.cancelReading()
+            }
+            if writer.status == .writing {
+                writer.cancelWriting()
+            }
             self.complete()
-        } else if self._reader?.status == .failed {
-            self._writer?.cancelWriting()
-            self.complete()
-        } else {
-            self._writer?.finishWriting {
+            return
+        }
+        // `finishWriting` calls back on an arbitrary queue; hop to main so
+        // `complete()` never races the main-queue paths.
+        writer.finishWriting {
+            DispatchQueue.main.async {
                 self.complete()
             }
         }
@@ -595,80 +706,71 @@ extension NextLevelSessionExporter {
     
     // always called on the main thread
     internal func complete() {
-        if self._reader?.status == .cancelled || self._writer?.status == .cancelled {
-            guard let outputURL = self.outputURL else {
-                self._completionHandler?(.failure(NextLevelSessionExporterError.cancelled))
-                return
+        let (cancelRequested, abortError) = self._inputQueue.sync { (self._cancelRequested, self._abortError) }
+        var failure: Error? = nil
+        if cancelRequested {
+            failure = NextLevelSessionExporterError.cancelled
+        } else if let reader = self._reader, let writer = self._writer {
+            if writer.status == .failed {
+                failure = writer.error ?? NextLevelSessionExporterError.writingFailure
+            } else if reader.status == .failed {
+                failure = reader.error ?? NextLevelSessionExporterError.readingFailure
+            } else if let abortError = abortError {
+                failure = abortError
+            } else if writer.status == .cancelled || reader.status == .cancelled {
+                failure = NextLevelSessionExporterError.cancelled
+            } else if writer.status != .completed {
+                failure = NextLevelSessionExporterError.writingFailure
+            } else if self.videoOutputConfiguration != nil,
+                      let asset = self.asset,
+                      let outputURL = self.outputURL,
+                      asset.tracks(withMediaType: AVMediaType.video).count > 0,
+                      AVAsset(url: outputURL).tracks(withMediaType: AVMediaType.video).count == 0 {
+                // Guard against silently returning an audio-only file: when the source
+                // has a video track and a video output was configured, the exported file
+                // must contain a video track as well. A configuration the encoder rejects
+                // at write time can still end with `.completed` while the video track is
+                // dropped (issue #400) — surface that as an error instead of a success.
+                failure = NextLevelSessionExporterError.missingVideoTrackInOutput
             }
-            if FileManager.default.fileExists(atPath: outputURL.absoluteString) {
-                try? FileManager.default.removeItem(at: outputURL)
-            }
-            self._completionHandler?(.failure(NextLevelSessionExporterError.cancelled))
-            return
+        } else {
+            failure = NextLevelSessionExporterError.setupFailure
         }
         
-        guard let reader = self._reader else {
-            self._completionHandler?(.failure(NextLevelSessionExporterError.setupFailure))
-            self._completionHandler = nil
-            return
+        if let failure = failure {
+            self.removeOutput()
+            self.deliver(.failure(failure))
+        } else {
+            self.deliver(.success(self.status))
         }
-        
-        guard let writer = self._writer else {
-            self._completionHandler?(.failure(NextLevelSessionExporterError.setupFailure))
-            self._completionHandler = nil
-            return
-        }
-        
-        switch reader.status {
-        case .failed:
-            guard let outputURL = self.outputURL else {
-                self._completionHandler?(.failure(reader.error ?? NextLevelSessionExporterError.readingFailure))
-                return
-            }
-            if FileManager.default.fileExists(atPath: outputURL.absoluteString) {
-                try? FileManager.default.removeItem(at: outputURL)
-            }
-            self._completionHandler?(.failure(reader.error ?? NextLevelSessionExporterError.readingFailure))
-            return
-        default:
-            // do nothing
-            break
-        }
-        
-        switch writer.status {
-        case .failed:
-            guard let outputURL = self.outputURL else {
-                self._completionHandler?(.failure(writer.error ?? NextLevelSessionExporterError.writingFailure))
-                return
-            }
-            if FileManager.default.fileExists(atPath: outputURL.absoluteString) {
-                try? FileManager.default.removeItem(at: outputURL)
-            }
-            self._completionHandler?(.failure(writer.error ?? NextLevelSessionExporterError.writingFailure))
-            return
-        default:
-            // do nothing
-            break
-        }
+    }
 
-        // Guard against silently returning an audio-only file: when the source
-        // has a video track and a video output was configured, the exported file
-        // must contain a video track as well. A configuration the encoder rejects
-        // at write time can still end with `.completed` while the video track is
-        // dropped (issue #400) — surface that as an error instead of a success.
-        if self.videoOutputConfiguration != nil,
-           let asset = self.asset,
-           let outputURL = self.outputURL,
-           asset.tracks(withMediaType: AVMediaType.video).count > 0,
-           AVAsset(url: outputURL).tracks(withMediaType: AVMediaType.video).count == 0 {
-            try? FileManager.default.removeItem(at: outputURL)
-            self._completionHandler?(.failure(NextLevelSessionExporterError.missingVideoTrackInOutput))
-            self._completionHandler = nil
+    // A failure before any track started. Hops to main like every other
+    // completion so the handler is never called re-entrantly from `export()`.
+    fileprivate func fail(_ error: Error) {
+        DispatchQueue.main.async {
+            self.removeOutput()
+            self.deliver(.failure(error))
+        }
+    }
+
+    // always called on the main thread — the only caller of the completion handler
+    fileprivate func deliver(_ result: Swift.Result<AVAssetExportSession.Status, Error>) {
+        guard let completionHandler = self._completionHandler else {
             return
         }
-
-        self._completionHandler?(.success(self.status))
         self._completionHandler = nil
+        completionHandler(result)
+    }
+
+    // always called on the main thread. Removes the output file by URL (a
+    // `fileExists(atPath: outputURL.absoluteString)` check never matches, since
+    // that is a `file://` string, not a path).
+    fileprivate func removeOutput() {
+        guard self._createdOutput, let outputURL = self.outputURL, outputURL.isFileURL else {
+            return
+        }
+        try? FileManager.default.removeItem(at: outputURL)
     }
     
     // subclass and add more checks, if needed

@@ -146,9 +146,37 @@ object ImageCompressor {
       val options = BitmapFactory.Options()
       options.inJustDecodeBounds = true
       decode(options)
-      options.inSampleSize = calculateInSampleSize(options, maxWidth, maxHeight)
+      options.inSampleSize = sampleSizeToFit(options.outWidth, options.outHeight, maxWidth, maxHeight)
       options.inJustDecodeBounds = false
       return decode(options) ?: throw IllegalArgumentException("Unable to decode image")
+    }
+
+    /**
+     * Largest power-of-2 inSampleSize (BitmapFactory rounds down to one anyway)
+     * that still decodes at least the size fitted inside maxWidth x maxHeight,
+     * so resize() only ever scales down. calculateInSampleSize() rounds its
+     * ratios and can undershoot, e.g. 2000x2000 into 1280x1280 decodes 1000x1000.
+     */
+    private fun sampleSizeToFit(width: Int, height: Int, maxWidth: Int, maxHeight: Int): Int {
+      val scale = minOf(maxWidth / width.toFloat(), maxHeight / height.toFloat())
+      var inSampleSize = 1
+      while (inSampleSize * 2 * scale <= 1f) {
+        inSampleSize *= 2
+      }
+      return inSampleSize
+    }
+
+    private fun isTransposed(filePath: String?): Boolean {
+      if (filePath == null) return false
+      return try {
+        when (ExifInterface(filePath).getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)) {
+          ExifInterface.ORIENTATION_TRANSPOSE, ExifInterface.ORIENTATION_ROTATE_90,
+          ExifInterface.ORIENTATION_TRANSVERSE, ExifInterface.ORIENTATION_ROTATE_270 -> true
+          else -> false
+        }
+      } catch (e: IOException) {
+        false
+      }
     }
 
     fun decodeImageDownsampled(value: String?, maxWidth: Int, maxHeight: Int): Bitmap {
@@ -158,7 +186,10 @@ object ImageCompressor {
 
     fun loadImageDownsampled(imagePath: String?, maxWidth: Int, maxHeight: Int): Bitmap {
       val filePath = Uri.parse(imagePath).path
-      return decodeDownsampled(maxWidth, maxHeight) { BitmapFactory.decodeFile(filePath, it) }
+      // The bounds pass measures the stored, unrotated size; resize() runs after
+      // EXIF rotation, so a 90° rotation swaps which edge each limit applies to.
+      val rotated = isTransposed(filePath)
+      return decodeDownsampled(if (rotated) maxHeight else maxWidth, if (rotated) maxWidth else maxHeight) { BitmapFactory.decodeFile(filePath, it) }
     }
 
     fun manualCompressImage(imagePath: String?, options: ImageCompressorOptions, reactContext: ReactApplicationContext?): String? {

@@ -143,6 +143,8 @@ object ImageCompressor {
      * BitmapFactory returns null rather than throwing on undecodable input.
      */
     private fun decodeDownsampled(maxWidth: Int, maxHeight: Int, decode: (BitmapFactory.Options) -> Bitmap?): Bitmap {
+      // A zero bound makes sampleSizeToFit()'s scale 0, so its loop would never end.
+      require(maxWidth > 0 && maxHeight > 0) { "maxWidth and maxHeight must be greater than 0" }
       val options = BitmapFactory.Options()
       options.inJustDecodeBounds = true
       decode(options)
